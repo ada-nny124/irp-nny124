@@ -63,6 +63,12 @@ This directory is reserved for outcome-level EDA after `outputs/fof_outcomes.csv
 
 The script will refuse full analysis when `fof_outcomes.csv` has far fewer than 489 simulation rows.
 
+Generated outputs include:
+
+- `tables/` for dataset overview and grouped outcome summaries
+- `plots/` for fragment-count and mass-metric visualisations
+- `analysis_summary.txt` for a plain-text interpretation and ML-readiness note
+
 ## Re-run
 
 ```bash

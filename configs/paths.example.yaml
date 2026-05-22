@@ -1,0 +1,3 @@
+data_dir: /rds/general/user/<username>/ephemeral/martian_moons_data
+outputs_dir: /rds/general/user/<username>/home/irp-<username>/outputs
+logs_dir: /rds/general/user/<username>/home/irp-<username>/logs

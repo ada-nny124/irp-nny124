@@ -1,30 +1,125 @@
-## **Project Overview**
+# IRP Local-First Pipeline
 
-This repository contains the computational framework and high-fidelity Smoothed Particle Hydrodynamics (SPH) datasets developed for my MSc Dissertation (Independent Research Project) at Imperial College London. This work focuses on the tidal disruption of asteroids during close encounters with Mars as a potential origin mechanism for **Phobos and Deimos**.
+This repository supports an MSc IRP on tidal disruption of asteroids during close encounters with Mars. The immediate goal is a local-first workflow that extracts structured metadata from simulation filenames, performs basic EDA, and sets up the path toward later HDF5 outcome extraction and baseline ML.
 
-*   **Department:** Earth Science and Engineering / I-X
-*   **Course:** MSc Applied Computational Science and Engineering (ACSE)
-*   **Institution:** Imperial College London
-*   **Supervision:** Dr. Jacob Kegerreis (NASA Ames Research Center)
+## Current Focus
 
----
+- Work locally first from filename-level metadata.
+- Avoid downloading or copying the full HPC dataset.
+- Keep SSH access key-based and configuration-driven.
+- Defer scientific outcome modeling until real targets are extracted from HDF5 content.
 
-### **Project Title**
-**Parameter Sensitivity Analysis and Machine Learning Prediction of Tidal Disruption Outcomes in SPH Simulations of Martian Moon Formation**
+## Repo Structure
 
-### **Research Questions**
-1. How do orbital and physical parameters (mass, velocity, spin, etc.) influence tidal disruption outcomes?
-2. Which parameters most strongly control fragment formation and the mass of bound debris?
-3. Can a machine learning model reliably predict disruption outcomes across this multidimensional parameter space?
+```text
+scripts/
+  make_manifest.py
+  inspect_hdf5_schema.py
+  eda_from_manifest.py
+  baseline_ml.py
+configs/
+  paths.example.yaml
+  ssh.example.yaml
+outputs/
+plots/
+docs/
+```
 
-### **Methodology & Infrastructure**
-*   **Simulation Data:** High-fidelity SPH datasets modeling planetary-scale tidal forces and asteroid fragmentation.
-*   **HPC Integration:** All simulations and data processing pipelines are executed on Imperial’s **High Performance Computing (HPC) cluster, CX3**.
-*   **Framework:** A custom Python-based pipeline for particle-level data analysis, fragment identification, and sensitivity analysis, integrated with machine learning models to approximate simulation outcomes.
+## Safe Configuration
 
----
+Do not commit secrets, passwords, or personal machine-specific config.
 
-### **Abstract**
-Tidal disruption is a leading hypothesis for generating the debris necessary to form the Martian satellite system. This project investigates how an asteroid's physical and orbital conditions, such as periapsis distance and encounter velocity, dictate the resulting debris structure. By leveraging SPH datasets and machine learning, this framework quantifies these relationships to provide a predictive tool for planetary science, bypassing the need for computationally expensive full simulations in every parameter regime.
+- Copy `configs/paths.example.yaml` to `configs/paths.yaml` for local use if needed.
+- Copy `configs/ssh.example.yaml` to `configs/ssh.yaml` only for notes; keep real access in `~/.ssh/config`.
+- `configs/paths.yaml`, `configs/ssh.yaml`, `.env`, HDF5 data, generated CSVs, and plots are ignored by Git.
 
-The ultimate goal is to evaluate if tidal disruption debris disks could realistically coalesce into the current Martian moons and to provide a robust computational pipeline for future planetary disruption research.
+Recommended SSH config:
+
+```sshconfig
+Host imperial-hpc
+    HostName login.cx3.hpc.ic.ac.uk
+    User nny124
+    IdentityFile ~/.ssh/id_ed25519
+    ForwardAgent yes
+```
+
+Generate and install a key:
+
+```bash
+ssh-keygen -t ed25519 -C "nny124@imperial-hpc"
+ssh-copy-id imperial-hpc
+```
+
+If `ssh-copy-id` is unavailable, copy `~/.ssh/id_ed25519.pub` into `~/.ssh/authorized_keys` on the cluster manually.
+
+## Local-First Workflow
+
+1. Build a manifest from filenames only.
+2. Run EDA on the manifest.
+3. Inspect a sample HDF5 schema when local or HPC file access is stable.
+4. Add outcome extraction before any real ML training.
+
+## Manifest Creation
+
+From a local text file of filenames:
+
+```bash
+python scripts/make_manifest.py --from-file filenames.txt --output outputs/manifest.csv
+```
+
+From a local directory containing HDF5 files:
+
+```bash
+python scripts/make_manifest.py --from-dir path/to/hdf5_dir --output outputs/manifest.csv
+```
+
+From the HPC directory via an SSH alias:
+
+```bash
+python scripts/make_manifest.py \
+  --ssh-host imperial-hpc \
+  --remote-dir '$EPHEMERAL/martian_moons_data' \
+  --output outputs/manifest.csv
+```
+
+This only lists filenames remotely. It does not download the 203G dataset.
+
+## EDA
+
+Run EDA locally from the manifest:
+
+```bash
+python scripts/eda_from_manifest.py --manifest outputs/manifest.csv
+```
+
+This prints counts by parameter, writes summary CSVs into `outputs/`, and saves simple coverage plots into `plots/`.
+
+## HDF5 Schema Inspection
+
+Inspect one sample file without loading full arrays:
+
+```bash
+python scripts/inspect_hdf5_schema.py --file path/to/sample.hdf5
+```
+
+This prints top-level groups, recursively lists datasets, records shapes and dtypes, and writes `outputs/hdf5_schema_summary.csv`.
+
+## Baseline ML Placeholder
+
+The baseline ML script currently builds manifest-derived features only:
+
+```bash
+python scripts/baseline_ml.py --manifest outputs/manifest.csv
+```
+
+If no real physical targets are available, it stops with:
+
+```text
+No physical outcome target available yet. Run outcome extraction first.
+```
+
+## Data Safety
+
+- Do not commit `*.hdf5`, `*.h5`, generated outputs, plots, or secrets.
+- Do not hardcode passwords in code, config, notebooks, or shell scripts.
+- Prefer SSH keys and `~/.ssh/config` so the workflow does not prompt repeatedly for passwords.

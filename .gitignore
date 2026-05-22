@@ -1,12 +1,16 @@
 *.hdf5
-ml_training_data_90ks.csv
-# Simulation data and snapshots
+*.h5
+.DS_Store
+.env
+configs/paths.yaml
+configs/ssh.yaml
+outputs/*.csv
+outputs/*.parquet
+plots/*.png
+plots/*.pdf
+data/
+scratch/
 snapshots/
-*.hdf5
-
-# Machine learning datasets and summaries
-.pkl
-
-# Python caches
 __pycache__/
+.ipynb_checkpoints/
 *.py[cod]

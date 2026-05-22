@@ -1,0 +1,8 @@
+local:
+  manifest_path: outputs/manifest.csv
+  plots_dir: plots
+  outputs_dir: outputs
+
+hpc:
+  host_alias: imperial-hpc
+  data_dir: "$EPHEMERAL/martian_moons_data"

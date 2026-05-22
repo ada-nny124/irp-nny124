@@ -1,4 +1,4 @@
-Before-extraction EDA only.
+Raw-data overview only.
 
 Manifest completeness: 489 rows excluding header; expected 489. Complete=True.
 Sampled schema coverage: 1542 schema rows across 3 sampled files.
@@ -21,4 +21,4 @@ We can describe simulation parameter coverage and verify that sampled files expo
 We cannot use this stage for physical outcome EDA or ML targets because fof_outcomes.csv is not yet complete.
 
 Next step:
-Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda_after_extraction.py.
+Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda_outcome_eda.py.

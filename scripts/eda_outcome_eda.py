@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EDA for full FoF outcome tables after extraction is complete."""
+"""Outcome EDA for full FoF outcome tables after extraction is complete."""
 
 import argparse
 from pathlib import Path
@@ -13,7 +13,7 @@ EXPECTED_SIMULATION_ROWS = 489
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run after-extraction EDA using FoF outcomes and fragment catalogs."
+        description="Run outcome EDA using FoF outcomes and fragment catalogs."
     )
     parser.add_argument("--outcomes", required=True, help="Path to outputs/fof_outcomes.csv")
     parser.add_argument("--fragments", required=True, help="Path to outputs/fragment_catalog.csv")
@@ -57,7 +57,7 @@ def has_meaningful_mass_metrics(outcomes: pd.DataFrame) -> bool:
 
 
 def write_readme(base_dir: Path) -> None:
-    content = """# After-Extraction EDA
+    content = """# Outcome EDA
 
 This directory is reserved for outcome-level EDA after `outputs/fof_outcomes.csv` is complete.
 
@@ -72,11 +72,11 @@ Generated outputs include:
 ## Re-run
 
 ```bash
-python scripts/eda_after_extraction.py \
+python scripts/eda_outcome_eda.py \
   --outcomes outputs/fof_outcomes.csv \
   --fragments outputs/fragment_catalog.csv \
   --errors outputs/extraction_errors.csv \
-  --eda-dir eda/after_extraction
+  --eda-dir eda/outcome_eda
 ```
 """
     (base_dir / "README.md").write_text(content, encoding="utf-8")

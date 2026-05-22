@@ -1,4 +1,4 @@
-# Before-Extraction EDA
+# Raw Data Overview
 
 This directory contains exploratory data analysis generated from:
 
@@ -16,5 +16,8 @@ It does not use `outputs/fof_outcomes.csv` or `outputs/fragment_catalog.csv`.
 ## Re-run
 
 ```bash
-python scripts/eda_before_extraction.py   --manifest outputs/manifest.csv   --schema outputs/hdf5_schema_summary.csv   --eda-dir eda/before_extraction
+python scripts/eda_raw_data_overview.py \
+  --manifest outputs/manifest.csv \
+  --schema outputs/hdf5_schema_summary.csv \
+  --eda-dir eda/raw_data_overview
 ```

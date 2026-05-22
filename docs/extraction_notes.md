@@ -72,11 +72,11 @@ python3 scripts/extract_fof_outcomes.py \
   --exclude-group-id -1
 ```
 
-Full extraction through Slurm:
+Full extraction through PBS:
 
 ```bash
-sbatch scripts/run_extract_fof.slurm
-squeue -u "$USER"
+qsub scripts/run_extract_fof.pbs
+qstat -u "$USER"
 tail -f logs/irp_fof_extract_*.out
 ```
 

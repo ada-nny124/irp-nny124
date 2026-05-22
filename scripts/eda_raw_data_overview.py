@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EDA for manifest and sampled HDF5 schema prior to full FoF extraction."""
+"""Raw-data overview for manifest and sampled HDF5 schema."""
 
 import argparse
 from pathlib import Path
@@ -13,7 +13,7 @@ EXPECTED_SIMULATION_ROWS = 489
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run before-extraction EDA using manifest and sampled schema data."
+        description="Run raw-data overview using manifest and sampled schema data."
     )
     parser.add_argument("--manifest", required=True, help="Path to outputs/manifest.csv")
     parser.add_argument("--schema", required=True, help="Path to outputs/hdf5_schema_summary.csv")
@@ -263,7 +263,7 @@ def write_plots(manifest: pd.DataFrame, coverage_tables, plots_dir: Path):
 
 
 def write_readme(base_dir: Path) -> None:
-    content = """# Before-Extraction EDA
+    content = """# Raw Data Overview
 
 This directory contains exploratory data analysis generated from:
 
@@ -281,10 +281,10 @@ It does not use `outputs/fof_outcomes.csv` or `outputs/fragment_catalog.csv`.
 ## Re-run
 
 ```bash
-python scripts/eda_before_extraction.py \
+python scripts/eda_raw_data_overview.py \
   --manifest outputs/manifest.csv \
   --schema outputs/hdf5_schema_summary.csv \
-  --eda-dir eda/before_extraction
+  --eda-dir eda/raw_data_overview
 ```
 """
     (base_dir / "README.md").write_text(content, encoding="utf-8")
@@ -311,7 +311,7 @@ def write_analysis_summary(
         for row in schema_fields.itertuples()
     )
     lines = [
-        "Before-extraction EDA only.",
+        "Raw-data overview only.",
         "",
         f"Manifest completeness: {int(overview_row['manifest_simulation_rows'])} rows excluding header; "
         f"expected {EXPECTED_SIMULATION_ROWS}. Complete={manifest_complete}.",
@@ -337,7 +337,7 @@ def write_analysis_summary(
         "We cannot use this stage for physical outcome EDA or ML targets because fof_outcomes.csv is not yet complete.",
         "",
         "Next step:",
-        "Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda_after_extraction.py.",
+        "Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda_outcome_eda.py.",
     ]
     (base_dir / "analysis_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

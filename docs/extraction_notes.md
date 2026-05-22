@@ -72,19 +72,11 @@ python3 scripts/extract_fof_outcomes.py \
   --exclude-group-id -1
 ```
 
-<<<<<<< HEAD
 Full extraction through PBS:
 
 ```bash
 qsub scripts/run_extract_fof.pbs
 qstat -u "$USER"
-=======
-Full extraction through Slurm:
-
-```bash
-sbatch scripts/run_extract_fof.slurm
-squeue -u "$USER"
->>>>>>> 1d002c7 (docs: add extraction notes and run instructions)
 tail -f logs/irp_fof_extract_*.out
 ```
 

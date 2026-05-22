@@ -1,54 +1,69 @@
 # FoF Extraction Notes
 
-This is the first real HDF5 extraction stage for the Martian-moons dataset. It is designed to run on Imperial HPC, next to the downloaded FoF snapshot files, without copying the raw HDF5 data into the repository.
-
 ## Scope
 
-- Extract filename-level parameters into `outputs/manifest.csv`.
-- Inspect a sample of HDF5 schemas into `outputs/hdf5_schema_summary.csv`.
-- Extract conservative FoF group statistics into:
-  - `outputs/fof_outcomes.csv`
-  - `outputs/fragment_catalog.csv`
-- Write `outputs/extraction_errors.csv` only if errors occur.
+This pipeline extracts only conservative FoF-level outcomes that are directly supported by each HDF5 file:
 
-## What The Current Extractor Computes
+- filename-derived simulation parameters in `outputs/manifest.csv`
+- sampled HDF5 schema metadata in `outputs/hdf5_schema_summary.csv`
+- one row per simulation in `outputs/fof_outcomes.csv`
+- one row per FoF fragment in `outputs/fragment_catalog.csv`
+- extraction failures in `outputs/extraction_errors.csv`, only when errors occur
 
-The current extractor only computes FoF group statistics that can be obtained directly from fields present in the HDF5 files:
+It does not attempt bound-debris, orbital capture, disk mass, or moon-forming debris science. Those require validated positions, velocities, units, frame conventions, and energy calculations.
 
-- `fragment_count_min_particles`
+## Safe First-Stage Outcomes
+
+For first-pass EDA and model training, the safest target table is `outputs/fof_outcomes.csv`. It contains one row per FoF snapshot file. The most defensible columns are:
+
+- filename parameters: `mass_code`, `spin_code`, `resolution_code`, `periapsis_code`, `velocity_code`, `timestep`, `fof_linking_length`
+- `n_fof_groups`: unique FoF group IDs after excluding any configured sentinel IDs
+- `fragment_count_min_particles`: number of groups with at least `min_particles`
+- `largest_fragment_particle_count`: particle-count proxy for the largest surviving fragment
+- `largest_fragment_mass_kg`, `total_fragment_mass_kg`, `fragment_mass_fraction`: mass-based outcomes only when particle masses and mass units are present
+
+## Real Mass Metrics vs Proxies
+
+Mass-based outcomes are only populated when the HDF5 file includes both:
+
+- `PartType0/Masses` (or equivalent gas-particle masses)
+- unit metadata that can convert particle masses to kilograms
+
+When that information is available:
+
+- `mass_metrics_available = True`
+- `mass_unit = kg`
+- `largest_fragment_mass_kg`, `total_fragment_mass_kg`, and `fragment_mass_fraction` are physically scaled from HDF5 mass fields
+
+Particle-count fields are still proxies:
+
 - `largest_fragment_particle_count`
-- `largest_fragment_mass`, only if a particle mass dataset is found
-- `total_fragment_mass`, only if a particle mass dataset is found
-- `fragment_mass_fraction`, only if a particle mass dataset is found
+- `particle_count` and `particle_fraction_of_snapshot` in `fragment_catalog.csv`
 
-## What It Does Not Yet Compute
+Those should not be described as mass unless you explicitly choose to use them as resolution-dependent proxies.
 
-This stage does not yet calculate:
+## Current Group Filters
 
-- bound mass
-- orbital capture
-- disk mass
-- debris orbital classification
+The extraction script supports:
 
-Those require validated physics and field-level interpretation beyond simple FoF extraction.
+- `--min-particles 20` to define what counts as a fragment in summary metrics
+- `--exclude-group-id -1` to drop the common unassigned/background FoF sentinel from group counts
 
-## Interpreting Mass-Like Outputs
+In addition, the extractor reads `Parameters.attrs["FOF:group_id_default"]` when present and excludes that HDF5-defined default group ID automatically. `n_fof_groups` counts all non-excluded FoF IDs. `fragment_count_min_particles` applies the particle threshold on top of that.
 
-- If `mass_dataset` is populated and `mass_source` is `particle_masses`, then mass-like outputs come from an actual particle-mass field.
-- If `mass_dataset` is blank and `mass_source` is `particle_count_proxy`, then `largest_fragment_mass` and `total_fragment_mass` are only particle-count proxies and must not be presented as physical mass.
+## HDF5 Schema Summary
 
-## Quality Checks
+`outputs/hdf5_schema_summary.csv` is sample-only. It records dataset paths, shapes, dtypes, and attribute previews for the requested number of files without loading full arrays into memory.
 
-- Inspect `outputs/extraction_errors.csv` before trusting downstream analysis.
-- Review `outputs/hdf5_schema_summary.csv` to confirm which datasets are actually present.
-- Treat `fragment_count_min_particles` and `largest_fragment_particle_count` as the safest first targets for early sensitivity analysis.
+## Running on Imperial HPC
 
-## HPC Run Outline
+The scripts assume the dataset already exists on the cluster filesystem under `$EPHEMERAL/martian_moons_data`.
 
-Test on a few files first:
+Login-shell test:
 
 ```bash
-python scripts/extract_fof_outcomes.py \
+module load tools/prod h5py/3.12.1-foss-2024a
+python3 scripts/extract_fof_outcomes.py \
   --data-dir "$EPHEMERAL/martian_moons_data" \
   --outputs-dir outputs \
   --limit 3 \
@@ -57,10 +72,18 @@ python scripts/extract_fof_outcomes.py \
   --exclude-group-id -1
 ```
 
-Then submit the full batch run:
+Full extraction through PBS:
 
 ```bash
-sbatch scripts/run_extract_fof.slurm
-squeue -u "$USER"
+qsub scripts/run_extract_fof.pbs
+qstat -u "$USER"
 tail -f logs/irp_fof_extract_*.out
+```
+
+## Copying Outputs Locally
+
+Only small CSV outputs should be committed. If an output is not committed, copy it from HPC with:
+
+```bash
+rsync -avz nny124@login.cx3.hpc.ic.ac.uk:~/irp-nny124/outputs/ ./outputs/
 ```

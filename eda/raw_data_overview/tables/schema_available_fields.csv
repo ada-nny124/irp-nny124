@@ -1,0 +1,9 @@
+field_name,present_in_sample_schema,matching_schema_rows,sample_files_with_match
+PartType0,True,555,3
+FOFGroupIDs,True,36,3
+Masses,True,36,3
+Coordinates,True,36,3
+Velocities,True,36,3
+ParticleIDs,True,36,3
+Units,True,15,3
+Parameters,True,348,3

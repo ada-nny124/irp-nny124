@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -N irp_fof_extract
+#PBS -o logs/irp_fof_extract_$PBS_JOBID.out
+#PBS -e logs/irp_fof_extract_$PBS_JOBID.err
+#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=1:mem=16gb
+
+set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-$HOME/irp-nny124}"
+DATA_DIR="${DATA_DIR:-$EPHEMERAL/martian_moons_data}"
+OUTPUTS_DIR="${OUTPUTS_DIR:-$REPO_DIR/outputs}"
+SCHEMA_SAMPLES="${SCHEMA_SAMPLES:-3}"
+MIN_PARTICLES="${MIN_PARTICLES:-20}"
+EXCLUDE_GROUP_ID="${EXCLUDE_GROUP_ID:--1}"
+
+cd "$REPO_DIR"
+mkdir -p "$OUTPUTS_DIR" logs
+
+module load tools/prod h5py/3.12.1-foss-2024a
+
+python3 scripts/extract_fof_outcomes.py \
+  --data-dir "$DATA_DIR" \
+  --outputs-dir "$OUTPUTS_DIR" \
+  --schema-samples "$SCHEMA_SAMPLES" \
+  --min-particles "$MIN_PARTICLES" \
+  --exclude-group-id "$EXCLUDE_GROUP_ID"

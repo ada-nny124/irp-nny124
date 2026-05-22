@@ -1,0 +1,2 @@
+sim_id,n_particles,asteroid_mass_kg,r_p_target_Rm,v_inf_kms,spin_period_hr,spin_orientation_angle,material_id,total_bound_mass_kg,bound_mass_fraction,largest_remnant_mass_kg,fragment_count,avg_apoapsis_Rm,debris_spread_km
+Ma_xp_A2000_n70_r16_v00,10099881,9.99636e+19,1.6,0.0,12641.403243601346,94.13248367340563,Ma_xp,9.983463093816728e+19,0.9987098020866694,2.2966174226580156e+19,498,414.20664337515444,318838111.2630617

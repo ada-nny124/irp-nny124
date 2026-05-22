@@ -10,6 +10,8 @@ plots/*.png
 plots/*.pdf
 data/
 scratch/
+logs/*.out
+logs/*.err
 snapshots/
 __pycache__/
 .ipynb_checkpoints/

@@ -2,7 +2,11 @@ local:
   manifest_path: outputs/manifest.csv
   plots_dir: plots
   outputs_dir: outputs
+  logs_dir: logs
 
 hpc:
   host_alias: imperial-hpc
   data_dir: "$EPHEMERAL/martian_moons_data"
+  repo_dir: "$HOME/irp-nny124"
+  outputs_dir: outputs
+  logs_dir: logs

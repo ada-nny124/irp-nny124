@@ -11,7 +11,8 @@ logs/*.out
 logs/*.err
 __pycache__/
 .ipynb_checkpoints/
-snapshots/
+archived/snapshots/
 *.pkl
 *.py[cod]
 .DS_Store
+

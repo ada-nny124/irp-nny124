@@ -23,7 +23,11 @@ except ImportError as exc:  # pragma: no cover - runtime dependency on HPC modul
 
 
 FILENAME_RE = re.compile(
+<<<<<<< HEAD
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
+=======
+    r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]?))?"
+>>>>>>> 5aaf06d (feat: add FoF HDF5 extraction script)
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
     r"_(?P<timestep>\d+)_fof_(?P<linking_length>[0-9.]+)_(?P<chunk>\d+)\.hdf5$"
 )
@@ -129,7 +133,11 @@ def parse_simulation_filename(filename: str) -> dict[str, object]:
     spin_code = match.group("spin") or ""
     special_case_code = "c30" if mass_code.endswith("c30") else ""
     mass_digits = mass_code[1:5]
+<<<<<<< HEAD
     spin_axis = spin_code[4:] if len(spin_code) > 4 else ""
+=======
+    spin_axis = spin_code[-1] if spin_code and spin_code[-1].isalpha() else ""
+>>>>>>> 5aaf06d (feat: add FoF HDF5 extraction script)
     spin_value = spin_code[1:4] if spin_code else ""
 
     resolution_value = int(match.group("resolution"))

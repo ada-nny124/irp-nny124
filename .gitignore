@@ -12,3 +12,4 @@ __pycache__/
 snapshots/
 *.pkl
 *.py[cod]
+.DS_Store

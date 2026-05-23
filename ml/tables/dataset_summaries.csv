@@ -1,3 +1,0 @@
-dataset,rows,description
-full,489,All simulations in outputs/fof_outcomes.csv.
-clean_subset,166,"Subset with timestep == 90000, resolution_code == n65, fof_linking_length == 0.004, excluding special_case_code."

@@ -1,2 +1,0 @@
-manifest_simulation_rows,schema_rows,unique_sampled_schema_files,total_file_size_bytes,min_file_size_bytes,median_file_size_bytes,max_file_size_bytes,manifest_appears_complete,expected_manifest_rows
-489,1542,3,217792592434,50119221,462775104.0,1098212512,True,489

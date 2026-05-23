@@ -28,3 +28,8 @@ Artifacts:
 - `plots/<model_name>/` for actual-vs-predicted and residual plots grouped by model
 - `models/` for serialized baseline models
 - `ml_summary.txt` for a plain-text overview
+- `model_diagnostics/` for:
+  - train-vs-test overfitting checks
+  - grouped residual analysis by periapsis, mass, velocity, spin axis, and FoF linking length
+  - feature-importance stability checks across datasets and feature sets
+  - with-vs-without `fof_linking_length` robustness comparisons

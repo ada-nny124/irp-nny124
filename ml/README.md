@@ -25,6 +25,6 @@ Artifacts:
 - `tables/model_metrics.csv`
 - `tables/feature_importance.csv`
 - `tables/dataset_summaries.csv`
-- `plots/` for actual-vs-predicted and residual plots
+- `plots/<model_name>/` for actual-vs-predicted and residual plots grouped by model
 - `models/` for serialized baseline models
 - `ml_summary.txt` for a plain-text overview

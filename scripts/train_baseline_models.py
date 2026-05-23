@@ -209,6 +209,12 @@ def safe_slug(text: str) -> str:
     return text.replace("/", "_").replace(" ", "_")
 
 
+def model_plots_dir(plots_dir: Path, model_name: str) -> Path:
+    path = plots_dir / safe_slug(model_name)
+    ensure_dir(path)
+    return path
+
+
 def save_plot(y_true: pd.Series, y_pred: np.ndarray, output_path: Path, title: str, x_label: str, y_label: str) -> None:
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.scatter(y_true, y_pred, alpha=0.7, color="#1f77b4", edgecolors="none")
@@ -352,10 +358,11 @@ def train_for_target(
         )
 
         stem = safe_slug(f"{dataset_name}__{target_name}__{model_name}")
+        current_plots_dir = model_plots_dir(plots_dir, model_name)
         save_plot(
             y_test,
             predictions,
-            plots_dir / f"{stem}__actual_vs_predicted.png",
+            current_plots_dir / f"{stem}__actual_vs_predicted.png",
             title=f"{dataset_name} | {target_name} | {model_name}",
             x_label="Actual",
             y_label="Predicted",
@@ -363,7 +370,7 @@ def train_for_target(
         save_residual_plot(
             y_test,
             predictions,
-            plots_dir / f"{stem}__residuals.png",
+            current_plots_dir / f"{stem}__residuals.png",
             title=f"{dataset_name} | {target_name} | {model_name} residuals",
         )
 

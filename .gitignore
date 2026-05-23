@@ -15,4 +15,4 @@ archived/snapshots/
 *.pkl
 *.py[cod]
 .DS_Store
-
+ml/models/*.pkl

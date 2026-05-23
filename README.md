@@ -130,7 +130,7 @@ Diagnostics:
 - `eda/outcome_eda/`: summaries for extracted FoF outcomes
 - `ml/`: baseline ML metrics, plots, and diagnostics
 
-Each active `plots/` and `tables/` directory now includes a local README/index file describing the files in that folder and how to interpret them.
+Each active `plots/` and `tables/` directory now includes a local index file such as `plot_list.md` or `table_list.md` describing the files in that folder and how to interpret them.
 
 ## Safe Configuration
 

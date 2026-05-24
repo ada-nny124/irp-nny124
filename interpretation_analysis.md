@@ -15,6 +15,23 @@ Repository artifact policy:
 - The main excluded artifacts are `outputs/fragment_catalog.csv`, serialized model binaries in `ml/models/*.pkl`, and the full `ml/model_diagnostics/plots/` tree.
 - Smaller tables, summaries, and baseline plots are included because they are compact and directly support interpretation.
 
+Excluded generated artifacts:
+
+| Path or pattern | Approximate size | Commit status | Reason |
+| --- | --- | --- | --- |
+| `outputs/fragment_catalog.csv` | `79.46 MB` | Excluded | Too large for routine repository review; row-level fragment detail is not required for the current baseline ML |
+| `ml/models/*.pkl` | `36.18 MB` total across `48` files | Excluded | Binary model artifacts are reproducible and add substantial repository weight with low review value |
+| `ml/model_diagnostics/plots/` | `9.28 MB` total across `216` files | Excluded | Full diagnostics plot tree is bulky and repetitive; diagnostics tables already preserve the main quantitative findings |
+
+Included generated artifacts:
+
+| Artifact group | Commit status | Reason |
+| --- | --- | --- |
+| `outputs/manifest.csv`, `outputs/fof_outcomes.csv`, `outputs/hdf5_schema_summary.csv` | Included | Compact core datasets needed to inspect extraction outputs |
+| `eda/**/tables/*.csv` and `eda/**/plots/*.png` | Included | Small EDA artifacts directly support the interpretation section |
+| `ml/tables/*.csv` and `ml/plots/**/*.png` | Included | Baseline ML metrics and plots are compact enough to review in GitHub |
+| `ml/model_diagnostics/tables/*.csv` | Included | Diagnostics tables preserve overfitting, bias, and robustness results without the heavier plot tree |
+
 ## Dataset Status
 
 - Outcome rows extracted: `489 / 489`

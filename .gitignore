@@ -3,7 +3,7 @@
 .env
 configs/paths.yaml
 configs/ssh.yaml
-outputs/*.csv
+outputs/fragment_catalog.csv
 outputs/*.parquet
 data/
 scratch/
@@ -16,14 +16,7 @@ archived/snapshots/
 *.py[cod]
 .DS_Store
 ml/models/*.pkl
-ml/ml_summary.txt
-ml/plots/
-ml/tables/
-ml/model_diagnostics/
-eda/raw_data_overview/analysis_summary.txt
-eda/raw_data_overview/plots/
-eda/raw_data_overview/tables/
-eda/outcome_eda/analysis_summary.txt
+# Keep compact generated artifacts in Git for review.
+# Exclude only heavyweight or low-value generated outputs.
+ml/model_diagnostics/plots/
 eda/outcome_eda/analysis_interpretation.md
-eda/outcome_eda/plots/
-eda/outcome_eda/tables/

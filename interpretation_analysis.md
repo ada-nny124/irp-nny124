@@ -8,6 +8,13 @@ Scope limits:
 - They do **not** yet provide validated measurements of bound debris mass, orbital capture, disk mass, or moon formation.
 - Any comparison to Kegerreis et al. (2024) should therefore be read as a comparison in **qualitative control hierarchy**, not as a direct reproduction of the paper's capture or disk-mass results.
 
+Repository artifact policy:
+
+- Lightweight generated evidence is kept in GitHub so the repository remains inspectable without rerunning the pipeline.
+- As a practical rule, generated files above roughly `3 MB` per file are excluded from commits unless they carry unusually high review value.
+- The main excluded artifacts are `outputs/fragment_catalog.csv`, serialized model binaries in `ml/models/*.pkl`, and the full `ml/model_diagnostics/plots/` tree.
+- Smaller tables, summaries, and baseline plots are included because they are compact and directly support interpretation.
+
 ## Dataset Status
 
 - Outcome rows extracted: `489 / 489`

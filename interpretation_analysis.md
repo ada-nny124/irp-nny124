@@ -63,6 +63,34 @@ Outcome summary values:
   - `fof_linking_length == 0.004`
   - rows: `166`
 
+## Filename Reference
+
+These tables are included as a quick reference for reading filename codes and understanding how often the main parameter values appear in the dataset.
+
+### Table 1 - Filename parameters and ranges
+
+| Parameter | Filename code | Range in dataset | Meaning |
+| --- | --- | --- | --- |
+| Asteroid mass | `A1800-A2100` | `10^18-10^21 kg` | Parent asteroid mass |
+| Resolution | `n50-n70` | `10^5-10^7 particles` | SPH particle resolution |
+| Periapsis | `r11-r30` | `1.1-3.0 Mars radii` | Closest approach to Mars |
+| Velocity | `v00-v30` | `0.0-3.0 km/s` | Speed at infinity |
+| Spin | `s030-s170` + axis | `3.0-17.0 hr`; `x/y/z/mz` | Asteroid spin period and direction |
+| Timestep | `54000-108000` | Snapshot output time | Simulation output stage |
+| FoF linking length | `fof_0.0001-0.0126` | Grouping length | Fragment-detection setting |
+
+### Table 2 - File counts by parameter value
+
+| Parameter | Counts |
+| --- | --- |
+| Asteroid mass | `A2000: 299; A1900: 134; A2000c30: 16; A1800: 10; A1950: 10; other: 20` |
+| Resolution | `n65: 427; n60: 25; n50: 16; n70: 14; n55: 7` |
+| Periapsis | `r12: 149; r16: 130; r20: 53; r14: 26; r18: 23; other: 108` |
+| Velocity | `v00: 355; v06: 40; v02: 24; v04: 23; v08: 15; other: 32` |
+| Spin | `no explicit spin: 272; s047z: 66; s030z: 65; s086z: 7; s170z: 7; other: 72` |
+| Timestep | `90000: 408; 89000: 35; 72000: 10; 66000: 5; 78000: 4; other: 27` |
+| FoF linking length | `0.004: 216; 0.002: 129; 0.006: 25; 0.003: 20; 0.001: 14; other: 85` |
+
 ## Table Inventory
 
 ### Raw-data EDA tables

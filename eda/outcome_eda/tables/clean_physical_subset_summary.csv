@@ -1,0 +1,2 @@
+recommended_timestep,most_common_resolution_code,most_common_fof_linking_length,exclude_special_cases,subset_rows,subset_fraction,mean_fragment_count_min_particles,mean_largest_fragment_particle_count,mean_largest_fragment_mass_kg,mean_fragment_mass_fraction
+90000,n65,0.004,True,166,0.3394683026584867,421.06024096385545,975410.0662650602,3.0633033524091744e+19,1.0

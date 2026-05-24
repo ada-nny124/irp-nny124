@@ -1,0 +1,2 @@
+outcome_rows,expected_outcome_rows,outcomes_complete,fragment_rows,simulations_with_fragments,extraction_error_rows,simulations_with_errors,mass_metrics_available_rows
+489,489,True,208155,475,0,0,489

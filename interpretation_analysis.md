@@ -63,6 +63,8 @@ Outcome summary values:
 
 From `dataset_overview.csv`, `parameter_counts.csv`, and the coverage matrices, it can be seen that the dataset covers multiple masses, periapses, velocities, resolutions, and spins, but not with perfectly even density. Therefore any later physical or ML interpretation must be read against possible sampling imbalance, especially where a parameter combination appears in only a few cells.
 
+More quantitatively, `parameter_counts.csv` shows that the dataset is dominated by `mass_code = A2000` with `299/489` runs (`61.1%`) and `A1900` with `134/489` runs (`27.4%`), while all other mass codes together account for only `56/489` runs (`11.5%`). Resolution is even more concentrated: `resolution_code = n65` appears in `427/489` runs (`87.3%`), while `n50`, `n55`, and `n60` together make up only `48/489` runs (`9.8%`). Therefore the project has good total coverage, but the effective design density is strongly concentrated in a narrow mass and resolution regime, which is one reason the clean subset is useful for interpretation.
+
 ### Outcome EDA tables
 
 | File | Meaning |
@@ -74,6 +76,8 @@ From `dataset_overview.csv`, `parameter_counts.csv`, and the coverage matrices, 
 
 From `outcome_dataset_overview.csv`, it can be seen that the extracted table is complete at `489/489` simulations with `0` extraction errors. From `outcome_summary_stats.csv`, it can be seen that `fragment_count_min_particles` spans `0` to `6441` with median `255`, and `largest_fragment_particle_count` spans `0` to `3,922,894` with median `259,351`. Therefore the outcome space is broad enough to support meaningful modelling, but the targets are also highly skewed and nontrivial.
 
+The same table shows that `largest_fragment_mass_kg` spans `0` to `3.888e20 kg`, with median `6.311e18 kg` and mean `2.413e19 kg`, so the mean is about `3.8x` the median and the target is strongly right-skewed. `fragment_mass_fraction` is defined for `475` rows and is exactly `1.0` in every defined case, with `std = 0.0`, so it contains no predictive variation. From `clean_physical_subset_summary.csv`, the recommended controlled subset contains `166` rows, or `33.95%` of the full dataset, with mean fragment count `421.06` and mean largest-fragment mass `3.063e19 kg`. Therefore the clean subset is large enough to be analytically useful while still removing a substantial amount of post-processing and resolution variation.
+
 ### Baseline ML tables
 
 | File | Meaning |
@@ -83,6 +87,8 @@ From `outcome_dataset_overview.csv`, it can be seen that the extracted table is 
 | `model_metrics.csv` | Train/test `MAE`, `RMSE`, `R2`, and gap values for all runs |
 
 From `model_metrics.csv`, it can be seen that the best full-dataset models reach `R2 = 0.902` for `largest_fragment_particle_count`, `R2 = 0.885` for `largest_fragment_mass_kg`, and `R2 = 0.737` for `fragment_count_min_particles` when `fof_linking_length` is included. Therefore the baseline ML is already useful for some FoF-derived targets, but not equally strong across all targets.
+
+More specifically, on the full dataset with `fof_linking_length` included, the best `largest_fragment_particle_count` model is `gradient_boosting` with `test_MAE = 208,553.958`, `test_RMSE = 375,799.135`, and `test_R2 = 0.902`, while the best `largest_fragment_mass_kg` model is also `gradient_boosting` with `test_MAE = 7.155e18 kg`, `test_RMSE = 1.218e19 kg`, and `test_R2 = 0.885`. For `fragment_count_min_particles`, the best full-dataset model is `random_forest` with `test_MAE = 131.521`, `test_RMSE = 277.270`, and `test_R2 = 0.737`. On the clean subset, the best scores are `R2 = 0.872` for fragment count, `0.830` for largest-fragment particle count, and `0.828` for largest-fragment mass. Therefore the baseline is strongest on the largest-fragment targets and still clearly useful, though less stable, on fragment count.
 
 ### ML diagnostics tables
 
@@ -97,6 +103,8 @@ From `model_metrics.csv`, it can be seen that the best full-dataset models reach
 | `target_difficulty_summary.csv` | Best-target comparison and difficulty ranking |
 
 From `fof_linking_length_comparison.csv`, it can be seen that removing `fof_linking_length` on the full dataset drops `R2` by `0.050` for fragment count, `0.159` for largest fragment particle count, and `0.228` for largest fragment mass. Therefore the current baseline is learning a meaningful amount of FoF post-processing behavior in addition to physical structure. From `prediction_bias_summary.csv`, it can also be seen that extreme high-actual cases are often underpredicted, especially for the largest-fragment targets.
+
+The diagnostics are quantitatively sharp on three additional points. First, `overfit_summary.csv` shows that full-dataset `gradient_boosting` for `largest_fragment_mass_kg` has `train_R2 = 0.969` and `test_R2 = 0.885`, a gap of `0.084`, while full-dataset `random_forest` for `fragment_count_min_particles` has `train_R2 = 0.915` and `test_R2 = 0.737`, a larger gap of `0.179`. Second, `prediction_bias_summary.csv` shows that the full `gradient_boosting` mass model underpredicts high-actual cases `96%` of the time with mean high-actual residual `+1.252e19 kg`, and the equivalent particle-count model underpredicts high-actual cases `64%` of the time with mean high-actual residual `+298,043`. Third, `feature_stability_summary.csv` shows that top-5 feature overlap between full and clean datasets ranges from only `2/5` features (`Jaccard = 0.25`) up to `4/5` features (`Jaccard = 0.667`), so feature rankings are only moderately stable. Therefore the models are informative, but the interpretation is still sensitive to dataset definition and outcome extremity.
 
 ## Plot Inventory
 
@@ -118,6 +126,8 @@ From `fof_linking_length_comparison.csv`, it can be seen that removing `fof_link
 
 From the raw-data coverage plots, it can be seen where the sampled design space is dense and where it is thin. Therefore later physical and ML conclusions are more trustworthy in the well-sampled regions than in edge-case combinations with few examples.
 
+Quantitatively, these plots should be read alongside the parameter counts: because `n65` alone contributes `427` runs and `A2000` contributes `299`, the densest heatmap cells are expected to represent that dominant sampling block rather than a uniformly designed grid. Therefore visually strong regions in the coverage plots do not automatically imply stronger physical effects; they may simply reflect where the simulation campaign spent most of its budget.
+
 ### Outcome EDA plots
 
 | File | Meaning |
@@ -138,6 +148,8 @@ From the raw-data coverage plots, it can be seen where the sampled design space 
 | `largest_fragment_particles_vs_periapsis.png` | Largest-fragment size vs periapsis |
 
 From the outcome plots, it can be seen that `fragment_mass_fraction` is not a useful target because it is effectively constant, while fragment count and largest-fragment metrics show broad and structured variation. Therefore the project was right to focus ML on `fragment_count_min_particles`, `largest_fragment_particle_count`, and `largest_fragment_mass_kg` instead.
+
+The quantitative scale matters here: `fragment_count_min_particles` varies by a factor of effectively unbounded size from `0` to `6441`, `largest_fragment_particle_count` spans from `0` to `3.922e6`, and `largest_fragment_mass_kg` spans from `0` to `3.888e20 kg`. Because the medians are much smaller than the maxima, the distribution plots are expected to show heavy right tails and the scatter plots are expected to be dominated by a minority of extreme outcomes. Therefore any model that looks slightly compressed at the upper end is behaving consistently with the actual target geometry, not necessarily failing at the bulk of the distribution.
 
 ### Baseline ML plots
 
@@ -163,6 +175,8 @@ Interpretation for all `residuals` plots:
 - Curvature, fan shapes, or asymmetry indicate systematic bias or missing nonlinear structure.
 
 From the baseline ML plots, it can be seen whether a model is only regressing toward the mean or is actually tracking outcome variation. Therefore these plots are the quickest visual screen for whether a model is worth interpreting further.
+
+The quantitative benchmark behind those plots is the gap between the dummy baseline and the best nonlinear models. On the full dataset, `largest_fragment_particle_count` improves from dummy `test_R2 = -0.003` to `0.902`, and `largest_fragment_mass_kg` improves from dummy `test_R2 = -0.014` to `0.885`. Even for the harder fragment-count target, performance rises from dummy `test_R2 = -0.014` to `0.737`. Therefore the nonlinear models are not merely fitting noise around the mean; they are capturing substantial outcome structure that is visible both numerically and visually.
 
 ### ML diagnostics plots
 
@@ -192,6 +206,8 @@ Interpretation for grouped residual plots:
   - Strong separation by linking length suggests dependence on FoF grouping choices rather than only physical controls.
 
 From the diagnostics plots and grouped residual summaries, it can be seen that the largest errors cluster in specific periapsis regimes and, in some runs, around particular FoF linking lengths. Therefore the best models are capturing a meaningful signal, but they are not uniformly reliable across all parts of parameter space.
+
+In practice, this means the residual-by-feature plots should be interpreted with the bias table in hand. For example, the best full fragment-count model still overpredicts low-actual cases `92%` of the time and underpredicts high-actual cases `56%` of the time, while the best full largest-fragment-mass model underpredicts high-actual cases `96%` of the time. Therefore residual structure near the extremes is not accidental; it reflects a measurable regression-to-the-mean bias that persists even in the best-performing models.
 
 ## ML Model Inventory
 
@@ -296,6 +312,8 @@ This means the present ML system is learning a mixture of:
 - scaling effects associated with mass and resolution
 
 So the current feature-importance story is **partly physically plausible**, but not yet clean enough to claim that it isolates only the physical disruption hierarchy described by Kegerreis et al.
+
+A more quantitative comparison to Kegerreis is that `periapsis_Rm` is top-ranked for both full-dataset `gradient_boosting` models of `largest_fragment_mass_kg` and `largest_fragment_particle_count`, but `fof_linking_length` ranks second for mass and third for particle count in those same runs. For `fragment_count_min_particles`, the full-dataset `random_forest` actually ranks `mass_log10_kg` first and `fof_linking_length` second, with `periapsis_Rm` only third. In the clean subset, once resolution and linking length are held fixed, the dominant features shift toward `periapsis_Rm`, `spin_axis`, and `spin_period_hr`, which is much closer to the Kegerreis hierarchy. Therefore the agreement with Kegerreis improves when non-physical analysis choices are constrained.
 
 ## Quantitative Answers to the Research Questions
 

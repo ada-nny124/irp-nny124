@@ -126,6 +126,18 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="FoF group ID to exclude. Pass multiple times to exclude multiple IDs.",
     )
+    parser.add_argument(
+        "--mars-mass-kg",
+        type=float,
+        default=DEFAULT_MARS_MASS_KG,
+        help="Fallback Mars point-mass value in kg when it is not recoverable from the snapshot metadata.",
+    )
+    parser.add_argument(
+        "--mars-radius-m",
+        type=float,
+        default=DEFAULT_MARS_RADIUS_M,
+        help="Mars radius in metres for reporting periapsis and apoapsis in Mars radii.",
+    )
     return parser.parse_args()
 
 
@@ -384,6 +396,60 @@ def extract_particle_physics(
             }
 
     return particle_rows, point_mass_kg, str(path.resolve())
+
+
+def fragment_orbital_metrics(
+    center_of_mass: dict[str, float],
+    point_mass_kg: float,
+    mars_radius_m: float,
+) -> dict[str, float | bool]:
+    x_m = center_of_mass["x_m"]
+    y_m = center_of_mass["y_m"]
+    z_m = center_of_mass["z_m"]
+    vx_ms = center_of_mass["vx_ms"]
+    vy_ms = center_of_mass["vy_ms"]
+    vz_ms = center_of_mass["vz_ms"]
+
+    radius_m = math.sqrt(x_m * x_m + y_m * y_m + z_m * z_m)
+    speed_sq = vx_ms * vx_ms + vy_ms * vy_ms + vz_ms * vz_ms
+    if radius_m <= 0.0:
+        return {
+            "fragment_specific_orbital_energy_j_per_kg": math.nan,
+            "fragment_is_bound": False,
+            "semi_major_axis_m": math.nan,
+            "eccentricity": math.nan,
+            "periapsis_Rm": math.nan,
+            "apoapsis_Rm": math.nan,
+        }
+
+    mu = GRAVITATIONAL_CONSTANT * point_mass_kg
+    specific_energy = 0.5 * speed_sq - mu / radius_m
+    hx = y_m * vz_ms - z_m * vy_ms
+    hy = z_m * vx_ms - x_m * vz_ms
+    hz = x_m * vy_ms - y_m * vx_ms
+    h_sq = hx * hx + hy * hy + hz * hz
+    eccentricity_sq = 1.0 + (2.0 * specific_energy * h_sq) / (mu * mu)
+    eccentricity = math.sqrt(max(eccentricity_sq, 0.0)) if math.isfinite(eccentricity_sq) else math.nan
+
+    semi_major_axis_m = math.nan
+    periapsis_rm = math.nan
+    apoapsis_rm = math.nan
+    is_bound = specific_energy < 0.0
+    if is_bound and not math.isclose(specific_energy, 0.0):
+        semi_major_axis_m = -mu / (2.0 * specific_energy)
+        periapsis_m = semi_major_axis_m * (1.0 - eccentricity)
+        apoapsis_m = semi_major_axis_m * (1.0 + eccentricity)
+        periapsis_rm = periapsis_m / mars_radius_m
+        apoapsis_rm = apoapsis_m / mars_radius_m
+
+    return {
+        "fragment_specific_orbital_energy_j_per_kg": specific_energy,
+        "fragment_is_bound": is_bound,
+        "semi_major_axis_m": semi_major_axis_m,
+        "eccentricity": eccentricity,
+        "periapsis_Rm": periapsis_rm,
+        "apoapsis_Rm": apoapsis_rm,
+    }
 
 
 def get_auto_excluded_group_ids(handle: h5py.File) -> set[int]:

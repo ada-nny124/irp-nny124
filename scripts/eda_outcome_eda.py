@@ -9,6 +9,15 @@ import pandas as pd
 
 
 EXPECTED_SIMULATION_ROWS = 489
+BOUND_METRIC_COLUMNS = [
+    "bound_particle_fraction",
+    "bound_mass_fraction",
+    "bound_fragment_count_min_particles",
+    "largest_bound_fragment_mass_kg",
+    "largest_bound_fragment_particle_count",
+    "mean_bound_fragment_periapsis_Rm",
+    "mean_bound_fragment_apoapsis_Rm",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,12 +65,27 @@ def has_meaningful_mass_metrics(outcomes: pd.DataFrame) -> bool:
     return any(numeric_series(outcomes, column).notna().any() for column in mass_columns)
 
 
+def has_bound_metrics(outcomes: pd.DataFrame) -> bool:
+    if "bound_metrics_available" not in outcomes.columns:
+        return False
+    available = outcomes["bound_metrics_available"].fillna(False).astype(str).str.lower().isin(
+        {"true", "1", "yes"}
+    )
+    if not available.any():
+        return False
+    return any(
+        numeric_series(outcomes, column).notna().any()
+        for column in BOUND_METRIC_COLUMNS
+        if column in outcomes.columns
+    )
+
+
 def write_readme(base_dir: Path) -> None:
     content = """# Outcome EDA
 
 This directory is reserved for outcome-level EDA after `outputs/fof_outcomes.csv` is complete.
 
-The script will refuse full analysis when `fof_outcomes.csv` has far fewer than 489 simulation rows.
+The script supports both full-study runs and smaller local validation subsets.
 
 Generated outputs include:
 
@@ -123,6 +147,13 @@ def write_summary_stats(outcomes: pd.DataFrame, tables_dir: Path) -> pd.DataFram
         "largest_fragment_mass_kg",
         "total_fragment_mass_kg",
         "fragment_mass_fraction",
+        "bound_particle_fraction",
+        "bound_mass_fraction",
+        "bound_fragment_count_min_particles",
+        "largest_bound_fragment_mass_kg",
+        "largest_bound_fragment_particle_count",
+        "mean_bound_fragment_periapsis_Rm",
+        "mean_bound_fragment_apoapsis_Rm",
         "fof_linking_length",
         "timestep",
     ]
@@ -161,6 +192,11 @@ def write_grouped_means(outcomes: pd.DataFrame, tables_dir: Path) -> pd.DataFram
             "largest_fragment_particle_count",
             "largest_fragment_mass_kg",
             "fragment_mass_fraction",
+            "bound_particle_fraction",
+            "bound_mass_fraction",
+            "bound_fragment_count_min_particles",
+            "largest_bound_fragment_mass_kg",
+            "largest_bound_fragment_particle_count",
         ]
         if column in outcomes.columns
     ]
@@ -206,6 +242,13 @@ def write_clean_subset_summary(outcomes: pd.DataFrame, tables_dir: Path) -> pd.D
                 ).mean(),
                 "mean_largest_fragment_mass_kg": numeric_series(subset, "largest_fragment_mass_kg").mean(),
                 "mean_fragment_mass_fraction": numeric_series(subset, "fragment_mass_fraction").mean(),
+                "mean_bound_mass_fraction": numeric_series(subset, "bound_mass_fraction").mean(),
+                "mean_bound_fragment_count_min_particles": numeric_series(
+                    subset, "bound_fragment_count_min_particles"
+                ).mean(),
+                "mean_largest_bound_fragment_mass_kg": numeric_series(
+                    subset, "largest_bound_fragment_mass_kg"
+                ).mean(),
             }
         ]
     )

@@ -287,7 +287,7 @@ def write_fragment_population_tables(fragments: pd.DataFrame, tables_dir: Path) 
     ).sort_index()
     rank_summary = (
         ranked[ranked["rank"] <= 20]
-        .groupby("rank", as_index=False)["cumulative_mass_fraction"]
+        .groupby("rank")["cumulative_mass_fraction"]
         .agg(["mean", "median", "min", "max"])
         .reset_index()
     )

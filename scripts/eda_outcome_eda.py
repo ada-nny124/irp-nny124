@@ -339,6 +339,77 @@ def save_heatmap(table: pd.DataFrame, title: str, xlabel: str, ylabel: str, outp
     plt.close(fig)
 
 
+def write_fragment_population_plots(outcomes: pd.DataFrame, fragments: pd.DataFrame, plots_dir: Path) -> list[str]:
+    generated: list[str] = []
+
+    fragment_masses = numeric_series(fragments, "fragment_mass_kg").dropna()
+    if not fragment_masses.empty:
+        save_histogram(
+            fragment_masses,
+            "Distribution of fragment mass",
+            "Fragment mass (kg)",
+            plots_dir / "distribution_fragment_mass_kg.png",
+        )
+        generated.append("distribution_fragment_mass_kg.png")
+
+        ccdf = (
+            pd.DataFrame({"fragment_mass_kg": fragment_masses})
+            .sort_values("fragment_mass_kg", ascending=False)
+            .reset_index(drop=True)
+        )
+        ccdf["n_fragments_ge_mass"] = range(1, len(ccdf) + 1)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.step(ccdf["fragment_mass_kg"], ccdf["n_fragments_ge_mass"], where="post", color="#4C78A8")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_title("Cumulative number of fragments above mass")
+        ax.set_xlabel("Fragment mass (kg)")
+        ax.set_ylabel("N(>= mass)")
+        fig.tight_layout()
+        fig.savefig(plots_dir / "cumulative_fragment_count_above_mass.png", dpi=150)
+        plt.close(fig)
+        generated.append("cumulative_fragment_count_above_mass.png")
+
+    ranked = fragments.copy()
+    ranked["fragment_mass_kg_num"] = numeric_series(ranked, "fragment_mass_kg")
+    ranked = ranked.dropna(subset=["fragment_mass_kg_num"])
+    ranked = ranked[ranked["fragment_mass_kg_num"] > 0].copy()
+    if not ranked.empty:
+        ranked = ranked.sort_values(["simulation_id", "fragment_mass_kg_num"], ascending=[True, False])
+        ranked["rank"] = ranked.groupby("simulation_id").cumcount() + 1
+        ranked["total_fragment_mass_kg"] = ranked.groupby("simulation_id")["fragment_mass_kg_num"].transform("sum")
+        ranked["cumulative_mass_fraction"] = (
+            ranked.groupby("simulation_id")["fragment_mass_kg_num"].cumsum() / ranked["total_fragment_mass_kg"]
+        )
+        rank_curve = ranked[ranked["rank"] <= 20].groupby("rank", as_index=False)["cumulative_mass_fraction"].mean()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(rank_curve["rank"], rank_curve["cumulative_mass_fraction"], color="#F58518", linewidth=2)
+        ax.set_title("Cumulative mass fraction vs fragment rank")
+        ax.set_xlabel("Fragment rank by mass")
+        ax.set_ylabel("Mean cumulative mass fraction")
+        ax.set_ylim(0, 1.05)
+        fig.tight_layout()
+        fig.savefig(plots_dir / "cumulative_mass_fraction_vs_fragment_rank.png", dpi=150)
+        plt.close(fig)
+        generated.append("cumulative_mass_fraction_vs_fragment_rank.png")
+
+    if {"largest_fragment_mass_kg", "total_particle_mass_kg", "periapsis_value"}.issubset(outcomes.columns):
+        largest_fraction = pd.to_numeric(outcomes["largest_fragment_mass_kg"], errors="coerce") / pd.to_numeric(
+            outcomes["total_particle_mass_kg"], errors="coerce"
+        )
+        save_scatter(
+            numeric_series(outcomes, "periapsis_value"),
+            largest_fraction,
+            "Largest fragment mass fraction vs periapsis",
+            "Periapsis (Rm)",
+            "Largest fragment mass fraction",
+            plots_dir / "largest_fragment_mass_fraction_vs_periapsis.png",
+        )
+        generated.append("largest_fragment_mass_fraction_vs_periapsis.png")
+
+    return generated
+
+
 def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
     generated = []
     plot_metrics = [

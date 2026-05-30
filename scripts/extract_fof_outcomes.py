@@ -101,6 +101,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", required=True, help="Directory containing FoF HDF5 files.")
     parser.add_argument("--outputs-dir", default="outputs", help="Directory for generated CSV outputs.")
+    parser.add_argument(
+        "--physical-data-dir",
+        default=None,
+        help="Optional directory containing matching non-FoF physical snapshots for bound/unbound analysis.",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Only process the first N files after sorting.")
     parser.add_argument(
         "--schema-samples",
@@ -302,6 +307,14 @@ def get_time_conversion_to_s(handle: h5py.File) -> float | None:
             value = raw[0] if hasattr(raw, "__len__") and not isinstance(raw, (bytes, str)) else raw
             return float(value)
     return None
+
+
+def matching_physical_snapshot_path(fof_path: Path, physical_data_dir: Path | None) -> Path | None:
+    if physical_data_dir is None:
+        return None
+    base_name = fof_path.name.split("_fof_", 1)[0] + ".hdf5"
+    candidate = physical_data_dir / base_name
+    return candidate if candidate.exists() else None
 
 
 def get_auto_excluded_group_ids(handle: h5py.File) -> set[int]:

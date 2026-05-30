@@ -25,6 +25,7 @@ except ImportError as exc:  # pragma: no cover - runtime dependency on HPC modul
 GRAVITATIONAL_CONSTANT = 6.67430e-11
 DEFAULT_MARS_MASS_KG = 6.4171e23
 DEFAULT_MARS_RADIUS_M = 3.3895e6
+DEFAULT_MARS_HILL_RADIUS_M = 1.08e9
 
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
@@ -84,6 +85,13 @@ OUTCOME_FIELDS = MANIFEST_FIELDS + [
     "largest_unbound_fragment_particle_count",
     "largest_bound_fragment_mass_kg",
     "largest_unbound_fragment_mass_kg",
+    "n_bound_fragments",
+    "n_captured_fragments",
+    "n_captured_fragments_1p2_hill",
+    "captured_mass_kg",
+    "captured_mass_fraction",
+    "captured_mass_kg_1p2_hill",
+    "captured_mass_fraction_1p2_hill",
     "mean_bound_fragment_apoapsis_Rm",
     "mean_bound_fragment_periapsis_Rm",
     "excluded_group_ids",
@@ -99,6 +107,14 @@ FRAGMENT_FIELDS = MANIFEST_FIELDS + [
     "mass_metrics_available",
     "fragment_mass_kg",
     "fragment_mass_fraction_of_snapshot",
+    "com_x_m",
+    "com_y_m",
+    "com_z_m",
+    "com_vx_ms",
+    "com_vy_ms",
+    "com_vz_ms",
+    "r_m",
+    "v_ms",
     "bound_metrics_available",
     "bound_particle_count",
     "unbound_particle_count",
@@ -108,10 +124,16 @@ FRAGMENT_FIELDS = MANIFEST_FIELDS + [
     "unbound_mass_kg",
     "bound_mass_fraction_of_fragment",
     "unbound_mass_fraction_of_fragment",
+    "specific_energy_Jkg",
     "fragment_specific_orbital_energy_j_per_kg",
+    "is_bound",
     "fragment_is_bound",
     "semi_major_axis_m",
     "eccentricity",
+    "apoapsis_m",
+    "is_captured_hill",
+    "is_captured_inside_1RHill",
+    "is_captured_inside_1p2RHill",
     "periapsis_Rm",
     "apoapsis_Rm",
 ]
@@ -170,6 +192,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_MARS_RADIUS_M,
         help="Mars radius in metres for reporting periapsis and apoapsis in Mars radii.",
+    )
+    parser.add_argument(
+        "--mars-hill-radius-m",
+        type=float,
+        default=DEFAULT_MARS_HILL_RADIUS_M,
+        help="Mars Hill radius in metres for stricter capture classification.",
     )
     return parser.parse_args()
 
@@ -356,10 +384,10 @@ def get_time_conversion_to_s(handle: h5py.File) -> float | None:
 
 def matching_physical_snapshot_path(fof_path: Path, physical_data_dir: Path | None) -> Path | None:
     if physical_data_dir is None:
-        return None
+        return fof_path
     base_name = fof_path.name.split("_fof_", 1)[0] + ".hdf5"
     candidate = physical_data_dir / base_name
-    return candidate if candidate.exists() else None
+    return candidate if candidate.exists() else fof_path
 
 
 def get_point_mass_kg(handle: h5py.File, default_mars_mass_kg: float) -> float:
@@ -390,6 +418,8 @@ def extract_particle_physics(
         particle_ids = part_group["ParticleIDs"][()].tolist()
         coordinates = part_group["Coordinates"][()]
         velocities = part_group["Velocities"][()]
+        if not velocities.any():
+            raise ValueError("Velocity dataset is entirely zero; this file is not usable for bound-orbit extraction.")
         masses_kg = get_particle_masses_kg(handle, part_group)
 
         box_size_raw = handle["Header"].attrs["BoxSize"] if "Header" in handle and "BoxSize" in handle["Header"].attrs else 0.0
@@ -435,6 +465,7 @@ def fragment_orbital_metrics(
     center_of_mass: dict[str, float],
     point_mass_kg: float,
     mars_radius_m: float,
+    mars_hill_radius_m: float,
 ) -> dict[str, float | bool]:
     x_m = center_of_mass["x_m"]
     y_m = center_of_mass["y_m"]
@@ -445,12 +476,27 @@ def fragment_orbital_metrics(
 
     radius_m = math.sqrt(x_m * x_m + y_m * y_m + z_m * z_m)
     speed_sq = vx_ms * vx_ms + vy_ms * vy_ms + vz_ms * vz_ms
+    speed_ms = math.sqrt(speed_sq)
     if radius_m <= 0.0:
         return {
+            "com_x_m": x_m,
+            "com_y_m": y_m,
+            "com_z_m": z_m,
+            "com_vx_ms": vx_ms,
+            "com_vy_ms": vy_ms,
+            "com_vz_ms": vz_ms,
+            "r_m": radius_m,
+            "v_ms": speed_ms,
+            "specific_energy_Jkg": math.nan,
             "fragment_specific_orbital_energy_j_per_kg": math.nan,
+            "is_bound": False,
             "fragment_is_bound": False,
             "semi_major_axis_m": math.nan,
             "eccentricity": math.nan,
+            "apoapsis_m": math.nan,
+            "is_captured_hill": False,
+            "is_captured_inside_1RHill": False,
+            "is_captured_inside_1p2RHill": False,
             "periapsis_Rm": math.nan,
             "apoapsis_Rm": math.nan,
         }
@@ -465,6 +511,7 @@ def fragment_orbital_metrics(
     eccentricity = math.sqrt(max(eccentricity_sq, 0.0)) if math.isfinite(eccentricity_sq) else math.nan
 
     semi_major_axis_m = math.nan
+    apoapsis_m = math.nan
     periapsis_rm = math.nan
     apoapsis_rm = math.nan
     is_bound = specific_energy < 0.0
@@ -474,12 +521,28 @@ def fragment_orbital_metrics(
         apoapsis_m = semi_major_axis_m * (1.0 + eccentricity)
         periapsis_rm = periapsis_m / mars_radius_m
         apoapsis_rm = apoapsis_m / mars_radius_m
+    is_captured_hill = bool(is_bound and math.isfinite(apoapsis_m) and apoapsis_m < mars_hill_radius_m)
+    is_captured_hill_1p2 = bool(is_bound and math.isfinite(apoapsis_m) and apoapsis_m < (1.2 * mars_hill_radius_m))
 
     return {
+        "com_x_m": x_m,
+        "com_y_m": y_m,
+        "com_z_m": z_m,
+        "com_vx_ms": vx_ms,
+        "com_vy_ms": vy_ms,
+        "com_vz_ms": vz_ms,
+        "r_m": radius_m,
+        "v_ms": speed_ms,
+        "specific_energy_Jkg": specific_energy,
         "fragment_specific_orbital_energy_j_per_kg": specific_energy,
+        "is_bound": is_bound,
         "fragment_is_bound": is_bound,
         "semi_major_axis_m": semi_major_axis_m,
         "eccentricity": eccentricity,
+        "apoapsis_m": apoapsis_m,
+        "is_captured_hill": is_captured_hill,
+        "is_captured_inside_1RHill": is_captured_hill,
+        "is_captured_inside_1p2RHill": is_captured_hill_1p2,
         "periapsis_Rm": periapsis_rm,
         "apoapsis_Rm": apoapsis_rm,
     }
@@ -501,6 +564,7 @@ def extract_group_metrics(
     physical_data_dir: Path | None,
     default_mars_mass_kg: float,
     mars_radius_m: float,
+    mars_hill_radius_m: float,
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     manifest = parse_simulation_filename(path.name)
     manifest["file_path"] = str(path.resolve())
@@ -509,13 +573,10 @@ def extract_group_metrics(
     physical_snapshot_path = matching_physical_snapshot_path(path, physical_data_dir)
     particle_physics: dict[int, dict[str, float]] = {}
     point_mass_kg = default_mars_mass_kg
-    if physical_snapshot_path is not None:
-        particle_physics, point_mass_kg, resolved_physical_path = extract_particle_physics(
-            physical_snapshot_path,
-            default_mars_mass_kg,
-        )
-    else:
-        resolved_physical_path = ""
+    particle_physics, point_mass_kg, resolved_physical_path = extract_particle_physics(
+        physical_snapshot_path,
+        default_mars_mass_kg,
+    )
 
     with h5py.File(path, "r") as handle:
         part_group = get_parttype_group(handle)
@@ -587,6 +648,11 @@ def extract_group_metrics(
         largest_unbound_fragment_particle_count = 0
         largest_bound_fragment_mass_kg = 0.0
         largest_unbound_fragment_mass_kg = 0.0
+        n_bound_fragments = 0
+        n_captured_fragments = 0
+        n_captured_fragments_1p2_hill = 0
+        captured_mass_kg = 0.0
+        captured_mass_kg_1p2_hill = 0.0
         bound_fragment_apoapsis_values: list[float] = []
         bound_fragment_periapsis_values: list[float] = []
 
@@ -642,9 +708,17 @@ def extract_group_metrics(
                     "unbound_particle_count": int(accumulator["particle_count"] - accumulator["bound_particle_count"]),
                     "bound_mass_kg": accumulator["bound_mass_kg"],
                     "unbound_mass_kg": accumulator["total_mass_kg"] - accumulator["bound_mass_kg"],
-                    **fragment_orbital_metrics(center_of_mass, point_mass_kg, mars_radius_m),
+                    **fragment_orbital_metrics(center_of_mass, point_mass_kg, mars_radius_m, mars_hill_radius_m),
                 }
                 group_bound_summaries[group_id] = summary
+                if bool(summary["fragment_is_bound"]):
+                    n_bound_fragments += 1
+                if bool(summary["is_captured_inside_1RHill"]):
+                    n_captured_fragments += 1
+                    captured_mass_kg += float(accumulator["total_mass_kg"])
+                if bool(summary["is_captured_inside_1p2RHill"]):
+                    n_captured_fragments_1p2_hill += 1
+                    captured_mass_kg_1p2_hill += float(accumulator["total_mass_kg"])
 
                 if count >= min_particles:
                     if bool(summary["fragment_is_bound"]):
@@ -690,6 +764,13 @@ def extract_group_metrics(
             "largest_unbound_fragment_particle_count": largest_unbound_fragment_particle_count if bound_metrics_available else "",
             "largest_bound_fragment_mass_kg": largest_bound_fragment_mass_kg if bound_metrics_available else "",
             "largest_unbound_fragment_mass_kg": largest_unbound_fragment_mass_kg if bound_metrics_available else "",
+            "n_bound_fragments": n_bound_fragments if bound_metrics_available else "",
+            "n_captured_fragments": n_captured_fragments if bound_metrics_available else "",
+            "n_captured_fragments_1p2_hill": n_captured_fragments_1p2_hill if bound_metrics_available else "",
+            "captured_mass_kg": captured_mass_kg if bound_metrics_available else "",
+            "captured_mass_fraction": captured_mass_kg / total_particle_mass_kg if bound_metrics_available and total_particle_mass_kg else "",
+            "captured_mass_kg_1p2_hill": captured_mass_kg_1p2_hill if bound_metrics_available else "",
+            "captured_mass_fraction_1p2_hill": captured_mass_kg_1p2_hill / total_particle_mass_kg if bound_metrics_available and total_particle_mass_kg else "",
             "mean_bound_fragment_apoapsis_Rm": sum(bound_fragment_apoapsis_values) / len(bound_fragment_apoapsis_values) if bound_fragment_apoapsis_values else "",
             "mean_bound_fragment_periapsis_Rm": sum(bound_fragment_periapsis_values) / len(bound_fragment_periapsis_values) if bound_fragment_periapsis_values else "",
             "excluded_group_ids": ",".join(str(group_id) for group_id in sorted(all_excluded_group_ids)),
@@ -718,6 +799,14 @@ def extract_group_metrics(
                     "mass_metrics_available": mass_metrics_available,
                     "fragment_mass_kg": fragment_mass,
                     "fragment_mass_fraction_of_snapshot": fragment_fraction,
+                    "com_x_m": bound_summary.get("com_x_m", ""),
+                    "com_y_m": bound_summary.get("com_y_m", ""),
+                    "com_z_m": bound_summary.get("com_z_m", ""),
+                    "com_vx_ms": bound_summary.get("com_vx_ms", ""),
+                    "com_vy_ms": bound_summary.get("com_vy_ms", ""),
+                    "com_vz_ms": bound_summary.get("com_vz_ms", ""),
+                    "r_m": bound_summary.get("r_m", ""),
+                    "v_ms": bound_summary.get("v_ms", ""),
                     "bound_metrics_available": bound_metrics_available,
                     "bound_particle_count": bound_particle_count_for_group,
                     "unbound_particle_count": unbound_particle_count_for_group,
@@ -727,10 +816,16 @@ def extract_group_metrics(
                     "unbound_mass_kg": unbound_mass_for_group,
                     "bound_mass_fraction_of_fragment": bound_mass_for_group / fragment_mass if bound_metrics_available and mass_metrics_available and fragment_mass not in {"", 0, 0.0} else "",
                     "unbound_mass_fraction_of_fragment": unbound_mass_for_group / fragment_mass if bound_metrics_available and mass_metrics_available and fragment_mass not in {"", 0, 0.0} else "",
+                    "specific_energy_Jkg": bound_summary.get("specific_energy_Jkg", ""),
                     "fragment_specific_orbital_energy_j_per_kg": bound_summary.get("fragment_specific_orbital_energy_j_per_kg", ""),
+                    "is_bound": bound_summary.get("is_bound", ""),
                     "fragment_is_bound": bound_summary.get("fragment_is_bound", ""),
                     "semi_major_axis_m": bound_summary.get("semi_major_axis_m", ""),
                     "eccentricity": bound_summary.get("eccentricity", ""),
+                    "apoapsis_m": bound_summary.get("apoapsis_m", ""),
+                    "is_captured_hill": bound_summary.get("is_captured_hill", ""),
+                    "is_captured_inside_1RHill": bound_summary.get("is_captured_inside_1RHill", ""),
+                    "is_captured_inside_1p2RHill": bound_summary.get("is_captured_inside_1p2RHill", ""),
                     "periapsis_Rm": bound_summary.get("periapsis_Rm", ""),
                     "apoapsis_Rm": bound_summary.get("apoapsis_Rm", ""),
                 }
@@ -775,6 +870,7 @@ def main() -> int:
                 physical_data_dir=physical_data_dir,
                 default_mars_mass_kg=args.mars_mass_kg,
                 mars_radius_m=args.mars_radius_m,
+                mars_hill_radius_m=args.mars_hill_radius_m,
             )
             outcome_rows.append(outcome_row)
             fragment_rows.extend(current_fragment_rows)

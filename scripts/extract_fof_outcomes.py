@@ -68,6 +68,24 @@ OUTCOME_FIELDS = MANIFEST_FIELDS + [
     "total_fragment_mass_kg",
     "fragment_mass_fraction",
     "particle_count_metrics_are_proxies",
+    "bound_metrics_available",
+    "physical_snapshot_path",
+    "bound_particle_count",
+    "unbound_particle_count",
+    "bound_particle_fraction",
+    "unbound_particle_fraction",
+    "bound_mass_kg",
+    "unbound_mass_kg",
+    "bound_mass_fraction",
+    "unbound_mass_fraction",
+    "bound_fragment_count_min_particles",
+    "unbound_fragment_count_min_particles",
+    "largest_bound_fragment_particle_count",
+    "largest_unbound_fragment_particle_count",
+    "largest_bound_fragment_mass_kg",
+    "largest_unbound_fragment_mass_kg",
+    "mean_bound_fragment_apoapsis_Rm",
+    "mean_bound_fragment_periapsis_Rm",
     "excluded_group_ids",
     "min_particles",
 ]
@@ -81,6 +99,21 @@ FRAGMENT_FIELDS = MANIFEST_FIELDS + [
     "mass_metrics_available",
     "fragment_mass_kg",
     "fragment_mass_fraction_of_snapshot",
+    "bound_metrics_available",
+    "bound_particle_count",
+    "unbound_particle_count",
+    "bound_particle_fraction_of_fragment",
+    "unbound_particle_fraction_of_fragment",
+    "bound_mass_kg",
+    "unbound_mass_kg",
+    "bound_mass_fraction_of_fragment",
+    "unbound_mass_fraction_of_fragment",
+    "fragment_specific_orbital_energy_j_per_kg",
+    "fragment_is_bound",
+    "semi_major_axis_m",
+    "eccentricity",
+    "periapsis_Rm",
+    "apoapsis_Rm",
 ]
 
 ERROR_FIELDS = ["file_path", "filename", "error_type", "error_message"]
@@ -465,21 +498,40 @@ def extract_group_metrics(
     path: Path,
     min_particles: int,
     exclude_group_ids: set[int],
+    physical_data_dir: Path | None,
+    default_mars_mass_kg: float,
+    mars_radius_m: float,
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     manifest = parse_simulation_filename(path.name)
     manifest["file_path"] = str(path.resolve())
     manifest["file_size_bytes"] = path.stat().st_size
 
+    physical_snapshot_path = matching_physical_snapshot_path(path, physical_data_dir)
+    particle_physics: dict[int, dict[str, float]] = {}
+    point_mass_kg = default_mars_mass_kg
+    if physical_snapshot_path is not None:
+        particle_physics, point_mass_kg, resolved_physical_path = extract_particle_physics(
+            physical_snapshot_path,
+            default_mars_mass_kg,
+        )
+    else:
+        resolved_physical_path = ""
+
     with h5py.File(path, "r") as handle:
         part_group = get_parttype_group(handle)
         if "FOFGroupIDs" not in part_group:
             raise KeyError("FOFGroupIDs dataset is missing.")
+        if "ParticleIDs" not in part_group:
+            raise KeyError("ParticleIDs dataset is missing.")
 
         all_excluded_group_ids = set(exclude_group_ids) | get_auto_excluded_group_ids(handle)
         group_ids = part_group["FOFGroupIDs"][()]
+        particle_ids = part_group["ParticleIDs"][()]
         particle_count_total = int(len(group_ids))
         if particle_count_total == 0:
             raise ValueError("FOFGroupIDs dataset is empty.")
+        if len(particle_ids) != particle_count_total:
+            raise ValueError("ParticleIDs length does not match FOFGroupIDs length.")
 
         mass_conversion = get_mass_conversion_to_kg(handle)
         masses = None
@@ -523,6 +575,91 @@ def extract_group_metrics(
             largest_fragment_mass_kg = largest_fragment_mass_kg_value
             fragment_mass_fraction = fragment_mass_fraction_value
 
+        bound_metrics_available = bool(particle_physics)
+        group_bound_summaries: dict[int, dict[str, float | bool]] = {}
+        bound_particle_count = 0
+        unbound_particle_count = 0
+        bound_mass_kg = 0.0
+        unbound_mass_kg = 0.0
+        bound_fragment_count_min_particles = 0
+        unbound_fragment_count_min_particles = 0
+        largest_bound_fragment_particle_count = 0
+        largest_unbound_fragment_particle_count = 0
+        largest_bound_fragment_mass_kg = 0.0
+        largest_unbound_fragment_mass_kg = 0.0
+        bound_fragment_apoapsis_values: list[float] = []
+        bound_fragment_periapsis_values: list[float] = []
+
+        if bound_metrics_available:
+            per_group_accumulators: dict[int, dict[str, float]] = {}
+            for particle_id, group_id in zip(particle_ids.tolist(), group_ids.tolist()):
+                gid = int(group_id)
+                if gid in all_excluded_group_ids:
+                    continue
+                particle = particle_physics.get(int(particle_id))
+                if particle is None:
+                    continue
+                mass_kg = float(particle["mass_kg"])
+                is_bound = bool(particle["is_bound"])
+                if is_bound:
+                    bound_particle_count += 1
+                    bound_mass_kg += mass_kg
+                else:
+                    unbound_particle_count += 1
+                    unbound_mass_kg += mass_kg
+
+                accumulator = per_group_accumulators.setdefault(
+                    gid,
+                    {"particle_count": 0.0, "bound_particle_count": 0.0, "bound_mass_kg": 0.0, "total_mass_kg": 0.0, "sum_xm": 0.0, "sum_ym": 0.0, "sum_zm": 0.0, "sum_vxm": 0.0, "sum_vym": 0.0, "sum_vzm": 0.0},
+                )
+                accumulator["particle_count"] += 1.0
+                accumulator["total_mass_kg"] += mass_kg
+                accumulator["sum_xm"] += mass_kg * float(particle["x_m"])
+                accumulator["sum_ym"] += mass_kg * float(particle["y_m"])
+                accumulator["sum_zm"] += mass_kg * float(particle["z_m"])
+                accumulator["sum_vxm"] += mass_kg * float(particle["vx_ms"])
+                accumulator["sum_vym"] += mass_kg * float(particle["vy_ms"])
+                accumulator["sum_vzm"] += mass_kg * float(particle["vz_ms"])
+                if is_bound:
+                    accumulator["bound_particle_count"] += 1.0
+                    accumulator["bound_mass_kg"] += mass_kg
+
+            for group_id, count in all_groups_sorted:
+                accumulator = per_group_accumulators.get(group_id)
+                if not accumulator or accumulator["total_mass_kg"] <= 0.0:
+                    continue
+                total_mass = accumulator["total_mass_kg"]
+                center_of_mass = {
+                    "x_m": accumulator["sum_xm"] / total_mass,
+                    "y_m": accumulator["sum_ym"] / total_mass,
+                    "z_m": accumulator["sum_zm"] / total_mass,
+                    "vx_ms": accumulator["sum_vxm"] / total_mass,
+                    "vy_ms": accumulator["sum_vym"] / total_mass,
+                    "vz_ms": accumulator["sum_vzm"] / total_mass,
+                }
+                summary = {
+                    "bound_particle_count": int(accumulator["bound_particle_count"]),
+                    "unbound_particle_count": int(accumulator["particle_count"] - accumulator["bound_particle_count"]),
+                    "bound_mass_kg": accumulator["bound_mass_kg"],
+                    "unbound_mass_kg": accumulator["total_mass_kg"] - accumulator["bound_mass_kg"],
+                    **fragment_orbital_metrics(center_of_mass, point_mass_kg, mars_radius_m),
+                }
+                group_bound_summaries[group_id] = summary
+
+                if count >= min_particles:
+                    if bool(summary["fragment_is_bound"]):
+                        bound_fragment_count_min_particles += 1
+                        largest_bound_fragment_particle_count = max(largest_bound_fragment_particle_count, count)
+                        largest_bound_fragment_mass_kg = max(largest_bound_fragment_mass_kg, float(accumulator["total_mass_kg"]))
+                        if math.isfinite(float(summary["apoapsis_Rm"])):
+                            bound_fragment_apoapsis_values.append(float(summary["apoapsis_Rm"]))
+                        if math.isfinite(float(summary["periapsis_Rm"])):
+                            bound_fragment_periapsis_values.append(float(summary["periapsis_Rm"]))
+                    else:
+                        unbound_fragment_count_min_particles += 1
+                        largest_unbound_fragment_particle_count = max(largest_unbound_fragment_particle_count, count)
+                        largest_unbound_fragment_mass_kg = max(largest_unbound_fragment_mass_kg, float(accumulator["total_mass_kg"]))
+
         outcome_row = {
             **manifest,
             "parttype_group": part_group.name.strip("/"),
@@ -537,6 +674,24 @@ def extract_group_metrics(
             "total_fragment_mass_kg": total_fragment_mass_kg,
             "fragment_mass_fraction": fragment_mass_fraction,
             "particle_count_metrics_are_proxies": True,
+            "bound_metrics_available": bound_metrics_available,
+            "physical_snapshot_path": resolved_physical_path,
+            "bound_particle_count": bound_particle_count if bound_metrics_available else "",
+            "unbound_particle_count": unbound_particle_count if bound_metrics_available else "",
+            "bound_particle_fraction": bound_particle_count / particle_count_total if bound_metrics_available and particle_count_total else "",
+            "unbound_particle_fraction": unbound_particle_count / particle_count_total if bound_metrics_available and particle_count_total else "",
+            "bound_mass_kg": bound_mass_kg if bound_metrics_available else "",
+            "unbound_mass_kg": unbound_mass_kg if bound_metrics_available else "",
+            "bound_mass_fraction": bound_mass_kg / total_particle_mass_kg if bound_metrics_available and total_particle_mass_kg else "",
+            "unbound_mass_fraction": unbound_mass_kg / total_particle_mass_kg if bound_metrics_available and total_particle_mass_kg else "",
+            "bound_fragment_count_min_particles": bound_fragment_count_min_particles if bound_metrics_available else "",
+            "unbound_fragment_count_min_particles": unbound_fragment_count_min_particles if bound_metrics_available else "",
+            "largest_bound_fragment_particle_count": largest_bound_fragment_particle_count if bound_metrics_available else "",
+            "largest_unbound_fragment_particle_count": largest_unbound_fragment_particle_count if bound_metrics_available else "",
+            "largest_bound_fragment_mass_kg": largest_bound_fragment_mass_kg if bound_metrics_available else "",
+            "largest_unbound_fragment_mass_kg": largest_unbound_fragment_mass_kg if bound_metrics_available else "",
+            "mean_bound_fragment_apoapsis_Rm": sum(bound_fragment_apoapsis_values) / len(bound_fragment_apoapsis_values) if bound_fragment_apoapsis_values else "",
+            "mean_bound_fragment_periapsis_Rm": sum(bound_fragment_periapsis_values) / len(bound_fragment_periapsis_values) if bound_fragment_periapsis_values else "",
             "excluded_group_ids": ",".join(str(group_id) for group_id in sorted(all_excluded_group_ids)),
             "min_particles": min_particles,
         }
@@ -547,6 +702,11 @@ def extract_group_metrics(
             fragment_fraction = (
                 fragment_mass / total_particle_mass_kg if mass_metrics_available and total_particle_mass_kg else ""
             )
+            bound_summary = group_bound_summaries.get(group_id, {})
+            bound_particle_count_for_group = bound_summary.get("bound_particle_count", "")
+            unbound_particle_count_for_group = bound_summary.get("unbound_particle_count", "")
+            bound_mass_for_group = bound_summary.get("bound_mass_kg", "")
+            unbound_mass_for_group = bound_summary.get("unbound_mass_kg", "")
             fragment_rows.append(
                 {
                     **manifest,
@@ -558,6 +718,21 @@ def extract_group_metrics(
                     "mass_metrics_available": mass_metrics_available,
                     "fragment_mass_kg": fragment_mass,
                     "fragment_mass_fraction_of_snapshot": fragment_fraction,
+                    "bound_metrics_available": bound_metrics_available,
+                    "bound_particle_count": bound_particle_count_for_group,
+                    "unbound_particle_count": unbound_particle_count_for_group,
+                    "bound_particle_fraction_of_fragment": bound_particle_count_for_group / count if bound_metrics_available and count else "",
+                    "unbound_particle_fraction_of_fragment": unbound_particle_count_for_group / count if bound_metrics_available and count else "",
+                    "bound_mass_kg": bound_mass_for_group,
+                    "unbound_mass_kg": unbound_mass_for_group,
+                    "bound_mass_fraction_of_fragment": bound_mass_for_group / fragment_mass if bound_metrics_available and mass_metrics_available and fragment_mass not in {"", 0, 0.0} else "",
+                    "unbound_mass_fraction_of_fragment": unbound_mass_for_group / fragment_mass if bound_metrics_available and mass_metrics_available and fragment_mass not in {"", 0, 0.0} else "",
+                    "fragment_specific_orbital_energy_j_per_kg": bound_summary.get("fragment_specific_orbital_energy_j_per_kg", ""),
+                    "fragment_is_bound": bound_summary.get("fragment_is_bound", ""),
+                    "semi_major_axis_m": bound_summary.get("semi_major_axis_m", ""),
+                    "eccentricity": bound_summary.get("eccentricity", ""),
+                    "periapsis_Rm": bound_summary.get("periapsis_Rm", ""),
+                    "apoapsis_Rm": bound_summary.get("apoapsis_Rm", ""),
                 }
             )
 
@@ -568,6 +743,11 @@ def main() -> int:
     args = parse_args()
     data_dir = Path(os.path.expandvars(args.data_dir)).expanduser().resolve()
     outputs_dir = Path(args.outputs_dir).expanduser().resolve()
+    physical_data_dir = (
+        Path(os.path.expandvars(args.physical_data_dir)).expanduser().resolve()
+        if args.physical_data_dir
+        else None
+    )
     ensure_dir(outputs_dir)
 
     files = select_hdf5_files(data_dir, args.limit)
@@ -592,6 +772,9 @@ def main() -> int:
                 path=path,
                 min_particles=args.min_particles,
                 exclude_group_ids=exclude_group_ids,
+                physical_data_dir=physical_data_dir,
+                default_mars_mass_kg=args.mars_mass_kg,
+                mars_radius_m=args.mars_radius_m,
             )
             outcome_rows.append(outcome_row)
             fragment_rows.extend(current_fragment_rows)

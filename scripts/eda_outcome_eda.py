@@ -256,6 +256,46 @@ def write_clean_subset_summary(outcomes: pd.DataFrame, tables_dir: Path) -> pd.D
     return summary
 
 
+def write_fragment_population_tables(fragments: pd.DataFrame, tables_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    masses = numeric_series(fragments, "fragment_mass_kg").dropna()
+    mass_summary = pd.DataFrame(
+        [
+            {
+                "fragment_rows_with_mass": int(masses.count()),
+                "min_fragment_mass_kg": masses.min() if not masses.empty else pd.NA,
+                "median_fragment_mass_kg": masses.median() if not masses.empty else pd.NA,
+                "mean_fragment_mass_kg": masses.mean() if not masses.empty else pd.NA,
+                "p90_fragment_mass_kg": masses.quantile(0.9) if not masses.empty else pd.NA,
+                "p99_fragment_mass_kg": masses.quantile(0.99) if not masses.empty else pd.NA,
+                "max_fragment_mass_kg": masses.max() if not masses.empty else pd.NA,
+            }
+        ]
+    )
+    mass_summary.to_csv(tables_dir / "fragment_mass_distribution_summary.csv", index=False)
+
+    ranked = fragments.copy()
+    ranked["fragment_mass_kg_num"] = numeric_series(ranked, "fragment_mass_kg")
+    ranked = ranked.dropna(subset=["fragment_mass_kg_num"])
+    ranked = ranked[ranked["fragment_mass_kg_num"] > 0].copy()
+    ranked["rank"] = ranked.groupby("simulation_id")["fragment_mass_kg_num"].rank(method="first", ascending=False)
+    ranked["total_fragment_mass_kg"] = ranked.groupby("simulation_id")["fragment_mass_kg_num"].transform("sum")
+    ranked["cumulative_mass_fraction"] = (
+        ranked.sort_values(["simulation_id", "rank"])
+        .groupby("simulation_id")["fragment_mass_kg_num"]
+        .cumsum()
+        / ranked.sort_values(["simulation_id", "rank"]).groupby("simulation_id")["total_fragment_mass_kg"].transform("first")
+    ).sort_index()
+    rank_summary = (
+        ranked[ranked["rank"] <= 20]
+        .groupby("rank", as_index=False)["cumulative_mass_fraction"]
+        .agg(["mean", "median", "min", "max"])
+        .reset_index()
+    )
+    rank_summary.columns = ["rank", "mean_cumulative_mass_fraction", "median_cumulative_mass_fraction", "min_cumulative_mass_fraction", "max_cumulative_mass_fraction"]
+    rank_summary.to_csv(tables_dir / "fragment_rank_cumulative_mass_summary.csv", index=False)
+    return mass_summary, rank_summary
+
+
 def save_histogram(series: pd.Series, title: str, xlabel: str, output_path: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.hist(series.dropna(), bins=20, color="#4C78A8", edgecolor="black")

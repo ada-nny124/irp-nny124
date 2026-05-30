@@ -589,6 +589,8 @@ def write_analysis_summary(
     lines = [
         "After-extraction EDA summary.",
         "",
+        "Following the supervisor suggestion, this pass looks beyond fragment count and largest fragment toward the full fragment population.",
+        "",
         f"Extraction completeness: {int(overview_row['outcome_rows'])}/{EXPECTED_SIMULATION_ROWS} outcome rows.",
         f"Simulations with extracted outcomes: {int(overview_row['outcome_rows'])}.",
         f"Extraction errors recorded: {int(overview_row['extraction_error_rows'])}.",
@@ -601,6 +603,7 @@ def write_analysis_summary(
         f"Bound/unbound metrics available: {bound_metrics_available}.",
         "FoF linking length is a post-processing control and can dominate detected fragment counts.",
         "Bound mass fraction and bound-fragment metrics are the current bridge from FoF proxies to physical retention.",
+        "Attempted bound-aware extraction note: fragment COM position and velocity are required for captured/bound metrics; sampled FoF-file velocities are zero, so FoF-only bound/captured extraction remains paused to avoid false metrics.",
         "",
         "Recommended clean subset:",
         f"- timestep == {int(clean_row['recommended_timestep'])}",
@@ -637,7 +640,9 @@ def main() -> int:
     summary_stats = write_summary_stats(outcomes, tables_dir)
     write_grouped_means(outcomes, tables_dir)
     clean_subset_summary = write_clean_subset_summary(outcomes, tables_dir)
+    write_fragment_population_tables(fragments, tables_dir)
     write_plots(outcomes, plots_dir)
+    write_fragment_population_plots(outcomes, fragments, plots_dir)
     write_analysis_summary(
         eda_dir,
         overview,

@@ -8,6 +8,13 @@ Scope limits:
 - They do **not** yet provide validated measurements of bound debris mass, orbital capture, disk mass, or moon formation.
 - Any comparison to Kegerreis et al. (2024) should therefore be read as a comparison in **qualitative control hierarchy**, not as a direct reproduction of the paper's capture or disk-mass results.
 
+Bound-aware pipeline status:
+
+- The repository now contains an updated extractor that can compute `bound` vs `unbound` metrics when each FoF snapshot is matched to the corresponding physical snapshot at the same timestep.
+- That change affects the extracted CSV products, not the underlying SWIFT simulations.
+- Therefore the full-study bound-aware analysis requires **re-extraction from the raw HDF5 data** before any global tables, EDA summaries, or ML results in this document should be reinterpreted as bound-aware outcomes.
+- Until that re-extraction is run across the full dataset, the quantitative results below should still be read as describing the earlier FoF-proxy tables.
+
 Repository artifact policy:
 
 - Lightweight generated evidence is kept in GitHub so the repository remains inspectable without rerunning the pipeline.

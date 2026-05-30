@@ -57,7 +57,11 @@ BASE_TARGET_COLUMNS = [
     "fragment_count_min_particles",
     "largest_fragment_particle_count",
     "largest_fragment_mass_kg",
+    "bound_mass_fraction",
+    "bound_fragment_count_min_particles",
+    "largest_bound_fragment_mass_kg",
 ]
+MIN_ROWS_TO_TRAIN = 10
 
 
 @dataclass(frozen=True)
@@ -114,6 +118,8 @@ def select_targets(df: pd.DataFrame) -> list[str]:
             continue
         values = pd.to_numeric(df[column], errors="coerce")
         if values.notna().sum() == 0:
+            continue
+        if values.dropna().nunique() < 2:
             continue
         targets.append(column)
     return targets
@@ -434,6 +440,8 @@ def train_for_target(
     working = frame.copy()
     working[target_name] = pd.to_numeric(working[target_name], errors="coerce")
     working = working.dropna(subset=[target_name])
+    if len(working) < MIN_ROWS_TO_TRAIN or working[target_name].nunique(dropna=True) < 2:
+        return [], [], [], []
 
     X = make_feature_frame(working, feature_set_name)
     y = working[target_name]
@@ -588,10 +596,11 @@ def write_summary(
         .first()
     )
     lines = [
-        "Baseline ML summary for FoF-derived fragment statistics only.",
+        "Baseline ML summary for FoF-derived and bound-aware outcome targets.",
         "",
         "This workflow predicts FoF extraction outputs from simulation-level metadata.",
-        "It does not model moon formation, bound debris, orbital capture, or other orbital outcomes.",
+        "When physical snapshots are available, it also models bound-vs-unbound retention metrics.",
+        "It still does not directly model moon formation or long-term orbital stability.",
         "",
         f"Datasets evaluated: {', '.join(spec.name for spec in dataset_specs)}",
         f"Feature sets evaluated: {', '.join(FEATURE_SET_COLUMNS.keys())}",
@@ -602,18 +611,28 @@ def write_summary(
     for spec in dataset_specs:
         lines.append(f"- {spec.name}: {spec.description} ({len(spec.frame)} rows)")
 
-    lines.extend(["", "Best model by target, dataset, and feature set (lowest test MAE):"])
-    for _, row in best.iterrows():
-        lines.append(
-            f"- {row['dataset']} | {row['feature_set']} | {row['target']}: {row['model']} "
-            f"(test_MAE={row['test_mae']:.3f}, test_RMSE={row['test_rmse']:.3f}, test_R2={row['test_r2']:.3f})"
+    if best.empty:
+        lines.extend(
+            [
+                "",
+                f"No models were trained. Each target needs at least {MIN_ROWS_TO_TRAIN} rows and non-constant values.",
+            ]
         )
+    else:
+        lines.extend(["", "Best model by target, dataset, and feature set (lowest test MAE):"])
+        for _, row in best.iterrows():
+            lines.append(
+                f"- {row['dataset']} | {row['feature_set']} | {row['target']}: {row['model']} "
+                f"(test_MAE={row['test_mae']:.3f}, test_RMSE={row['test_rmse']:.3f}, test_R2={row['test_r2']:.3f})"
+            )
 
     (ml_dir / "ml_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def summarise_residual_groups(prediction_records: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
+    if prediction_records.empty:
+        return pd.DataFrame()
     test_records = prediction_records[prediction_records["split"] == "test"].copy()
     for feature in RESIDUAL_GROUP_COLUMNS:
         if feature not in test_records.columns:
@@ -639,6 +658,20 @@ def summarise_residual_groups(prediction_records: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_target_difficulty_summary(metrics: pd.DataFrame) -> pd.DataFrame:
+    if metrics.empty:
+        return pd.DataFrame(
+            columns=[
+                "dataset",
+                "feature_set",
+                "target",
+                "model",
+                "test_mae",
+                "test_rmse",
+                "test_r2",
+                "difficulty_by_r2",
+                "difficulty_by_mae",
+            ]
+        )
     best = (
         metrics.sort_values(["dataset", "feature_set", "target", "test_mae", "test_rmse", "model"])
         .groupby(["dataset", "feature_set", "target"], as_index=False)
@@ -662,6 +695,24 @@ def build_target_difficulty_summary(metrics: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_overfit_summary(metrics: pd.DataFrame) -> pd.DataFrame:
+    if metrics.empty:
+        return pd.DataFrame(
+            columns=[
+                "dataset",
+                "feature_set",
+                "target",
+                "model",
+                "train_mae",
+                "test_mae",
+                "mae_gap",
+                "train_rmse",
+                "test_rmse",
+                "rmse_gap",
+                "train_r2",
+                "test_r2",
+                "r2_gap",
+            ]
+        )
     return metrics[
         [
             "dataset",
@@ -682,6 +733,8 @@ def build_overfit_summary(metrics: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_linking_length_comparison(metrics: pd.DataFrame) -> pd.DataFrame:
+    if metrics.empty:
+        return pd.DataFrame()
     best = (
         metrics.sort_values(["dataset", "feature_set", "target", "test_mae", "test_rmse", "model"])
         .groupby(["dataset", "feature_set", "target"], as_index=False)
@@ -707,6 +760,8 @@ def build_linking_length_comparison(metrics: pd.DataFrame) -> pd.DataFrame:
 
 def build_feature_stability_summary(importance_df: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
+    if importance_df.empty:
+        return pd.DataFrame()
     perm = importance_df[importance_df["importance_type"] == "permutation_importance"].copy()
     perm = perm[perm["rank"] <= 5]
 
@@ -749,6 +804,14 @@ def write_diagnostics_summary(
     linking_df: pd.DataFrame,
     target_difficulty_df: pd.DataFrame,
 ) -> None:
+    if metrics.empty:
+        lines = [
+            "ML diagnostics summary for FoF-derived and bound-aware outcome targets.",
+            "",
+            f"No models were trained. Each target needs at least {MIN_ROWS_TO_TRAIN} rows and non-constant values.",
+        ]
+        (diagnostics_dir / "diagnostics_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return
     best = (
         metrics.sort_values(["dataset", "feature_set", "target", "test_mae", "test_rmse", "model"])
         .groupby(["dataset", "feature_set", "target"], as_index=False)
@@ -758,10 +821,11 @@ def write_diagnostics_summary(
     bias_test = bias_df[bias_df["split"] == "test"].sort_values(["dataset", "feature_set", "target", "model"])
 
     lines = [
-        "ML diagnostics summary for FoF-derived fragment statistics only.",
+        "ML diagnostics summary for FoF-derived and bound-aware outcome targets.",
         "",
         "This analysis covers feature importance, residual behavior, overfitting checks, prediction bias,",
         "target difficulty, feature-stability comparisons, and the effect of including FoF linking length.",
+        "Bound-aware targets are only present when the extraction matched physical snapshots.",
         "",
         "Best test models by dataset, feature set, and target:",
     ]
@@ -800,6 +864,12 @@ def write_diagnostics_summary(
         )
 
     (diagnostics_dir / "diagnostics_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def sort_or_empty(rows: list[dict[str, object]], sort_columns: list[str]) -> pd.DataFrame:
+    if not rows:
+        return pd.DataFrame(columns=sort_columns)
+    return pd.DataFrame(rows).sort_values(sort_columns)
 
 
 def main() -> int:
@@ -851,22 +921,20 @@ def main() -> int:
                 prediction_record_rows.extend(prediction_rows_list)
                 bias_rows.extend(bias_rows_list)
 
-    metrics = pd.DataFrame(metric_rows).sort_values(
-        ["dataset", "feature_set", "target", "test_mae", "test_rmse", "model"]
-    )
+    metrics = sort_or_empty(metric_rows, ["dataset", "feature_set", "target", "test_mae", "test_rmse", "model"])
     metrics.to_csv(tables_dir / "model_metrics.csv", index=False)
 
-    importance_df = pd.DataFrame(importance_rows).sort_values(
-        ["dataset", "feature_set", "target", "model", "importance_type", "rank"]
+    importance_df = sort_or_empty(
+        importance_rows, ["dataset", "feature_set", "target", "model", "importance_type", "rank"]
     )
     importance_df.to_csv(tables_dir / "feature_importance.csv", index=False)
 
-    prediction_df = pd.DataFrame(prediction_record_rows).sort_values(
-        ["dataset", "feature_set", "target", "model", "split", "row_index"]
+    prediction_df = sort_or_empty(
+        prediction_record_rows, ["dataset", "feature_set", "target", "model", "split", "row_index"]
     )
     prediction_df.to_csv(diagnostics_tables_dir / "prediction_records.csv", index=False)
 
-    bias_df = pd.DataFrame(bias_rows).sort_values(["dataset", "feature_set", "target", "model", "split"])
+    bias_df = sort_or_empty(bias_rows, ["dataset", "feature_set", "target", "model", "split"])
     bias_df.to_csv(diagnostics_tables_dir / "prediction_bias_summary.csv", index=False)
 
     residual_group_df = summarise_residual_groups(prediction_df)
@@ -890,6 +958,8 @@ def main() -> int:
     print(f"Loaded {len(df)} simulation rows from {args.dataset}")
     print(f"Feature sets: {', '.join(FEATURE_SET_COLUMNS.keys())}")
     print(f"Trained targets: {', '.join(trained_targets)}")
+    if metrics.empty:
+        print(f"No models were trained; targets need at least {MIN_ROWS_TO_TRAIN} rows and non-constant values.")
     print(f"Wrote metrics to {tables_dir / 'model_metrics.csv'}")
     print(f"Wrote diagnostics to {diagnostics_dir}")
     print(f"Wrote models to {models_dir}")

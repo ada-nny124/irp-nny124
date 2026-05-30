@@ -257,6 +257,23 @@ def get_mass_conversion_to_kg(handle: h5py.File) -> float | None:
     return None
 
 
+def get_particle_masses_kg(handle: h5py.File, part_group: h5py.Group) -> list[float]:
+    mass_conversion = get_mass_conversion_to_kg(handle)
+    if mass_conversion is None:
+        raise ValueError("Could not recover the mass-unit conversion for particle masses.")
+
+    if "Masses" in part_group:
+        return (part_group["Masses"][()] * mass_conversion).tolist()
+
+    if "Header" in handle and "InitialMassTable" in handle["Header"].attrs:
+        raw = handle["Header"].attrs["InitialMassTable"]
+        initial_mass = raw[0] if hasattr(raw, "__len__") and not isinstance(raw, (bytes, str)) else raw
+        if float(initial_mass) > 0.0:
+            return [float(initial_mass) * mass_conversion] * len(part_group["ParticleIDs"])
+
+    raise KeyError("Could not recover particle masses from either Masses or Header/InitialMassTable.")
+
+
 def get_auto_excluded_group_ids(handle: h5py.File) -> set[int]:
     auto_ids: set[int] = set()
     if "Parameters" in handle and "FOF:group_id_default" in handle["Parameters"].attrs:

@@ -317,6 +317,75 @@ def matching_physical_snapshot_path(fof_path: Path, physical_data_dir: Path | No
     return candidate if candidate.exists() else None
 
 
+def get_point_mass_kg(handle: h5py.File, default_mars_mass_kg: float) -> float:
+    mass_conversion = get_mass_conversion_to_kg(handle)
+    if "UnusedParameters" in handle and "PointMassPotential:mass" in handle["UnusedParameters"].attrs:
+        raw = handle["UnusedParameters"].attrs["PointMassPotential:mass"]
+        value = raw[0] if hasattr(raw, "__len__") and not isinstance(raw, (bytes, str)) else raw
+        if mass_conversion is not None:
+            return float(value) * mass_conversion
+    return default_mars_mass_kg
+
+
+def extract_particle_physics(
+    path: Path,
+    default_mars_mass_kg: float,
+) -> tuple[dict[int, dict[str, float]], float, str]:
+    with h5py.File(path, "r") as handle:
+        part_group = get_parttype_group(handle)
+        if "ParticleIDs" not in part_group or "Coordinates" not in part_group or "Velocities" not in part_group:
+            raise KeyError("Physical snapshot is missing one of ParticleIDs, Coordinates, or Velocities.")
+
+        length_conversion = get_length_conversion_to_m(handle)
+        time_conversion = get_time_conversion_to_s(handle)
+        if length_conversion is None or time_conversion is None:
+            raise ValueError("Could not recover length and time unit conversions from the physical snapshot.")
+
+        velocity_conversion = length_conversion / time_conversion
+        particle_ids = part_group["ParticleIDs"][()].tolist()
+        coordinates = part_group["Coordinates"][()]
+        velocities = part_group["Velocities"][()]
+        masses_kg = get_particle_masses_kg(handle, part_group)
+
+        box_size_raw = handle["Header"].attrs["BoxSize"] if "Header" in handle and "BoxSize" in handle["Header"].attrs else 0.0
+        if hasattr(box_size_raw, "__len__") and not isinstance(box_size_raw, (bytes, str)):
+            box_size = float(box_size_raw[0])
+        else:
+            box_size = float(box_size_raw)
+        box_center_m = 0.5 * box_size * length_conversion
+        point_mass_kg = get_point_mass_kg(handle, default_mars_mass_kg)
+
+        particle_rows: dict[int, dict[str, float]] = {}
+        for particle_id, coord, vel, mass_kg in zip(particle_ids, coordinates, velocities, masses_kg):
+            x_m = float(coord[0]) * length_conversion - box_center_m
+            y_m = float(coord[1]) * length_conversion - box_center_m
+            z_m = float(coord[2]) * length_conversion - box_center_m
+            vx_ms = float(vel[0]) * velocity_conversion
+            vy_ms = float(vel[1]) * velocity_conversion
+            vz_ms = float(vel[2]) * velocity_conversion
+            radius_m = math.sqrt(x_m * x_m + y_m * y_m + z_m * z_m)
+            speed_sq = vx_ms * vx_ms + vy_ms * vy_ms + vz_ms * vz_ms
+            specific_energy = math.nan
+            is_bound = False
+            if radius_m > 0.0:
+                specific_energy = 0.5 * speed_sq - (GRAVITATIONAL_CONSTANT * point_mass_kg / radius_m)
+                is_bound = specific_energy < 0.0
+
+            particle_rows[int(particle_id)] = {
+                "mass_kg": float(mass_kg),
+                "x_m": x_m,
+                "y_m": y_m,
+                "z_m": z_m,
+                "vx_ms": vx_ms,
+                "vy_ms": vy_ms,
+                "vz_ms": vz_ms,
+                "specific_orbital_energy_j_per_kg": specific_energy,
+                "is_bound": is_bound,
+            }
+
+    return particle_rows, point_mass_kg, str(path.resolve())
+
+
 def get_auto_excluded_group_ids(handle: h5py.File) -> set[int]:
     auto_ids: set[int] = set()
     if "Parameters" in handle and "FOF:group_id_default" in handle["Parameters"].attrs:

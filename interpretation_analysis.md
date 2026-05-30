@@ -15,6 +15,16 @@ Bound-aware pipeline status:
 - Therefore the full-study bound-aware analysis requires **re-extraction from the raw HDF5 data** before any global tables, EDA summaries, or ML results in this document should be reinterpreted as bound-aware outcomes.
 - Until that re-extraction is run across the full dataset, the quantitative results below should still be read as describing the earlier FoF-proxy tables.
 
+Latest progress since supervisor feedback:
+
+- Following the suggestion to look beyond simple fragment count and largest-fragment size, the outcome EDA now includes first-pass inspection of the **full fragment population**.
+- New FoF-population views now include fragment-mass distribution, cumulative number of fragments above a given mass, cumulative mass fraction versus fragment rank, and largest-fragment mass fraction versus periapsis.
+- These additions still describe the FoF fragment population rather than validated captured or moon-forming material, but they provide a more informative picture of disruption structure than fragment count alone.
+- Attempted bound-aware extraction note:
+  - required: fragment COM position and velocity
+  - current FoF files: `Velocities` field exists but sampled values are zero
+  - result: direct FoF-only bound/captured extraction is paused to avoid false metrics
+
 Repository artifact policy:
 
 - Lightweight generated evidence is kept in GitHub so the repository remains inspectable without rerunning the pipeline.
@@ -122,6 +132,8 @@ More quantitatively, `parameter_counts.csv` shows that the dataset is dominated 
 | File | Meaning |
 | --- | --- |
 | `clean_physical_subset_summary.csv` | Controlled subset summary for the recommended `timestep=90000`, `resolution=n65`, `fof_linking_length=0.004` slice |
+| `fragment_mass_distribution_summary.csv` | Global summary of the full fragment-mass population |
+| `fragment_rank_cumulative_mass_summary.csv` | Mean cumulative mass fraction carried by the top-ranked fragments |
 | `grouped_outcome_means.csv` | Mean FoF outcomes across grouped parameter combinations |
 | `outcome_dataset_overview.csv` | Extraction completeness and high-level counts |
 | `outcome_summary_stats.csv` | Global summary statistics for FoF targets |
@@ -129,6 +141,8 @@ More quantitatively, `parameter_counts.csv` shows that the dataset is dominated 
 From `outcome_dataset_overview.csv`, it can be seen that the extracted table is complete at `489/489` simulations with `0` extraction errors. From `outcome_summary_stats.csv`, it can be seen that `fragment_count_min_particles` spans `0` to `6441` with median `255`, and `largest_fragment_particle_count` spans `0` to `3,922,894` with median `259,351`. Therefore the outcome space is broad enough to support meaningful modelling, but the targets are also highly skewed and nontrivial.
 
 The same table shows that `largest_fragment_mass_kg` spans `0` to `3.888e20 kg`, with median `6.311e18 kg` and mean `2.413e19 kg`, so the mean is about `3.8x` the median and the target is strongly right-skewed. `fragment_mass_fraction` is defined for `475` rows and is exactly `1.0` in every defined case, with `std = 0.0`, so it contains no predictive variation. From `clean_physical_subset_summary.csv`, the recommended controlled subset contains `166` rows, or `33.95%` of the full dataset, with mean fragment count `421.06` and mean largest-fragment mass `3.063e19 kg`. This says the simulations produce a small number of very extreme fragmentation outcomes rather than a symmetric spread around a typical case. That means tidal disruption in this FoF table behaves like a thresholded process: many runs stay relatively intact, while a smaller subset moves into much more disruptive regimes.
+
+The new fragment-population tables extend that point. `fragment_mass_distribution_summary.csv` shows the global fragment-mass distribution directly, while `fragment_rank_cumulative_mass_summary.csv` shows how quickly the mass budget is captured by the highest-ranked fragments. This says the disruption outcomes should not be read only through scalar summaries such as fragment count. That means the next interpretation step can distinguish between simulations that create many tiny fragments and those that concentrate most mass into only a few dominant clumps.
 
 ### Baseline ML tables
 
@@ -185,9 +199,12 @@ Quantitatively, these plots should be read alongside the parameter counts: becau
 | File | Meaning |
 | --- | --- |
 | `distribution_fragment_count.png` | Distribution of the fragment-count target |
+| `distribution_fragment_mass_kg.png` | Distribution of fragment masses across the full fragment catalog |
 | `distribution_fragment_mass_fraction.png` | Distribution of `fragment_mass_fraction` |
 | `distribution_largest_fragment_mass_kg.png` | Distribution of largest-fragment mass |
 | `distribution_largest_fragment_particle_count.png` | Distribution of largest-fragment particle count |
+| `cumulative_fragment_count_above_mass.png` | Cumulative number of fragments above each fragment-mass threshold |
+| `cumulative_mass_fraction_vs_fragment_rank.png` | Mean cumulative mass fraction carried by the top-ranked fragments |
 | `fragment_count_vs_fof_linking_length.png` | Fragment-count dependence on FoF linking length |
 | `fragment_count_vs_mass.png` | Fragment-count dependence on mass |
 | `fragment_count_vs_periapsis.png` | Fragment-count dependence on periapsis |
@@ -196,12 +213,15 @@ Quantitatively, these plots should be read alongside the parameter counts: becau
 | `heatmap_mean_fragment_count_mass_vs_periapsis.png` | Mean fragment count over mass-periapsis bins |
 | `heatmap_mean_fragment_count_periapsis_vs_velocity.png` | Mean fragment count over periapsis-velocity bins |
 | `largest_fragment_mass_vs_mass.png` | Largest-fragment mass across mass families |
+| `largest_fragment_mass_fraction_vs_periapsis.png` | Largest-fragment mass fraction as a function of periapsis |
 | `largest_fragment_particles_vs_fof_linking_length.png` | Largest-fragment size vs FoF linking length |
 | `largest_fragment_particles_vs_periapsis.png` | Largest-fragment size vs periapsis |
 
 From the outcome plots, it can be seen that `fragment_mass_fraction` is not a useful target because it is effectively constant, while fragment count and largest-fragment metrics show broad and structured variation. Therefore the project was right to focus ML on `fragment_count_min_particles`, `largest_fragment_particle_count`, and `largest_fragment_mass_kg` instead.
 
 The quantitative scale matters here: `fragment_count_min_particles` varies by a factor of effectively unbounded size from `0` to `6441`, `largest_fragment_particle_count` spans from `0` to `3.922e6`, and `largest_fragment_mass_kg` spans from `0` to `3.888e20 kg`. Because the medians are much smaller than the maxima, the distribution plots are expected to show heavy right tails and the scatter plots are expected to be dominated by a minority of extreme outcomes. This says the FoF outcomes are not smoothly varying around one characteristic disruption state; they break into relatively intact cases and a smaller set of strongly disrupted cases. That means periapsis, spin, and related controls are likely acting through regime changes rather than through small linear adjustments.
+
+The new fragment-population plots sharpen that interpretation. `distribution_fragment_mass_kg.png` and `cumulative_fragment_count_above_mass.png` show the heavy-tail structure directly at fragment level, while `cumulative_mass_fraction_vs_fragment_rank.png` shows how strongly the total mass budget is dominated by the top few fragments. `largest_fragment_mass_fraction_vs_periapsis.png` then links that concentration pattern back to encounter geometry. This says the project has now started to resolve *how* fragmentation is distributed, not just *how much* fragmentation is detected. That means the FoF analysis is moving closer to a physically interpretable remnant-population picture, even before full bound-aware validation is complete.
 
 ### Baseline ML plots
 

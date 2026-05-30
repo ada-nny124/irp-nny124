@@ -332,6 +332,24 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
         )
         generated.append("distribution_fragment_mass_fraction.png")
 
+    if numeric_series(outcomes, "bound_mass_fraction").notna().any():
+        save_histogram(
+            numeric_series(outcomes, "bound_mass_fraction"),
+            "Distribution of bound mass fraction",
+            "Bound mass fraction",
+            plots_dir / "distribution_bound_mass_fraction.png",
+        )
+        generated.append("distribution_bound_mass_fraction.png")
+
+    if numeric_series(outcomes, "bound_fragment_count_min_particles").notna().any():
+        save_histogram(
+            numeric_series(outcomes, "bound_fragment_count_min_particles"),
+            "Distribution of bound fragment count",
+            "Bound fragment count",
+            plots_dir / "distribution_bound_fragment_count.png",
+        )
+        generated.append("distribution_bound_fragment_count.png")
+
     scatter_specs = [
         ("periapsis_value", "fragment_count_min_particles", "fragment_count_vs_periapsis.png", "Fragment count vs periapsis", "Periapsis (Rm)", "Fragment count"),
         ("velocity_value", "fragment_count_min_particles", "fragment_count_vs_velocity.png", "Fragment count vs velocity", "Velocity (km/s)", "Fragment count"),
@@ -394,6 +412,28 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
         )
         generated.append("fragment_mass_fraction_vs_periapsis.png")
 
+    if numeric_series(outcomes, "bound_mass_fraction").notna().any():
+        save_scatter(
+            numeric_series(outcomes, "periapsis_value"),
+            numeric_series(outcomes, "bound_mass_fraction"),
+            "Bound mass fraction vs periapsis",
+            "Periapsis (Rm)",
+            "Bound mass fraction",
+            plots_dir / "bound_mass_fraction_vs_periapsis.png",
+        )
+        generated.append("bound_mass_fraction_vs_periapsis.png")
+
+    if numeric_series(outcomes, "largest_bound_fragment_mass_kg").notna().any():
+        save_scatter(
+            numeric_series(outcomes, "periapsis_value"),
+            numeric_series(outcomes, "largest_bound_fragment_mass_kg"),
+            "Largest bound fragment mass vs periapsis",
+            "Periapsis (Rm)",
+            "Largest bound fragment mass (kg)",
+            plots_dir / "largest_bound_fragment_mass_vs_periapsis.png",
+        )
+        generated.append("largest_bound_fragment_mass_vs_periapsis.png")
+
     heatmaps = [
         (
             ["mass_code", "periapsis_code"],
@@ -430,6 +470,7 @@ def write_analysis_summary(
     clean_subset_summary: pd.DataFrame,
     errors: pd.DataFrame,
     mass_metrics_available: bool,
+    bound_metrics_available: bool,
 ) -> None:
     overview_row = overview.iloc[0]
     clean_row = clean_subset_summary.iloc[0]
@@ -446,7 +487,9 @@ def write_analysis_summary(
         f"- fragment_mass_fraction: median={fragment_summary.at['fragment_mass_fraction', 'median']}",
         "",
         f"Mass metrics available: {mass_metrics_available}.",
+        f"Bound/unbound metrics available: {bound_metrics_available}.",
         "FoF linking length is a post-processing control and can dominate detected fragment counts.",
+        "Bound mass fraction and bound-fragment metrics are the current bridge from FoF proxies to physical retention.",
         "",
         "Recommended clean subset:",
         f"- timestep == {int(clean_row['recommended_timestep'])}",
@@ -458,6 +501,7 @@ def write_analysis_summary(
         "- use one row per simulation from fof_outcomes.csv",
         "- suggested targets: fragment_count_min_particles, largest_fragment_particle_count",
         "- add largest_fragment_mass_kg and fragment_mass_fraction when mass metrics are available",
+        "- prefer bound_mass_fraction, bound_fragment_count_min_particles, and largest_bound_fragment_mass_kg when bound metrics are available",
     ]
     if len(errors) and "error_message" in errors.columns:
         lines.extend(["", "Error sample:", f"- {errors['error_message'].iloc[0]}"])
@@ -474,10 +518,6 @@ def main() -> int:
     write_readme(eda_dir)
 
     outcomes = load_csv(outcomes_path)
-    if len(outcomes) < EXPECTED_SIMULATION_ROWS:
-        print("fof_outcomes.csv is incomplete; wait for full extraction to finish.")
-        return 1
-
     fragments = load_csv(fragments_path)
     errors = load_csv(errors_path) if errors_path.exists() else pd.DataFrame()
     tables_dir, plots_dir = ensure_dirs(eda_dir)
@@ -494,7 +534,13 @@ def main() -> int:
         clean_subset_summary,
         errors,
         has_meaningful_mass_metrics(outcomes),
+        has_bound_metrics(outcomes),
     )
+    if len(outcomes) < EXPECTED_SIMULATION_ROWS:
+        print(
+            f"Warning: analyzed a partial outcome table with {len(outcomes)} rows; "
+            "interpret results as local validation rather than full-study EDA."
+        )
     return 0
 
 

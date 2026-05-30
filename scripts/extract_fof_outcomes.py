@@ -22,6 +22,10 @@ except ImportError as exc:  # pragma: no cover - runtime dependency on HPC modul
     ) from exc
 
 
+GRAVITATIONAL_CONSTANT = 6.67430e-11
+DEFAULT_MARS_MASS_KG = 6.4171e23
+DEFAULT_MARS_RADIUS_M = 3.3895e6
+
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
@@ -272,6 +276,32 @@ def get_particle_masses_kg(handle: h5py.File, part_group: h5py.Group) -> list[fl
             return [float(initial_mass) * mass_conversion] * len(part_group["ParticleIDs"])
 
     raise KeyError("Could not recover particle masses from either Masses or Header/InitialMassTable.")
+
+
+def get_length_conversion_to_m(handle: h5py.File) -> float | None:
+    attr_candidates = [
+        ("Units", "Unit length in cgs (U_L)"),
+        ("InternalCodeUnits", "Unit length in cgs (U_L)"),
+    ]
+    for group_name, attr_name in attr_candidates:
+        if group_name in handle and attr_name in handle[group_name].attrs:
+            raw = handle[group_name].attrs[attr_name]
+            value = raw[0] if hasattr(raw, "__len__") and not isinstance(raw, (bytes, str)) else raw
+            return float(value) * 1e-2
+    return None
+
+
+def get_time_conversion_to_s(handle: h5py.File) -> float | None:
+    attr_candidates = [
+        ("Units", "Unit time in cgs (U_t)"),
+        ("InternalCodeUnits", "Unit time in cgs (U_t)"),
+    ]
+    for group_name, attr_name in attr_candidates:
+        if group_name in handle and attr_name in handle[group_name].attrs:
+            raw = handle[group_name].attrs[attr_name]
+            value = raw[0] if hasattr(raw, "__len__") and not isinstance(raw, (bytes, str)) else raw
+            return float(value)
+    return None
 
 
 def get_auto_excluded_group_ids(handle: h5py.File) -> set[int]:

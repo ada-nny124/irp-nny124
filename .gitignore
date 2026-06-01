@@ -23,6 +23,5 @@ eda/outcome_eda/analysis_interpretation.md
 report/
 tmp/
 outputs/*.smoketest.csv
-outputs/*.smoketest.png
-outputs/velocity_particle_samples.csv
 outputs/*.png
+

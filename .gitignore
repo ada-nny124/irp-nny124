@@ -21,3 +21,4 @@ ml/models/*.pkl
 ml/model_diagnostics/plots/
 eda/outcome_eda/analysis_interpretation.md
 report/
+tmp/

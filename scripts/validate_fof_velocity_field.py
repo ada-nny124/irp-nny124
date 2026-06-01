@@ -1,15 +1,33 @@
 #!/usr/bin/env python3
 """Validate whether FoF HDF5 files contain usable particle velocity data."""
 
-from __future__ import annotations
-
 import argparse
+import math
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+
+PRIORITY_VELOCITY_CODES = [
+    "v00",
+    "v02",
+    "v04",
+    "v06",
+    "v08",
+    "v10",
+    "v12",
+    "v14",
+    "v15",
+    "v16",
+    "v20",
+    "v25",
+    "v30",
+]
+DEFAULT_CHUNK_ROWS = 100_000
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,7 +71,51 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_input_files(args: argparse.Namespace) -> list[Path]:
+def balanced_manifest_paths(table: pd.DataFrame, path_column: str, max_files: Optional[int]) -> List[Path]:
+    paths = table[path_column].dropna().astype(str)
+    if max_files is None or max_files >= len(paths):
+        return [Path(value) for value in paths.tolist()]
+
+    if "velocity_code" not in table.columns:
+        return [Path(value) for value in paths.iloc[:max_files].tolist()]
+
+    grouped: Dict[str, List[str]] = {}
+    for _, row in table.loc[paths.index].iterrows():
+        velocity_code = str(row.get("velocity_code", ""))
+        grouped.setdefault(velocity_code, []).append(str(row[path_column]))
+
+    ordered_codes = [code for code in PRIORITY_VELOCITY_CODES if code in grouped]
+    ordered_codes.extend(sorted(code for code in grouped if code not in PRIORITY_VELOCITY_CODES))
+
+    selected: List[str] = []
+    positions = {code: 0 for code in ordered_codes}
+
+    for code in ordered_codes:
+        if len(selected) >= max_files:
+            break
+        entries = grouped.get(code, [])
+        if entries:
+            selected.append(entries[0])
+            positions[code] = 1
+
+    while len(selected) < max_files:
+        added_any = False
+        for code in ordered_codes:
+            pos = positions[code]
+            entries = grouped[code]
+            if pos < len(entries):
+                selected.append(entries[pos])
+                positions[code] = pos + 1
+                added_any = True
+                if len(selected) >= max_files:
+                    break
+        if not added_any:
+            break
+
+    return [Path(value) for value in selected]
+
+
+def resolve_input_files(args: argparse.Namespace) -> List[Path]:
     if args.fof_file:
         return [Path(args.fof_file)]
 
@@ -61,10 +123,7 @@ def resolve_input_files(args: argparse.Namespace) -> list[Path]:
     if args.path_column not in table.columns:
         raise KeyError(f"Column '{args.path_column}' was not found in {args.file_table}.")
 
-    paths = [Path(str(value)) for value in table[args.path_column].dropna().tolist()]
-    if args.max_files is not None:
-        paths = paths[: args.max_files]
-    return paths
+    return balanced_manifest_paths(table, args.path_column, args.max_files)
 
 
 def sample_particle_indices(count: int, sample_size: int, rng: np.random.Generator) -> np.ndarray:
@@ -73,59 +132,144 @@ def sample_particle_indices(count: int, sample_size: int, rng: np.random.Generat
     return np.sort(rng.choice(count, size=sample_size, replace=False))
 
 
+def empty_summary_row(fof_file: Path) -> Dict[str, object]:
+    return {
+        "fof_file": str(fof_file),
+        "exists": fof_file.exists(),
+        "readable": False,
+        "n_particles": 0,
+        "velocity_dataset_shape": "",
+        "velocity_dataset_dtype": "",
+        "min_vx": math.nan,
+        "max_vx": math.nan,
+        "min_vy": math.nan,
+        "max_vy": math.nan,
+        "min_vz": math.nan,
+        "max_vz": math.nan,
+        "max_abs_velocity": math.nan,
+        "min_speed": math.nan,
+        "max_speed": math.nan,
+        "mean_speed": math.nan,
+        "nonzero_velocity_count": 0,
+        "all_particle_speeds_zero": False,
+    }
+
+
 def validate_one_file(
     fof_file: Path,
     sample_particles_per_file: int,
     rng: np.random.Generator,
-) -> tuple[dict[str, object], list[dict[str, object]]]:
-    with h5py.File(fof_file, "r") as handle:
-        velocities = handle["PartType0/Velocities"][()]
+) -> Tuple[Dict[str, object], List[Dict[str, object]]]:
+    if not fof_file.exists():
+        return empty_summary_row(fof_file), []
 
-    speed = np.linalg.norm(velocities, axis=1)
-    zero_mask = np.isclose(speed, 0.0)
+    try:
+        with h5py.File(fof_file, "r") as handle:
+            velocities_ds = handle["PartType0/Velocities"]
+            coordinates_ds = handle["PartType0/Coordinates"]
 
-    summary_row = {
-        "fof_file": str(fof_file),
-        "file_exists_at_runtime": fof_file.exists(),
-        "particle_rows": int(len(speed)),
-        "zero_speed_particle_count": int(zero_mask.sum()),
-        "nonzero_speed_particle_count": int((~zero_mask).sum()),
-        "zero_speed_fraction": float(zero_mask.mean()),
-        "min_speed": float(speed.min()),
-        "median_speed": float(np.median(speed)),
-        "max_speed": float(speed.max()),
-        "all_particle_speeds_zero": bool(np.all(zero_mask)),
-        "speed_formula": "speed = sqrt(vx^2 + vy^2 + vz^2)",
-        "fragment_com_velocity_implication": "If all particle velocities are zero, every fragment COM velocity is also zero.",
-    }
-
-    sample_rows: list[dict[str, object]] = []
-    sample_indices = sample_particle_indices(len(speed), sample_particles_per_file, rng)
-    for particle_index in sample_indices.tolist():
-        vx, vy, vz = velocities[particle_index]
-        sample_rows.append(
-            {
+            n_particles = int(velocities_ds.shape[0])
+            summary_row = {
                 "fof_file": str(fof_file),
-                "particle_index": int(particle_index),
-                "vx": float(vx),
-                "vy": float(vy),
-                "vz": float(vz),
-                "speed": float(speed[particle_index]),
-                "is_zero_speed": bool(zero_mask[particle_index]),
+                "exists": True,
+                "readable": True,
+                "n_particles": n_particles,
+                "velocity_dataset_shape": str(tuple(int(dim) for dim in velocities_ds.shape)),
+                "velocity_dataset_dtype": str(velocities_ds.dtype),
+                "min_vx": math.inf,
+                "max_vx": -math.inf,
+                "min_vy": math.inf,
+                "max_vy": -math.inf,
+                "min_vz": math.inf,
+                "max_vz": -math.inf,
+                "max_abs_velocity": 0.0,
+                "min_speed": math.inf,
+                "max_speed": 0.0,
+                "mean_speed": 0.0,
+                "nonzero_velocity_count": 0,
+                "all_particle_speeds_zero": True,
             }
-        )
 
-    return summary_row, sample_rows
+            sample_indices = sample_particle_indices(n_particles, sample_particles_per_file, rng)
+            sample_rows: List[Dict[str, object]] = []
+            next_sample_idx = 0
+            total_speed = 0.0
+
+            for start in range(0, n_particles, DEFAULT_CHUNK_ROWS):
+                stop = min(start + DEFAULT_CHUNK_ROWS, n_particles)
+                velocities = velocities_ds[start:stop]
+                speeds = np.linalg.norm(velocities, axis=1)
+                component_mins = velocities.min(axis=0)
+                component_maxs = velocities.max(axis=0)
+                nonzero_mask = np.any(velocities != 0, axis=1)
+
+                summary_row["min_vx"] = min(float(summary_row["min_vx"]), float(component_mins[0]))
+                summary_row["max_vx"] = max(float(summary_row["max_vx"]), float(component_maxs[0]))
+                summary_row["min_vy"] = min(float(summary_row["min_vy"]), float(component_mins[1]))
+                summary_row["max_vy"] = max(float(summary_row["max_vy"]), float(component_maxs[1]))
+                summary_row["min_vz"] = min(float(summary_row["min_vz"]), float(component_mins[2]))
+                summary_row["max_vz"] = max(float(summary_row["max_vz"]), float(component_maxs[2]))
+                summary_row["max_abs_velocity"] = max(
+                    float(summary_row["max_abs_velocity"]),
+                    float(np.max(np.abs(velocities))),
+                )
+                summary_row["min_speed"] = min(float(summary_row["min_speed"]), float(speeds.min()))
+                summary_row["max_speed"] = max(float(summary_row["max_speed"]), float(speeds.max()))
+                summary_row["nonzero_velocity_count"] += int(nonzero_mask.sum())
+                total_speed += float(speeds.sum())
+
+                if np.any(nonzero_mask):
+                    summary_row["all_particle_speeds_zero"] = False
+
+                while next_sample_idx < len(sample_indices) and int(sample_indices[next_sample_idx]) < stop:
+                    particle_index = int(sample_indices[next_sample_idx])
+                    local_index = particle_index - start
+                    x, y, z = coordinates_ds[particle_index]
+                    vx, vy, vz = velocities[local_index]
+                    speed = float(speeds[local_index])
+                    sample_rows.append(
+                        {
+                            "fof_file": str(fof_file),
+                            "particle_index": particle_index,
+                            "x": float(x),
+                            "y": float(y),
+                            "z": float(z),
+                            "vx": float(vx),
+                            "vy": float(vy),
+                            "vz": float(vz),
+                            "speed": speed,
+                            "is_zero_speed": bool(speed == 0.0),
+                        }
+                    )
+                    next_sample_idx += 1
+
+            if n_particles == 0:
+                summary_row["min_vx"] = math.nan
+                summary_row["max_vx"] = math.nan
+                summary_row["min_vy"] = math.nan
+                summary_row["max_vy"] = math.nan
+                summary_row["min_vz"] = math.nan
+                summary_row["max_vz"] = math.nan
+                summary_row["max_abs_velocity"] = math.nan
+                summary_row["min_speed"] = math.nan
+                summary_row["max_speed"] = math.nan
+                summary_row["mean_speed"] = math.nan
+            else:
+                summary_row["mean_speed"] = total_speed / n_particles
+
+            return summary_row, sample_rows
+    except (OSError, KeyError, ValueError):
+        return empty_summary_row(fof_file), []
 
 
 def write_plot(summary: pd.DataFrame, plot_out: Path) -> None:
-    zero_count = int(summary["zero_speed_particle_count"].sum())
-    nonzero_count = int(summary["nonzero_speed_particle_count"].sum())
+    zero_count = int(summary["all_particle_speeds_zero"].fillna(False).sum())
+    nonzero_count = int((~summary["all_particle_speeds_zero"].fillna(False)).sum())
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(["Zero speed", "Non-zero speed"], [zero_count, nonzero_count], color=["#4C78A8", "#E45756"])
-    ax.set_title("FoF particle velocity validation")
-    ax.set_ylabel("Particle count")
+    ax.bar(["All speeds zero", "Any non-zero speed"], [zero_count, nonzero_count], color=["#4C78A8", "#E45756"])
+    ax.set_title("FoF velocity validation by file")
+    ax.set_ylabel("File count")
     ax.ticklabel_format(axis="y", style="plain")
     fig.tight_layout()
     fig.savefig(plot_out, dpi=150)
@@ -145,8 +289,8 @@ def main() -> int:
     rng = np.random.default_rng(args.random_seed)
     fof_files = resolve_input_files(args)
 
-    summary_rows: list[dict[str, object]] = []
-    sample_rows: list[dict[str, object]] = []
+    summary_rows: List[Dict[str, object]] = []
+    sample_rows: List[Dict[str, object]] = []
     for fof_file in fof_files:
         summary_row, one_file_samples = validate_one_file(
             fof_file=fof_file,

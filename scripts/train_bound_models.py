@@ -520,6 +520,31 @@ def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
     (ml_dir / "classification_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_regression_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
+    if metrics.empty:
+        lines = ["Bound outcome regression summary.", "", "No regression models were trained."]
+    else:
+        best = (
+            metrics.sort_values(["dataset", "feature_set", "mae", "rmse", "model"])
+            .groupby(["dataset", "feature_set"], as_index=False)
+            .first()
+        )
+        lines = [
+            "Bound outcome regression summary.",
+            "",
+            "This stage predicts the retained bound mass fraction directly.",
+            "Evaluation again uses grouped folds by physical_file so different FoF linking lengths from the same physical case do not leak across folds.",
+            "",
+            "Best regressors by dataset and feature set:",
+        ]
+        for _, row in best.iterrows():
+            lines.append(
+                f"- {row['dataset']} | {row['feature_set']}: {row['model']} "
+                f"(mae={row['mae']:.4f}, rmse={row['rmse']:.4f}, r2={row['r2']:.3f})"
+            )
+    (ml_dir / "regression_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     args = parse_args()
     ml_dir = args.ml_dir
@@ -534,10 +559,20 @@ def main() -> int:
     write_dataset_summary(dataset_specs, tables_dir / "dataset_summaries.csv")
 
     classification_rows: list[dict[str, object]] = []
+    regression_rows: list[dict[str, object]] = []
     for feature_set_name in FEATURE_SET_COLUMNS:
         for spec in dataset_specs:
             classification_rows.extend(
                 train_classifiers_for_dataset(
+                    spec.name,
+                    spec.frame,
+                    feature_set_name,
+                    plots_dir,
+                    models_dir,
+                )
+            )
+            regression_rows.extend(
+                train_regressors_for_dataset(
                     spec.name,
                     spec.frame,
                     feature_set_name,
@@ -551,10 +586,17 @@ def main() -> int:
     )
     classification_metrics.to_csv(tables_dir / "classification_metrics.csv", index=False)
     write_classification_summary(ml_dir, classification_metrics)
+    regression_metrics = sort_or_empty(
+        regression_rows,
+        ["dataset", "feature_set", "mae", "rmse", "model"],
+    )
+    regression_metrics.to_csv(tables_dir / "regression_metrics.csv", index=False)
+    write_regression_summary(ml_dir, regression_metrics)
 
     print(f"Loaded {len(df)} successful bound outcome rows from {args.dataset}")
     print(f"Wrote dataset summary to {tables_dir / 'dataset_summaries.csv'}")
     print(f"Wrote classification metrics to {tables_dir / 'classification_metrics.csv'}")
+    print(f"Wrote regression metrics to {tables_dir / 'regression_metrics.csv'}")
     return 0
 
 

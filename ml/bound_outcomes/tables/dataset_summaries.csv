@@ -1,0 +1,3 @@
+dataset,rows,unique_physical_files,mean_bound_mass_fraction,positive_bound_share,mixed_label_physical_files,description
+all_successful_runs,407,279,0.07910292212936283,0.5528255528255528,7,All successful rows from outputs/bound_outcomes.csv.
+positive_bound_runs,225,160,0.14308839691844744,1.0,0,Only runs with bound_mass_fraction > 0.

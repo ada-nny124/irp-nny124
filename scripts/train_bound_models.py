@@ -23,6 +23,7 @@ from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score, roc_curve
 from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -297,6 +298,111 @@ def rmse(y_true: pd.Series, y_pred: np.ndarray) -> float:
 
 def grouped_splitter(groups: pd.Series) -> GroupKFold:
     return GroupKFold(n_splits=min(N_SPLITS, groups.nunique()))
+
+
+def classification_metric_summary(y_true: pd.Series, y_pred: np.ndarray, y_score: np.ndarray | None) -> dict[str, float]:
+    metrics = {
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
+        "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+        "f1": float(f1_score(y_true, y_pred, zero_division=0)),
+    }
+    metrics["roc_auc"] = float(roc_auc_score(y_true, y_score)) if y_score is not None and y_true.nunique() > 1 else np.nan
+    return metrics
+
+
+def save_confusion_matrix_plot(y_true: pd.Series, y_pred: np.ndarray, output_path: Path, title: str) -> None:
+    matrix = confusion_matrix(y_true, y_pred, labels=[False, True])
+    fig, ax = plt.subplots(figsize=(5, 4))
+    image = ax.imshow(matrix, cmap="Blues")
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["False", "True"])
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["False", "True"])
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    ax.set_title(title)
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            ax.text(j, i, str(matrix[i, j]), ha="center", va="center", color="black")
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def save_roc_curve_plot(y_true: pd.Series, y_score: np.ndarray, output_path: Path, title: str) -> None:
+    if y_true.nunique() < 2:
+        return
+    fpr, tpr, _ = roc_curve(y_true, y_score)
+    auc = roc_auc_score(y_true, y_score)
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.plot(fpr, tpr, color="#1f77b4", linewidth=2, label=f"AUC={auc:.3f}")
+    ax.plot([0, 1], [0, 1], linestyle="--", color="#666666", linewidth=1)
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate")
+    ax.set_title(title)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def train_classifiers_for_dataset(
+    dataset_name: str,
+    frame: pd.DataFrame,
+    feature_set_name: str,
+    plots_dir: Path,
+    models_dir: Path,
+) -> list[dict[str, object]]:
+    if frame.empty or frame[CLASSIFICATION_TARGET].nunique(dropna=True) < 2:
+        return []
+    X = make_feature_frame(frame, feature_set_name)
+    y = frame[CLASSIFICATION_TARGET].astype(bool)
+    groups = frame["physical_file"].astype(str)
+    splitter = grouped_splitter(groups)
+    metric_rows: list[dict[str, object]] = []
+
+    for model_name, base_pipeline in build_classifier_models(X).items():
+        y_pred = pd.Series(index=y.index, dtype="bool")
+        y_score = pd.Series(index=y.index, dtype="float64")
+        for train_idx, test_idx in splitter.split(X, y, groups):
+            pipeline = clone(base_pipeline)
+            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+            y_train = y.iloc[train_idx]
+            pipeline.fit(X_train, y_train)
+            y_pred.loc[X_test.index] = pipeline.predict(X_test).astype(bool)
+            if hasattr(pipeline, "predict_proba"):
+                y_score.loc[X_test.index] = pipeline.predict_proba(X_test)[:, 1]
+
+        score_values = y_score.loc[y.index].to_numpy() if y_score.notna().any() else None
+        metrics = classification_metric_summary(y, y_pred.loc[y.index].to_numpy(), score_values)
+        metrics.update(
+            {
+                "task": "classification",
+                "dataset": dataset_name,
+                "feature_set": feature_set_name,
+                "target": CLASSIFICATION_TARGET,
+                "model": model_name,
+                "rows": len(frame),
+                "unique_physical_files": int(groups.nunique()),
+            }
+        )
+        metric_rows.append(metrics)
+
+        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{CLASSIFICATION_TARGET}__{model_name}")
+        current_plots_dir = model_plots_dir(plots_dir, model_name, feature_set_name)
+        save_confusion_matrix_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__confusion_matrix.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
+        if score_values is not None:
+            save_roc_curve_plot(y, score_values, current_plots_dir / f"{stem}__roc_curve.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
+
+        final_pipeline = clone(base_pipeline)
+        final_pipeline.fit(X, y)
+        with (models_dir / f"{stem}.pkl").open("wb") as handle:
+            pickle.dump(final_pipeline, handle)
+
+    return metric_rows
 
 
 def main() -> int:

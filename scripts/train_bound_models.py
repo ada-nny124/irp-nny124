@@ -4,14 +4,34 @@
 from __future__ import annotations
 
 import argparse
+import math
+import pickle
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.compose import ColumnTransformer
+from sklearn.dummy import DummyClassifier, DummyRegressor
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
+RANDOM_STATE = 42
+N_SPLITS = 5
+CLASSIFICATION_TARGET = "has_any_bound_mass"
+REGRESSION_TARGET = "bound_mass_fraction"
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
@@ -166,6 +186,117 @@ def write_dataset_summary(dataset_specs: list[DatasetSpec], output_path: Path) -
             }
         )
     pd.DataFrame(rows).to_csv(output_path, index=False)
+
+
+def build_preprocessor(X: pd.DataFrame, model_name: str) -> ColumnTransformer:
+    categorical_features = [column for column in ["spin_axis", "special_case_code"] if column in X.columns]
+    numeric_features = [column for column in X.columns if column not in categorical_features]
+
+    numeric_steps = [("imputer", SimpleImputer(strategy="median"))]
+    if model_name in {"logistic_regression", "ridge"}:
+        numeric_steps.append(("scaler", StandardScaler()))
+
+    return ColumnTransformer(
+        transformers=[
+            ("num", Pipeline(numeric_steps), numeric_features),
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
+                categorical_features,
+            ),
+        ]
+    )
+
+
+def build_classifier_models(X: pd.DataFrame) -> dict[str, Pipeline]:
+    return {
+        "dummy_most_frequent": Pipeline(
+            [("preprocessor", build_preprocessor(X, "dummy_most_frequent")), ("model", DummyClassifier(strategy="most_frequent"))]
+        ),
+        "logistic_regression": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, "logistic_regression")),
+                ("model", LogisticRegression(max_iter=2000, class_weight="balanced", random_state=RANDOM_STATE)),
+            ]
+        ),
+        "random_forest_classifier": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, "random_forest_classifier")),
+                (
+                    "model",
+                    RandomForestClassifier(
+                        n_estimators=300,
+                        min_samples_leaf=2,
+                        class_weight="balanced_subsample",
+                        random_state=RANDOM_STATE,
+                        n_jobs=-1,
+                    ),
+                ),
+            ]
+        ),
+        "gradient_boosting_classifier": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, "gradient_boosting_classifier")),
+                ("model", GradientBoostingClassifier(random_state=RANDOM_STATE)),
+            ]
+        ),
+    }
+
+
+def build_regressor_models(X: pd.DataFrame) -> dict[str, Pipeline]:
+    return {
+        "dummy_mean": Pipeline([("preprocessor", build_preprocessor(X, "dummy_mean")), ("model", DummyRegressor(strategy="mean"))]),
+        "ridge": Pipeline([("preprocessor", build_preprocessor(X, "ridge")), ("model", Ridge(alpha=1.0))]),
+        "random_forest_regressor": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, "random_forest_regressor")),
+                ("model", RandomForestRegressor(n_estimators=300, min_samples_leaf=2, random_state=RANDOM_STATE, n_jobs=-1)),
+            ]
+        ),
+        "gradient_boosting_regressor": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, "gradient_boosting_regressor")),
+                ("model", GradientBoostingRegressor(random_state=RANDOM_STATE)),
+            ]
+        ),
+    }
+
+
+def make_feature_frame(df: pd.DataFrame, feature_set_name: str) -> pd.DataFrame:
+    return df[FEATURE_SET_COLUMNS[feature_set_name]].copy()
+
+
+def safe_slug(text: str) -> str:
+    return text.replace("/", "_").replace(" ", "_")
+
+
+def model_plots_dir(plots_dir: Path, model_name: str, feature_set_name: str) -> Path:
+    path = plots_dir / safe_slug(model_name) / safe_slug(feature_set_name)
+    ensure_dir(path)
+    return path
+
+
+def sort_or_empty(rows: list[dict[str, object]], sort_columns: list[str]) -> pd.DataFrame:
+    if not rows:
+        return pd.DataFrame(columns=sort_columns)
+    return pd.DataFrame(rows).sort_values(sort_columns)
+
+
+def get_feature_names(pipeline: Pipeline) -> np.ndarray:
+    return pipeline.named_steps["preprocessor"].get_feature_names_out()
+
+
+def rmse(y_true: pd.Series, y_pred: np.ndarray) -> float:
+    return math.sqrt(np.mean((y_true - y_pred) ** 2))
+
+
+def grouped_splitter(groups: pd.Series) -> GroupKFold:
+    return GroupKFold(n_splits=min(N_SPLITS, groups.nunique()))
 
 
 def main() -> int:

@@ -1,0 +1,5 @@
+status,rows,readable_true,matched_physical_true
+success_mass_source=header_initial_mass_table;gm_source=metadata_point_mass,393,393,393
+missing_physical_file,81,0,0
+success_no_fragments,14,14,14
+error,1,1,1

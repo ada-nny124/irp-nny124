@@ -1,0 +1,8 @@
+Fragment rows: 189,664
+Run rows: 407
+Extraction log rows: 489
+Bound fragments: 39,479 (20.82%)
+Unbound fragments: 150,185 (79.18%)
+Energy sign matches label for 189,664 / 189,664 fragments.
+Runs with zero bound mass fraction: 182
+Runs with mixed bound mass fraction: 225

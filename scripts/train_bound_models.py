@@ -23,7 +23,7 @@ from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score, roc_curve
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score, mean_absolute_error, precision_score, r2_score, recall_score, roc_auc_score, roc_curve
 from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -396,6 +396,96 @@ def train_classifiers_for_dataset(
         save_confusion_matrix_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__confusion_matrix.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
         if score_values is not None:
             save_roc_curve_plot(y, score_values, current_plots_dir / f"{stem}__roc_curve.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
+
+        final_pipeline = clone(base_pipeline)
+        final_pipeline.fit(X, y)
+        with (models_dir / f"{stem}.pkl").open("wb") as handle:
+            pickle.dump(final_pipeline, handle)
+
+    return metric_rows
+
+
+def regression_metric_summary(y_true: pd.Series, y_pred: np.ndarray) -> dict[str, float]:
+    return {
+        "mae": float(mean_absolute_error(y_true, y_pred)),
+        "rmse": float(rmse(y_true, y_pred)),
+        "r2": float(r2_score(y_true, y_pred)),
+    }
+
+
+def save_regression_scatter_plot(y_true: pd.Series, y_pred: np.ndarray, output_path: Path, title: str) -> None:
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.scatter(y_true, y_pred, alpha=0.7, color="#1f77b4", edgecolors="none")
+    min_val = min(float(np.min(y_true)), float(np.min(y_pred)))
+    max_val = max(float(np.max(y_true)), float(np.max(y_pred)))
+    ax.plot([min_val, max_val], [min_val, max_val], linestyle="--", color="#d62728", linewidth=1.2)
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def save_regression_residual_plot(y_true: pd.Series, y_pred: np.ndarray, output_path: Path, title: str) -> None:
+    residuals = y_true - y_pred
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.scatter(y_pred, residuals, alpha=0.7, color="#ff7f0e", edgecolors="none")
+    ax.axhline(0.0, linestyle="--", color="#222222", linewidth=1.2)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Residual (actual - predicted)")
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def train_regressors_for_dataset(
+    dataset_name: str,
+    frame: pd.DataFrame,
+    feature_set_name: str,
+    plots_dir: Path,
+    models_dir: Path,
+) -> list[dict[str, object]]:
+    working = frame.copy()
+    working[REGRESSION_TARGET] = pd.to_numeric(working[REGRESSION_TARGET], errors="coerce")
+    working = working.dropna(subset=[REGRESSION_TARGET])
+    if working.empty or working[REGRESSION_TARGET].nunique(dropna=True) < 2:
+        return []
+
+    X = make_feature_frame(working, feature_set_name)
+    y = working[REGRESSION_TARGET]
+    groups = working["physical_file"].astype(str)
+    splitter = grouped_splitter(groups)
+    metric_rows: list[dict[str, object]] = []
+
+    for model_name, base_pipeline in build_regressor_models(X).items():
+        y_pred = pd.Series(index=y.index, dtype="float64")
+        for train_idx, test_idx in splitter.split(X, y, groups):
+            pipeline = clone(base_pipeline)
+            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+            y_train = y.iloc[train_idx]
+            pipeline.fit(X_train, y_train)
+            y_pred.loc[X_test.index] = pipeline.predict(X_test)
+
+        metrics = regression_metric_summary(y, y_pred.loc[y.index].to_numpy())
+        metrics.update(
+            {
+                "task": "regression",
+                "dataset": dataset_name,
+                "feature_set": feature_set_name,
+                "target": REGRESSION_TARGET,
+                "model": model_name,
+                "rows": len(working),
+                "unique_physical_files": int(groups.nunique()),
+            }
+        )
+        metric_rows.append(metrics)
+
+        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{REGRESSION_TARGET}__{model_name}")
+        current_plots_dir = model_plots_dir(plots_dir, model_name, feature_set_name)
+        save_regression_scatter_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__actual_vs_predicted.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
+        save_regression_residual_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__residuals.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
 
         final_pipeline = clone(base_pipeline)
         final_pipeline.fit(X, y)

@@ -405,18 +405,66 @@ def train_classifiers_for_dataset(
     return metric_rows
 
 
+def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
+    if metrics.empty:
+        lines = ["Bound outcome classification summary.", "", "No classification models were trained."]
+    else:
+        best = (
+            metrics.sort_values(["dataset", "feature_set", "balanced_accuracy", "f1", "model"], ascending=[True, True, False, False, True])
+            .groupby(["dataset", "feature_set"], as_index=False)
+            .first()
+        )
+        lines = [
+            "Bound outcome classification summary.",
+            "",
+            "This stage predicts whether a successful FoF run retains any bound mass at all.",
+            "Evaluation uses grouped folds by physical_file so alternate FoF linking lengths from the same physical snapshot stay together.",
+            "",
+            "Best classifiers by dataset and feature set:",
+        ]
+        for _, row in best.iterrows():
+            lines.append(
+                f"- {row['dataset']} | {row['feature_set']}: {row['model']} "
+                f"(balanced_accuracy={row['balanced_accuracy']:.3f}, f1={row['f1']:.3f}, roc_auc={row['roc_auc']:.3f})"
+            )
+    (ml_dir / "classification_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     args = parse_args()
     ml_dir = args.ml_dir
     tables_dir = ml_dir / "tables"
-    ensure_dir(tables_dir)
+    plots_dir = ml_dir / "plots"
+    models_dir = ml_dir / "models"
+    for path in [tables_dir, plots_dir, models_dir]:
+        ensure_dir(path)
 
     df = add_engineered_features(load_dataset(args.dataset))
     dataset_specs = build_dataset_specs(df)
     write_dataset_summary(dataset_specs, tables_dir / "dataset_summaries.csv")
 
+    classification_rows: list[dict[str, object]] = []
+    for feature_set_name in FEATURE_SET_COLUMNS:
+        for spec in dataset_specs:
+            classification_rows.extend(
+                train_classifiers_for_dataset(
+                    spec.name,
+                    spec.frame,
+                    feature_set_name,
+                    plots_dir,
+                    models_dir,
+                )
+            )
+    classification_metrics = sort_or_empty(
+        classification_rows,
+        ["dataset", "feature_set", "balanced_accuracy", "f1", "model"],
+    )
+    classification_metrics.to_csv(tables_dir / "classification_metrics.csv", index=False)
+    write_classification_summary(ml_dir, classification_metrics)
+
     print(f"Loaded {len(df)} successful bound outcome rows from {args.dataset}")
     print(f"Wrote dataset summary to {tables_dir / 'dataset_summaries.csv'}")
+    print(f"Wrote classification metrics to {tables_dir / 'classification_metrics.csv'}")
     return 0
 
 

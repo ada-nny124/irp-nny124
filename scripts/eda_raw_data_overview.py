@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import pandas as pd
 
 
@@ -18,6 +19,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", required=True, help="Path to outputs/manifest.csv")
     parser.add_argument("--schema", required=True, help="Path to outputs/hdf5_schema_summary.csv")
     parser.add_argument("--eda-dir", required=True, help="Output directory for EDA artifacts")
+    parser.add_argument(
+        "--report-dir",
+        default="report/figures",
+        help="Optional report figure output directory",
+    )
     return parser.parse_args()
 
 
@@ -37,12 +43,24 @@ def numeric_series(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
 
 
+def mass_log10_kg_from_value(series: pd.Series) -> pd.Series:
+    return numeric_series(series) / 100.0
+
+
+def periapsis_rm_from_value(series: pd.Series) -> pd.Series:
+    return numeric_series(series) / 10.0
+
+
+def velocity_kms_from_value(series: pd.Series) -> pd.Series:
+    return numeric_series(series) / 10.0
+
+
 def summarise_numeric_columns(manifest: pd.DataFrame) -> pd.DataFrame:
     summary_columns = {
-        "mass_log10_kg": numeric_series(manifest["mass_value"]) / 100.0,
+        "mass_log10_kg": mass_log10_kg_from_value(manifest["mass_value"]),
         "particle_log10": numeric_series(manifest["resolution_value"]) / 10.0,
-        "periapsis_Rm": numeric_series(manifest["periapsis_value"]) / 10.0,
-        "v_inf_kms": numeric_series(manifest["velocity_value"]) / 10.0,
+        "periapsis_Rm": periapsis_rm_from_value(manifest["periapsis_value"]),
+        "v_inf_kms": velocity_kms_from_value(manifest["velocity_value"]),
         "spin_period_hr": numeric_series(manifest["spin_value"]) / 10.0,
         "fof_linking_length": numeric_series(manifest["fof_linking_length"]),
         "timestep": numeric_series(manifest["timestep"]),
@@ -197,7 +215,50 @@ def save_heatmap(table: pd.DataFrame, title: str, xlabel: str, ylabel: str, outp
     plt.close(fig)
 
 
-def write_plots(manifest: pd.DataFrame, coverage_tables, plots_dir: Path):
+def save_count_heatmap(
+    frame: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    output_path: Path,
+    log_scale: bool = False,
+) -> None:
+    clean = frame[[x_col, y_col]].copy()
+    clean[x_col] = pd.to_numeric(clean[x_col], errors="coerce")
+    clean[y_col] = pd.to_numeric(clean[y_col], errors="coerce")
+    clean = clean.dropna()
+    table = pd.crosstab(clean[y_col], clean[x_col]).sort_index().sort_index(axis=1)
+
+    fig_width = max(8, len(table.columns) * 0.7)
+    fig_height = max(6, len(table.index) * 0.45)
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+
+    values = table.to_numpy()
+    if log_scale:
+        positive = values[values > 0]
+        norm = LogNorm(vmin=max(1, int(positive.min())), vmax=int(positive.max())) if positive.size else None
+        image = ax.imshow(values, aspect="auto", cmap="Blues", norm=norm)
+        colorbar_label = "Simulation count (log scale)"
+    else:
+        image = ax.imshow(values, aspect="auto", cmap="Blues")
+        colorbar_label = "Simulation count"
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xticks(range(len(table.columns)))
+    ax.set_xticklabels([f"{value:.1f}" for value in table.columns], rotation=45, ha="right")
+    ax.set_yticks(range(len(table.index)))
+    ax.set_yticklabels([f"{value:.1f}" for value in table.index])
+    fig.colorbar(image, ax=ax, label=colorbar_label)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def write_plots(manifest: pd.DataFrame, coverage_tables, plots_dir: Path, report_dir: Path | None = None):
     plot_specs = [
         ("mass_code", "count_by_mass.png", "Simulation count by mass", "Mass code"),
         ("resolution_code", "count_by_resolution.png", "Simulation count by resolution", "Resolution code"),
@@ -247,6 +308,87 @@ def write_plots(manifest: pd.DataFrame, coverage_tables, plots_dir: Path):
     for table_name, filename, title, xlabel, ylabel in heatmap_specs:
         save_heatmap(coverage_tables[table_name], title, xlabel, ylabel, plots_dir / filename)
         generated_plots.append(filename)
+
+    physical_manifest = manifest.assign(
+        mass_log10_kg=mass_log10_kg_from_value(manifest["mass_value"]),
+        periapsis_Rm=periapsis_rm_from_value(manifest["periapsis_value"]),
+        v_inf_kms=velocity_kms_from_value(manifest["velocity_value"]),
+    )
+
+    physical_heatmap_specs = [
+        (
+            "periapsis_Rm",
+            "mass_log10_kg",
+            "Coverage heatmap: mass vs periapsis",
+            "Periapsis (Mars radii)",
+            "Asteroid mass (log10 kg)",
+            "heatmap_mass_vs_periapsis_count.png",
+        ),
+        (
+            "periapsis_Rm",
+            "mass_log10_kg",
+            "Coverage heatmap: mass vs periapsis",
+            "Periapsis (Mars radii)",
+            "Asteroid mass (log10 kg)",
+            "heatmap_mass_vs_periapsis_count_log.png",
+        ),
+        (
+            "periapsis_Rm",
+            "v_inf_kms",
+            "Coverage heatmap: velocity vs periapsis",
+            "Periapsis (Mars radii)",
+            "Velocity at infinity (km/s)",
+            "heatmap_velocity_vs_periapsis_count_log.png",
+        ),
+        (
+            "v_inf_kms",
+            "mass_log10_kg",
+            "Coverage heatmap: mass vs velocity",
+            "Velocity at infinity (km/s)",
+            "Asteroid mass (log10 kg)",
+            "heatmap_mass_vs_velocity_count_log.png",
+        ),
+    ]
+
+    for x_col, y_col, title, xlabel, ylabel, filename in physical_heatmap_specs:
+        save_count_heatmap(
+            physical_manifest,
+            x_col=x_col,
+            y_col=y_col,
+            title=title,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            output_path=plots_dir / filename,
+            log_scale=True,
+        )
+        if filename not in generated_plots:
+            generated_plots.append(filename)
+
+    if report_dir is not None:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        for _, _, title, xlabel, ylabel, filename in physical_heatmap_specs:
+            if filename == "heatmap_mass_vs_periapsis_count.png":
+                x_col = "periapsis_Rm"
+                y_col = "mass_log10_kg"
+            elif filename == "heatmap_velocity_vs_periapsis_count_log.png":
+                x_col = "periapsis_Rm"
+                y_col = "v_inf_kms"
+            elif filename == "heatmap_mass_vs_velocity_count_log.png":
+                x_col = "v_inf_kms"
+                y_col = "mass_log10_kg"
+            else:
+                x_col = "periapsis_Rm"
+                y_col = "mass_log10_kg"
+            save_count_heatmap(
+                physical_manifest,
+                x_col=x_col,
+                y_col=y_col,
+                title=title,
+                xlabel=xlabel,
+                ylabel=ylabel,
+                output_path=report_dir / filename,
+                log_scale=True,
+            )
 
     file_sizes_mb = numeric_series(manifest["file_size_bytes"]) / (1024.0 * 1024.0)
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -347,6 +489,7 @@ def main() -> int:
     manifest_path = Path(args.manifest)
     schema_path = Path(args.schema)
     eda_dir = Path(args.eda_dir)
+    report_dir = Path(args.report_dir) if args.report_dir else None
     tables_dir, plots_dir = ensure_dirs(eda_dir)
 
     manifest = load_csv(manifest_path)
@@ -359,7 +502,7 @@ def main() -> int:
     )
     coverage_tables = write_coverage_tables(manifest, tables_dir)
     schema_fields, _ = write_schema_tables(schema, tables_dir)
-    write_plots(manifest, coverage_tables, plots_dir)
+    write_plots(manifest, coverage_tables, plots_dir, report_dir=report_dir)
     write_readme(eda_dir)
     write_analysis_summary(eda_dir, overview, parameter_counts, schema_fields)
     return 0

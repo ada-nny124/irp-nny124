@@ -31,7 +31,17 @@ def parse_args() -> argparse.Namespace:
         default="outputs/extraction_errors.csv",
         help="Optional path to extraction_errors.csv",
     )
+    parser.add_argument(
+        "--bound-outcomes",
+        default="outputs/bound_outcomes.csv",
+        help="Optional path to outputs/bound_outcomes.csv",
+    )
     parser.add_argument("--eda-dir", required=True, help="Output directory for EDA artifacts")
+    parser.add_argument(
+        "--report-dir",
+        default="report/figures",
+        help="Optional report figure output directory",
+    )
     return parser.parse_args()
 
 
@@ -51,6 +61,32 @@ def numeric_series(frame: pd.DataFrame, column: str) -> pd.Series:
     if column not in frame.columns:
         return pd.Series(dtype="float64")
     return pd.to_numeric(frame[column], errors="coerce")
+
+
+def scaled_from_value(frame: pd.DataFrame, column: str, scale: float) -> pd.Series:
+    return numeric_series(frame, column) / scale
+
+
+def parse_code_numeric(frame: pd.DataFrame, column: str, prefix: str, scale: float) -> pd.Series:
+    if column not in frame.columns:
+        return pd.Series(dtype="float64")
+    extracted = frame[column].astype(str).str.extract(rf"{prefix}(\d+)")[0]
+    return pd.to_numeric(extracted, errors="coerce") / scale
+
+
+def mass_log10_kg(frame: pd.DataFrame) -> pd.Series:
+    values = scaled_from_value(frame, "mass_value", 100.0)
+    return values if values.notna().any() else parse_code_numeric(frame, "mass_code", "A", 100.0)
+
+
+def periapsis_rm(frame: pd.DataFrame) -> pd.Series:
+    values = scaled_from_value(frame, "periapsis_value", 10.0)
+    return values if values.notna().any() else parse_code_numeric(frame, "periapsis_code", "r", 10.0)
+
+
+def velocity_kms(frame: pd.DataFrame) -> pd.Series:
+    values = scaled_from_value(frame, "velocity_value", 10.0)
+    return values if values.notna().any() else parse_code_numeric(frame, "velocity_code", "v", 10.0)
 
 
 def has_meaningful_mass_metrics(outcomes: pd.DataFrame) -> bool:
@@ -321,6 +357,41 @@ def save_scatter(
     plt.close(fig)
 
 
+def save_colored_scatter(
+    x: pd.Series,
+    y: pd.Series,
+    color: pd.Series,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    colorbar_label: str,
+    output_path: Path,
+) -> None:
+    clean = pd.DataFrame(
+        {
+            "x": pd.to_numeric(x, errors="coerce"),
+            "y": pd.to_numeric(y, errors="coerce"),
+            "color": pd.to_numeric(color, errors="coerce"),
+        }
+    ).dropna()
+    fig, ax = plt.subplots(figsize=(8, 5))
+    scatter = ax.scatter(
+        clean["x"],
+        clean["y"],
+        c=clean["color"],
+        cmap="viridis",
+        alpha=0.8,
+        edgecolors="none",
+    )
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    fig.colorbar(scatter, ax=ax, label=colorbar_label)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
 def save_heatmap(table: pd.DataFrame, title: str, xlabel: str, ylabel: str, output_path: Path) -> None:
     fig_width = max(8, len(table.columns) * 0.8)
     fig_height = max(6, len(table.index) * 0.5)
@@ -398,10 +469,10 @@ def write_fragment_population_plots(outcomes: pd.DataFrame, fragments: pd.DataFr
             outcomes["total_particle_mass_kg"], errors="coerce"
         )
         save_scatter(
-            numeric_series(outcomes, "periapsis_value"),
+            periapsis_rm(outcomes),
             largest_fraction,
             "Largest fragment mass fraction vs periapsis",
-            "Periapsis (Rm)",
+            "Periapsis (Mars radii)",
             "Largest fragment mass fraction",
             plots_dir / "largest_fragment_mass_fraction_vs_periapsis.png",
         )
@@ -410,8 +481,13 @@ def write_fragment_population_plots(outcomes: pd.DataFrame, fragments: pd.DataFr
     return generated
 
 
-def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
+def write_plots(outcomes: pd.DataFrame, plots_dir: Path, report_dir: Path | None = None):
     generated = []
+    physical = outcomes.assign(
+        mass_log10_kg=mass_log10_kg(outcomes),
+        periapsis_Rm=periapsis_rm(outcomes),
+        v_inf_kms=velocity_kms(outcomes),
+    )
     plot_metrics = [
         ("fragment_count_min_particles", "distribution_fragment_count.png", "Distribution of fragment count", "Fragment count"),
         (
@@ -462,15 +538,15 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
         generated.append("distribution_bound_fragment_count.png")
 
     scatter_specs = [
-        ("periapsis_value", "fragment_count_min_particles", "fragment_count_vs_periapsis.png", "Fragment count vs periapsis", "Periapsis (Rm)", "Fragment count"),
-        ("velocity_value", "fragment_count_min_particles", "fragment_count_vs_velocity.png", "Fragment count vs velocity", "Velocity (km/s)", "Fragment count"),
-        ("mass_value", "fragment_count_min_particles", "fragment_count_vs_mass.png", "Fragment count vs mass", "Mass code value / 100", "Fragment count"),
+        ("periapsis_Rm", "fragment_count_min_particles", "fragment_count_vs_periapsis.png", "Fragment count vs periapsis", "Periapsis (Mars radii)", "Fragment count"),
+        ("v_inf_kms", "fragment_count_min_particles", "fragment_count_vs_velocity.png", "Fragment count vs velocity", "Velocity at infinity (km/s)", "Fragment count"),
+        ("mass_log10_kg", "fragment_count_min_particles", "fragment_count_vs_mass.png", "Fragment count vs mass", "Asteroid mass (log10 kg)", "Fragment count"),
         (
-            "periapsis_value",
+            "periapsis_Rm",
             "largest_fragment_particle_count",
             "largest_fragment_particles_vs_periapsis.png",
             "Largest fragment particles vs periapsis",
-            "Periapsis (Rm)",
+            "Periapsis (Mars radii)",
             "Largest fragment particle count",
         ),
         (
@@ -478,7 +554,7 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
             "fragment_count_min_particles",
             "fragment_count_vs_fof_linking_length.png",
             "Fragment count vs FoF linking length",
-            "FoF linking length",
+            "FoF linking length (code units)",
             "Fragment count",
         ),
         (
@@ -486,14 +562,14 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
             "largest_fragment_particle_count",
             "largest_fragment_particles_vs_fof_linking_length.png",
             "Largest fragment particles vs FoF linking length",
-            "FoF linking length",
+            "FoF linking length (code units)",
             "Largest fragment particle count",
         ),
     ]
     for x_col, y_col, filename, title, xlabel, ylabel in scatter_specs:
         save_scatter(
-            numeric_series(outcomes, x_col),
-            numeric_series(outcomes, y_col),
+            physical[x_col] if x_col in physical.columns else numeric_series(physical, x_col),
+            numeric_series(physical, y_col),
             title,
             xlabel,
             ylabel,
@@ -503,10 +579,10 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
 
     if numeric_series(outcomes, "largest_fragment_mass_kg").notna().any():
         save_scatter(
-            numeric_series(outcomes, "mass_value"),
-            numeric_series(outcomes, "largest_fragment_mass_kg"),
+            physical["mass_log10_kg"],
+            numeric_series(physical, "largest_fragment_mass_kg"),
             "Largest fragment mass vs mass",
-            "Mass code value / 100",
+            "Asteroid mass (log10 kg)",
             "Largest fragment mass (kg)",
             plots_dir / "largest_fragment_mass_vs_mass.png",
         )
@@ -514,10 +590,10 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
 
     if numeric_series(outcomes, "fragment_mass_fraction").notna().any():
         save_scatter(
-            numeric_series(outcomes, "periapsis_value"),
-            numeric_series(outcomes, "fragment_mass_fraction"),
+            physical["periapsis_Rm"],
+            numeric_series(physical, "fragment_mass_fraction"),
             "Fragment mass fraction vs periapsis",
-            "Periapsis (Rm)",
+            "Periapsis (Mars radii)",
             "Fragment mass fraction",
             plots_dir / "fragment_mass_fraction_vs_periapsis.png",
         )
@@ -525,10 +601,10 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
 
     if numeric_series(outcomes, "bound_mass_fraction").notna().any():
         save_scatter(
-            numeric_series(outcomes, "periapsis_value"),
-            numeric_series(outcomes, "bound_mass_fraction"),
+            physical["periapsis_Rm"],
+            numeric_series(physical, "bound_mass_fraction"),
             "Bound mass fraction vs periapsis",
-            "Periapsis (Rm)",
+            "Periapsis (Mars radii)",
             "Bound mass fraction",
             plots_dir / "bound_mass_fraction_vs_periapsis.png",
         )
@@ -536,10 +612,10 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
 
     if numeric_series(outcomes, "largest_bound_fragment_mass_kg").notna().any():
         save_scatter(
-            numeric_series(outcomes, "periapsis_value"),
-            numeric_series(outcomes, "largest_bound_fragment_mass_kg"),
+            physical["periapsis_Rm"],
+            numeric_series(physical, "largest_bound_fragment_mass_kg"),
             "Largest bound fragment mass vs periapsis",
-            "Periapsis (Rm)",
+            "Periapsis (Mars radii)",
             "Largest bound fragment mass (kg)",
             plots_dir / "largest_bound_fragment_mass_vs_periapsis.png",
         )
@@ -570,6 +646,17 @@ def write_plots(outcomes: pd.DataFrame, plots_dir: Path):
         ).sort_index().sort_index(axis=1)
         save_heatmap(table, title, xlabel, ylabel, plots_dir / filename)
         generated.append(filename)
+
+    if report_dir is not None:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        for filename in [
+            "fragment_count_vs_periapsis.png",
+            "largest_fragment_particles_vs_fof_linking_length.png",
+        ]:
+            source = plots_dir / filename
+            if source.exists():
+                target = report_dir / filename
+                target.write_bytes(source.read_bytes())
 
     return generated
 
@@ -622,18 +709,59 @@ def write_analysis_summary(
     (base_dir / "analysis_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_bound_outcome_report_plot(
+    bound_outcomes: pd.DataFrame, plots_dir: Path | None, report_dir: Path | None
+) -> str | None:
+    if bound_outcomes.empty or "bound_mass_fraction" not in bound_outcomes.columns:
+        return None
+
+    physical = bound_outcomes.assign(
+        periapsis_Rm=periapsis_rm(bound_outcomes),
+        v_inf_kms=velocity_kms(bound_outcomes),
+    )
+    filename = "bound_mass_fraction_vs_periapsis.png"
+
+    if plots_dir is not None:
+        save_colored_scatter(
+            physical["periapsis_Rm"],
+            numeric_series(physical, "bound_mass_fraction"),
+            physical["v_inf_kms"],
+            "Bound mass fraction vs periapsis",
+            "Periapsis (Mars radii)",
+            "Bound mass fraction",
+            "Velocity at infinity (km/s)",
+            plots_dir / filename,
+        )
+    if report_dir is not None:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        save_colored_scatter(
+            physical["periapsis_Rm"],
+            numeric_series(physical, "bound_mass_fraction"),
+            physical["v_inf_kms"],
+            "Bound mass fraction vs periapsis",
+            "Periapsis (Mars radii)",
+            "Bound mass fraction",
+            "Velocity at infinity (km/s)",
+            report_dir / filename,
+        )
+    return filename
+
+
 def main() -> int:
     args = parse_args()
     outcomes_path = Path(args.outcomes)
     fragments_path = Path(args.fragments)
     errors_path = Path(args.errors)
+    bound_outcomes_path = Path(args.bound_outcomes)
     eda_dir = Path(args.eda_dir)
+    report_dir = Path(args.report_dir) if args.report_dir else None
     ensure_dirs(eda_dir)
     write_readme(eda_dir)
 
     outcomes = load_csv(outcomes_path)
     fragments = load_csv(fragments_path)
     errors = load_csv(errors_path) if errors_path.exists() else pd.DataFrame()
+    bound_outcomes = load_csv(bound_outcomes_path) if bound_outcomes_path.exists() else pd.DataFrame()
     tables_dir, plots_dir = ensure_dirs(eda_dir)
 
     overview = write_dataset_overview(outcomes, fragments, errors, tables_dir)
@@ -641,8 +769,9 @@ def main() -> int:
     write_grouped_means(outcomes, tables_dir)
     clean_subset_summary = write_clean_subset_summary(outcomes, tables_dir)
     write_fragment_population_tables(fragments, tables_dir)
-    write_plots(outcomes, plots_dir)
+    write_plots(outcomes, plots_dir, report_dir=report_dir)
     write_fragment_population_plots(outcomes, fragments, plots_dir)
+    write_bound_outcome_report_plot(bound_outcomes, plots_dir, report_dir)
     write_analysis_summary(
         eda_dir,
         overview,

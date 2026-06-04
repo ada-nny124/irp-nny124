@@ -1,2 +1,0 @@
-fof_file,particle_rows,zero_speed_particle_count,nonzero_speed_particle_count,min_speed,median_speed,max_speed,all_particle_speeds_zero,fragment_com_velocity_implication
-/Users/nny124/Downloads/Ma_xp_A2000_n70_r16_v00_90000_fof_0.0020_0000.hdf5,10099881,10099881,0,0.0,0.0,0.0,True,"If all particle velocities are zero, every fragment COM velocity is also zero."

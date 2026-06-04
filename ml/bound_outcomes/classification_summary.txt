@@ -1,8 +1,0 @@
-Bound outcome classification summary.
-
-This stage predicts whether a successful FoF run retains any bound mass at all.
-Evaluation uses grouped folds by physical_file so alternate FoF linking lengths from the same physical snapshot stay together.
-
-Best classifiers by dataset and feature set:
-- all_successful_runs | with_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.927, f1=0.936, roc_auc=0.975)
-- all_successful_runs | without_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.914, f1=0.925, roc_auc=0.963)

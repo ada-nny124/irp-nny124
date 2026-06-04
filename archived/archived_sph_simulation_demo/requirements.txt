@@ -1,5 +1,0 @@
-woma
-h5py
-matplotlib
-numpy
-scipy

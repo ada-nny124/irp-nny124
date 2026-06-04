@@ -1,0 +1,29 @@
+After-extraction EDA summary.
+
+Following the supervisor suggestion, this pass looks beyond fragment count and largest fragment toward the full fragment population.
+
+Extraction completeness: 489/489 outcome rows.
+Simulations with extracted outcomes: 489.
+Extraction errors recorded: 0.
+Outcome ranges and typical values:
+- fragment_count_min_particles: median=255.0
+- largest_fragment_particle_count: median=259351.0
+- fragment_mass_fraction: median=1.0
+
+Mass metrics available: True.
+Bound/unbound metrics available: False.
+FoF linking length is a post-processing control and can dominate detected fragment counts.
+Bound mass fraction and bound-fragment metrics are the current bridge from FoF proxies to physical retention.
+Attempted bound-aware extraction note: fragment COM position and velocity are required for captured/bound metrics; sampled FoF-file velocities are zero, so FoF-only bound/captured extraction remains paused to avoid false metrics.
+
+Recommended clean subset:
+- timestep == 90000
+- resolution_code == n65
+- fof_linking_length == 0.004
+- exclude special cases when comparing physical trends
+
+ML readiness:
+- use one row per simulation from fof_outcomes.csv
+- suggested targets: fragment_count_min_particles, largest_fragment_particle_count
+- add largest_fragment_mass_kg and fragment_mass_fraction when mass metrics are available
+- prefer bound_mass_fraction, bound_fragment_count_min_particles, and largest_bound_fragment_mass_kg when bound metrics are available

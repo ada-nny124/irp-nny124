@@ -66,12 +66,12 @@ ml/plots/random_forest/with_fof_linking_length/*
 !ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_particle_count__gradient_boosting__actual_vs_predicted.png
 !ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_mass_kg__gradient_boosting__actual_vs_predicted.png
 !ml/plots/random_forest/with_fof_linking_length/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png
-eda/bound_eda/plots/
+eda/bound_eda/plots/*
+!eda/bound_eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png
 eda/bound_eda/tables/*
 !eda/bound_eda/tables/dataset_overview.csv
 !eda/bound_eda/tables/extraction_status_summary.csv
 !eda/bound_eda/tables/parameter_bound_summary.csv
-eda/outcome_eda/
 eda/outcome_eda/plots/*
 !eda/outcome_eda/plots/fragment_count_vs_periapsis.png
 !eda/outcome_eda/plots/largest_fragment_particles_vs_fof_linking_length.png
@@ -80,10 +80,10 @@ eda/outcome_eda/tables/*
 !eda/outcome_eda/tables/outcome_dataset_overview.csv
 !eda/outcome_eda/tables/outcome_summary_stats.csv
 eda/outcome_eda/analysis_interpretation.md
-eda/raw_data_overview/
 eda/raw_data_overview/plots/*
 !eda/raw_data_overview/plots/heatmap_mass_vs_periapsis_count.png
 eda/raw_data_overview/tables/*
+!eda/raw_data_overview/tables/coverage_mass_vs_periapsis.csv
 !eda/raw_data_overview/tables/dataset_overview.csv
 !eda/raw_data_overview/tables/parameter_summary_stats.csv
 

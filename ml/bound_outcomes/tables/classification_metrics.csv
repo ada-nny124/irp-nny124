@@ -1,0 +1,9 @@
+accuracy,balanced_accuracy,precision,recall,f1,roc_auc,task,dataset,feature_set,target,model,rows,unique_physical_files
+0.5528255528255528,0.5,0.5528255528255528,1.0,0.7120253164556962,0.5,classification,all_successful_runs,with_fof_linking_length,has_any_bound_mass,dummy_most_frequent,407,279
+0.8501228501228502,0.8492185592185593,0.8693693693693694,0.8577777777777778,0.8635346756152126,0.925030525030525,classification,all_successful_runs,with_fof_linking_length,has_any_bound_mass,logistic_regression,407,279
+0.8968058968058968,0.8956410256410257,0.9066666666666666,0.9066666666666666,0.9066666666666666,0.9705006105006105,classification,all_successful_runs,with_fof_linking_length,has_any_bound_mass,random_forest_classifier,407,279
+0.9287469287469288,0.9271550671550671,0.9298245614035088,0.9422222222222222,0.9359823399558499,0.9754212454212454,classification,all_successful_runs,with_fof_linking_length,has_any_bound_mass,gradient_boosting_classifier,407,279
+0.5528255528255528,0.5,0.5528255528255528,1.0,0.7120253164556962,0.5,classification,all_successful_runs,without_fof_linking_length,has_any_bound_mass,dummy_most_frequent,407,279
+0.85995085995086,0.8591575091575092,0.8783783783783784,0.8666666666666667,0.87248322147651,0.9214163614163614,classification,all_successful_runs,without_fof_linking_length,has_any_bound_mass,logistic_regression,407,279
+0.8845208845208845,0.8824297924297925,0.8903508771929824,0.9022222222222223,0.8962472406181016,0.9474481074481074,classification,all_successful_runs,without_fof_linking_length,has_any_bound_mass,random_forest_classifier,407,279
+0.9164619164619164,0.9139438339438339,0.9134199134199135,0.9377777777777778,0.9254385964912281,0.9634432234432235,classification,all_successful_runs,without_fof_linking_length,has_any_bound_mass,gradient_boosting_classifier,407,279

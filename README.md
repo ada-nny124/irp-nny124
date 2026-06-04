@@ -10,14 +10,11 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 
 ## What This Repo Have
 
-1. Extraction
-   Parse simulation filenames and HDF5 outputs into compact CSV tables such as outputs/manifest.csv, outputs/fof_outcomes.csv, and bound/unbound outcome summaries.
+1. Extraction: Parse simulation filenames and HDF5 outputs into compact CSV tables such as outputs/manifest.csv, outputs/fof_outcomes.csv, and bound/unbound outcome summaries.
 
-2. EDA
-   Inspect parameter coverage and outcome trends, especially the effects of periapsis, mass, velocity, and FoF linking length on fragmentation and retained bound mass.
+2. EDA: Inspect parameter coverage and outcome trends, especially the effects of periapsis, mass, velocity, and FoF linking length on fragmentation and retained bound mass.
 
-3. Machine Learning
-   Train baseline models on one row per simulation to test how predictable disruption outcomes are from simulation metadata.
+3. Machine Learning: Train baseline models on one row per simulation to test how predictable disruption outcomes are from simulation metadata.
 
 ## Main Scripts
 

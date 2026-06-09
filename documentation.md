@@ -432,15 +432,24 @@ The training script is [scripts/train_bound_models.py](/Users/nny124/irp/scripts
 
 ### Scope
 
-This is initial ML, not fragment-level bound classification.
+This is still an initial run-level ML pass, but it now covers more than the two original targets.
 
-The workflow models two run-level targets:
+The workflow models five run-level targets:
 
 1. `has_any_bound_mass`
 This is a binary classification task: does a successful FoF run retain any bound mass at all?
 
-2. `bound_mass_fraction`
+2. `bound_mass_fraction_ge_0_1`
+This is a binary classification task: does a successful FoF run retain at least 10% of its mass in bound fragments?
+
+3. `bound_mass_fraction`
 This is a regression task: how much of the run mass ends up in bound fragments?
+
+4. `bound_fragment_count`
+This is a regression task: how many bound fragments are retained?
+
+5. `largest_bound_fragment_mass_kg`
+This is a regression task: how large is the biggest bound fragment?
 
 The evaluation uses grouped folds by `physical_file`. That means different FoF linking-length variants from the same physical simulation stay in the same fold and do not leak across train and test.
 
@@ -461,14 +470,15 @@ From `classification_metrics.csv`:
 
 | Dataset | Feature set | Best model | Balanced accuracy | F1 | ROC AUC |
 | --- | --- | --- | ---: | ---: | ---: |
-| `all_successful_runs` | `with_fof_linking_length` | `gradient_boosting_classifier` | 0.9272 | 0.9360 | 0.9754 |
-| `all_successful_runs` | `without_fof_linking_length` | `gradient_boosting_classifier` | 0.9139 | 0.9254 | 0.9634 |
+| `all_successful_runs` | `with_fof_linking_length` | `gradient_boosting_classifier` | `0.962` | `0.947` | `0.990` |
+| `all_successful_runs` | `without_fof_linking_length` | `random_forest_classifier` | `0.953` | `0.937` | `0.980` |
 
 Interpretation:
 
-- The binary question is strongly learnable from run metadata.
-- `fof_linking_length` helps, but the improvement is modest.
-- The physical setup appears to carry most of the signal.
+- The binary questions are strongly learnable from run metadata.
+- The 10% retention threshold is easier than the simple any-bound split.
+- `fof_linking_length` helps, but it is not the only signal.
+- The physical setup still carries most of the predictive structure.
 
 Plots to inspect:
 
@@ -487,17 +497,26 @@ From `regression_metrics.csv`:
 
 | Dataset | Feature set | Best model | MAE | RMSE | R2 |
 | --- | --- | --- | ---: | ---: | ---: |
-| `all_successful_runs` | `with_fof_linking_length` | `random_forest_regressor` | 0.0184 | 0.0298 | 0.8971 |
-| `all_successful_runs` | `without_fof_linking_length` | `random_forest_regressor` | 0.0208 | 0.0369 | 0.8426 |
-| `positive_bound_runs` | `with_fof_linking_length` | `gradient_boosting_regressor` | 0.0193 | 0.0280 | 0.8793 |
-| `positive_bound_runs` | `without_fof_linking_length` | `gradient_boosting_regressor` | 0.0195 | 0.0284 | 0.8764 |
+| `all_successful_runs` | `with_fof_linking_length` | `random_forest_regressor` | `65.912` | `189.307` | `0.490` |
+| `all_successful_runs` | `without_fof_linking_length` | `random_forest_regressor` | `85.599` | `237.526` | `0.198` |
+| `positive_bound_runs` | `with_fof_linking_length` | `random_forest_regressor` | `92.671` | `239.233` | `0.496` |
+| `positive_bound_runs` | `without_fof_linking_length` | `random_forest_regressor` | `145.657` | `320.326` | `0.096` |
+| `all_successful_runs` | `with_fof_linking_length` | `random_forest_regressor` | `0.0184` | `0.0298` | `0.897` |
+| `all_successful_runs` | `without_fof_linking_length` | `random_forest_regressor` | `0.0208` | `0.0369` | `0.843` |
+| `positive_bound_runs` | `with_fof_linking_length` | `gradient_boosting_regressor` | `0.0193` | `0.0280` | `0.879` |
+| `positive_bound_runs` | `without_fof_linking_length` | `gradient_boosting_regressor` | `0.0195` | `0.0284` | `0.876` |
+| `all_successful_runs` | `with_fof_linking_length` | `random_forest_regressor` | `5.676e17` | `1.612e18` | `0.824` |
+| `all_successful_runs` | `without_fof_linking_length` | `random_forest_regressor` | `6.496e17` | `1.700e18` | `0.804` |
+| `positive_bound_runs` | `with_fof_linking_length` | `random_forest_regressor` | `1.163e18` | `3.742e18` | `0.394` |
+| `positive_bound_runs` | `without_fof_linking_length` | `random_forest_regressor` | `1.225e18` | `3.766e18` | `0.386` |
 
 Interpretation:
 
-- The retained-mass fraction is harder than the binary gate, but still highly learnable.
-- On all successful runs, the model explains about 90% of the variance in `bound_mass_fraction`.
-- On positive-only runs, performance stays strong, which means the model is not only learning the zero-versus-nonzero split.
-- `fof_linking_length` improves the all-run regression more than it improves the positive-only regression.
+- `bound_mass_fraction` is the cleanest bound-aware target and is still highly learnable.
+- `bound_fragment_count` is much noisier than the mass-fraction target.
+- `largest_bound_fragment_mass_kg` is learnable, but less stable than `bound_mass_fraction`.
+- `fof_linking_length` improves the all-run regression more than it improves the positive-only regression, especially for the count target.
+- The new diagnostics tables now capture calibration, residual structure, and high-actual underprediction.
 
 Plots to inspect:
 
@@ -516,22 +535,19 @@ What these show:
 
 The current run-level metadata is already enough for a useful first model.
 
-The binary task is very strong, and the regression task is also strong enough to justify deeper model development. This is a better next-step ML problem than fragment-level `is_bound`, because fragment-level `is_bound` is effectively defined by `specific_energy_J_kg`.
+The threshold classification problem is very strong, and the mass-fraction regression is also strong enough to justify deeper model development. `bound_fragment_count` is weaker, which tells us that mass-retention structure is easier to learn than exact count structure. This remains a better next-step ML problem than fragment-level `is_bound`, because fragment-level `is_bound` is effectively defined by `specific_energy_J_kg`.
 
 ### What Next
 
-The next modeling step should be one of these:
+The current model layer now emits the main reliability tables:
 
-1. Add model interpretation tables.
-This means permutation importance, grouped residual summaries, and parameter-wise calibration checks.
+- calibration summaries for the classification targets
+- prediction bias summaries for the regression targets
+- residual summaries by periapsis, mass, velocity, spin, and FoF linking length
+- with-vs-without linking-length comparisons
+- target difficulty rankings
 
-2. Add stricter leakage checks.
-This means testing alternate group definitions and possibly holding out whole parameter families.
-
-3. Add richer run-level targets.
-Good candidates are `bound_fragment_count`, `largest_bound_fragment_mass_kg`, and thresholded versions such as `bound_mass_fraction >= 0.1`.
-
-The fragment-level bound classifier should only be revisited with leakage-restricted feature sets. It is not the highest-value next model from this dataset.
+The next step is report synthesis rather than more model families: tie these tables back to the research questions, and only add stricter leakage variants if the written interpretation still looks ambiguous.
 | `{dataset}__{feature_set}__{target}__{model}__residuals_by_fof_linking_length.png` | Failure pattern across FoF grouping choice |
 
 Filename pattern:
@@ -690,7 +706,7 @@ So this question is **answered at the level of FoF-derived fragment statistics**
 
 ### 2. Which parameters most strongly control fragment formation and bound debris mass?
 
-Current answer: **partially answered for fragment formation, not answered for bound debris mass**.
+Current answer: **partially answered for fragment formation and now partially answered for bound-aware debris proxies**.
 
 For fragment formation:
 
@@ -710,55 +726,57 @@ Interpretation:
 - In the full dataset, `fof_linking_length` is influential enough that it materially changes fragment-count performance.
 - The model therefore says that fragment formation is not controlled by one variable alone; it reflects both encounter severity and the way post-processing groups material into fragments.
 
-For bound debris mass:
+For bound debris mass proxies:
 
-- No validated `bound_debris_mass` target has been extracted.
-- No ML target in the current workflow measures bound debris mass directly.
+- `bound_mass_fraction` is now modelled directly and is the cleanest bound-aware target.
+- `largest_bound_fragment_mass_kg` is also learnable and gives a stronger proxy for a retained remnant scale.
+- `bound_fragment_count` is measurable but noisier, which is useful because it shows that count structure is less stable than mass-retention structure.
+- The 10% retention threshold is strongly learnable and gives a clear binary bound-retention proxy.
 
-So the second half of this question is **not yet answered**.
+The remaining gap is the same one the plan identified: true long-term capture efficiency and moon-forming disk mass are still not measured directly. So the question is **partially answered at the proxy level, but not yet at the final physical level**.
 
 ### 3. Can a machine learning model reliably predict disruption outcomes across parameter space?
 
-Current answer: **yes for some FoF-derived targets, but only partially and not yet for the full physical science outcomes**.
+Current answer: **yes for the FoF-derived fragment targets and now also for the bound-aware proxy targets, but not yet for long-term capture or disk formation**.
 
 Best current quantitative results:
 
-- Full | with `fof_linking_length`
-  - `largest_fragment_particle_count` | `gradient_boosting`
-    - `test_MAE = 208,553.958`
-    - `test_RMSE = 375,799.135`
-    - `test_R2 = 0.902`
-  - `largest_fragment_mass_kg` | `gradient_boosting`
-    - `test_MAE = 7.155e18 kg`
-    - `test_RMSE = 1.218e19 kg`
-    - `test_R2 = 0.885`
-  - `fragment_count_min_particles` | `random_forest`
-    - `test_MAE = 131.521`
-    - `test_RMSE = 277.270`
-    - `test_R2 = 0.737`
+- `bound_mass_fraction_ge_0_1`
+  - best classification: `gradient_boosting_classifier`
+  - `balanced_accuracy = 0.962` with `fof_linking_length`
+  - `balanced_accuracy = 0.953` without `fof_linking_length`
+- `has_any_bound_mass`
+  - best classification: `gradient_boosting_classifier`
+  - `balanced_accuracy = 0.927` with `fof_linking_length`
+  - `balanced_accuracy = 0.914` without `fof_linking_length`
+- `bound_mass_fraction`
+  - best regression: `random_forest_regressor`
+  - `test_R2 = 0.897` with `fof_linking_length`
+  - `test_R2 = 0.843` without `fof_linking_length`
+- `largest_bound_fragment_mass_kg`
+  - best regression: `random_forest_regressor`
+  - `test_R2 = 0.824` with `fof_linking_length`
+  - `test_R2 = 0.804` without `fof_linking_length`
+- `bound_fragment_count`
+  - best regression: `random_forest_regressor`
+  - `test_R2 = 0.490` with `fof_linking_length`
+  - `test_R2 = 0.198` without `fof_linking_length`
 
 Key limitations:
 
-- Removing `fof_linking_length` causes a substantial performance drop on the full dataset:
-  - fragment count: `R2` drops by `0.050`
-  - largest fragment particle count: `R2` drops by `0.159`
-  - largest fragment mass: `R2` drops by `0.228`
-- High-actual cases are often underpredicted:
-  - Full | with `fof_linking_length` | `largest_fragment_mass_kg` | `gradient_boosting`
-    - `mean_residual_high_actual = 1.252e19`
-    - `underpredict_rate_high_actual = 0.960`
-  - Full | with `fof_linking_length` | `largest_fragment_particle_count` | `gradient_boosting`
-    - `mean_residual_high_actual = 298,043.098`
-    - `underpredict_rate_high_actual = 0.640`
+- Removing `fof_linking_length` still causes a large performance drop on the count targets, and a smaller but real drop on the mass-fraction targets.
+- High-actual cases are still underpredicted most strongly for the largest-mass and bound-count targets.
+- The new calibration and residual tables confirm that the models are strongest in the central parameter space and weakest at the most extreme retention cases.
 
 Interpretation:
 
-- The model is already reliably useful for predicting some **FoF-derived fragment statistics**, especially the largest-fragment targets.
-- Reliability is weaker for fragment count and for extreme cases.
-- The dependence on `fof_linking_length` shows that some of the current predictive power comes from FoF grouping behavior, not purely from physical controls.
-- The strongest conclusion is that ML can already map broad disruption regimes across the current parameter space, but it still compresses the most extreme disruption outcomes and should not yet be treated as a precision predictor of the tail.
+- The model is already reliably useful for predicting the main bound-aware proxy outcomes.
+- The binary threshold and mass-fraction targets are the strongest and cleanest.
+- Count targets are still noisier than mass-retention targets.
+- The dependence on `fof_linking_length` shows that some predictive power comes from FoF grouping behavior, not purely from physical controls.
+- The strongest conclusion is that ML can already map broad disruption and retention regimes across the current parameter space, but it still compresses the most extreme outcomes and should not yet be treated as a precision predictor of the tail.
 
-So the answer is **yes, but only for the FoF-derived proxy outcomes currently extracted, not yet for bound debris, capture, or proto-disk formation outcomes**.
+So the answer is **yes for the extracted FoF and bound-aware proxy outcomes, but not yet for direct capture, disk mass, or moon-formation metrics**.
 
 ## Conclusion
 
@@ -767,6 +785,7 @@ This project has successfully built:
 - a complete FoF outcome extraction pipeline
 - raw-data and outcome-level EDA
 - a working baseline ML pipeline
+- a bound-aware multi-target ML pipeline with calibration, bias, residual, and linking-length diagnostics
 - an ML diagnostics layer for importance, bias, overfitting, and robustness
 
 The strongest current results are:
@@ -779,10 +798,10 @@ The strongest current results are:
 
 What is still missing is exactly the part needed to fully answer the original planetary-science questions:
 
-- validated bound debris mass
-- capture metrics
+- validated capture efficiency
 - disk mass or circularised mass in the moon-forming region
+- a direct long-term moon-formation outcome target
 
 So the current state of the project is:
 
-> The computational workflow is now strong enough to conclude that periapsis is the clearest physical driver of FoF fragmentation, that spin materially modulates disruption once the dataset is controlled, and that ML can predict broad fragment-scale outcomes with real skill. However, the workflow still stops short of the deeper physical questions because it does not yet measure bound debris, capture efficiency, or moon-forming disk mass directly.
+> The computational workflow is now strong enough to conclude that periapsis is the clearest physical driver of FoF fragmentation, that spin materially modulates disruption once the dataset is controlled, and that ML can predict broad fragment-scale and bound-retention outcomes with real skill. However, the workflow still stops short of the deeper physical questions because it does not yet measure capture efficiency, disk mass, or a direct moon-formation outcome directly.

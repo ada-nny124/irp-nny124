@@ -518,20 +518,24 @@ def train_regressors_for_dataset(
     dataset_name: str,
     frame: pd.DataFrame,
     feature_set_name: str,
+    target_spec: TargetSpec,
     plots_dir: Path,
     models_dir: Path,
-) -> list[dict[str, object]]:
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     working = frame.copy()
-    working[REGRESSION_TARGET] = pd.to_numeric(working[REGRESSION_TARGET], errors="coerce")
-    working = working.dropna(subset=[REGRESSION_TARGET])
-    if working.empty or working[REGRESSION_TARGET].nunique(dropna=True) < 2:
-        return []
+    if target_spec.source_column not in working.columns:
+        return [], []
+    working[target_spec.source_column] = pd.to_numeric(working[target_spec.source_column], errors="coerce")
+    working = working.dropna(subset=[target_spec.source_column])
+    if working.empty or working[target_spec.source_column].nunique(dropna=True) < 2:
+        return [], []
 
     X = make_feature_frame(working, feature_set_name)
-    y = working[REGRESSION_TARGET]
+    y = working[target_spec.source_column]
     groups = working["physical_file"].astype(str)
     splitter = grouped_splitter(groups)
     metric_rows: list[dict[str, object]] = []
+    prediction_rows: list[dict[str, object]] = []
 
     for model_name, base_pipeline in build_regressor_models(X).items():
         y_pred = pd.Series(index=y.index, dtype="float64")
@@ -543,30 +547,54 @@ def train_regressors_for_dataset(
             y_pred.loc[X_test.index] = pipeline.predict(X_test)
 
         metrics = regression_metric_summary(y, y_pred.loc[y.index].to_numpy())
+        final_pipeline = clone(base_pipeline)
+        final_pipeline.fit(X, y)
+        train_pred = final_pipeline.predict(X)
+        train_metrics = regression_metric_summary(y, train_pred)
+        metrics = {
+            **metrics,
+            **{f"train_{key}": value for key, value in train_metrics.items()},
+        }
         metrics.update(
             {
                 "task": "regression",
                 "dataset": dataset_name,
                 "feature_set": feature_set_name,
-                "target": REGRESSION_TARGET,
+                "target": target_spec.name,
                 "model": model_name,
                 "rows": len(working),
                 "unique_physical_files": int(groups.nunique()),
+                "source_column": target_spec.source_column,
             }
         )
         metric_rows.append(metrics)
 
-        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{REGRESSION_TARGET}__{model_name}")
+        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{target_spec.name}__{model_name}")
         current_plots_dir = model_plots_dir(plots_dir, model_name, feature_set_name)
         save_regression_scatter_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__actual_vs_predicted.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
         save_regression_residual_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__residuals.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
 
-        final_pipeline = clone(base_pipeline)
-        final_pipeline.fit(X, y)
         with (models_dir / f"{stem}.pkl").open("wb") as handle:
             pickle.dump(final_pipeline, handle)
 
-    return metric_rows
+        prediction_rows.extend(
+            {
+                "task": "regression",
+                "dataset": dataset_name,
+                "feature_set": feature_set_name,
+                "target": target_spec.name,
+                "model": model_name,
+                "physical_file": row["physical_file"],
+                "actual": float(y.loc[index]),
+                "predicted": float(y_pred.loc[index]),
+                "score": np.nan,
+                "residual": float(y.loc[index] - y_pred.loc[index]),
+                **{column: row[column] for column in X.columns},
+            }
+            for index, row in working.loc[y.index].iterrows()
+        )
+
+    return metric_rows, prediction_rows
 
 
 def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:

@@ -396,16 +396,20 @@ def train_classifiers_for_dataset(
     dataset_name: str,
     frame: pd.DataFrame,
     feature_set_name: str,
+    target_spec: TargetSpec,
     plots_dir: Path,
     models_dir: Path,
-) -> list[dict[str, object]]:
-    if frame.empty or frame[CLASSIFICATION_TARGET].nunique(dropna=True) < 2:
-        return []
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    if frame.empty or target_spec.source_column not in frame.columns:
+        return [], []
     X = make_feature_frame(frame, feature_set_name)
-    y = frame[CLASSIFICATION_TARGET].astype(bool)
+    y = frame[target_spec.source_column].astype(bool)
+    if y.nunique(dropna=True) < 2:
+        return [], []
     groups = frame["physical_file"].astype(str)
     splitter = grouped_splitter(groups)
     metric_rows: list[dict[str, object]] = []
+    prediction_rows: list[dict[str, object]] = []
 
     for model_name, base_pipeline in build_classifier_models(X).items():
         y_pred = pd.Series(index=y.index, dtype="bool")
@@ -420,32 +424,59 @@ def train_classifiers_for_dataset(
                 y_score.loc[X_test.index] = pipeline.predict_proba(X_test)[:, 1]
 
         score_values = y_score.loc[y.index].to_numpy() if y_score.notna().any() else None
-        metrics = classification_metric_summary(y, y_pred.loc[y.index].to_numpy(), score_values)
+        test_metrics = classification_metric_summary(y, y_pred.loc[y.index].to_numpy(), score_values)
+
+        final_pipeline = clone(base_pipeline)
+        final_pipeline.fit(X, y)
+        train_pred = final_pipeline.predict(X).astype(bool)
+        train_score = final_pipeline.predict_proba(X)[:, 1] if hasattr(final_pipeline, "predict_proba") else None
+        train_metrics = classification_metric_summary(y, train_pred, train_score)
+
+        metrics = {
+            **test_metrics,
+            **{f"train_{key}": value for key, value in train_metrics.items()},
+        }
         metrics.update(
             {
                 "task": "classification",
                 "dataset": dataset_name,
                 "feature_set": feature_set_name,
-                "target": CLASSIFICATION_TARGET,
+                "target": target_spec.name,
                 "model": model_name,
                 "rows": len(frame),
                 "unique_physical_files": int(groups.nunique()),
+                "source_column": target_spec.source_column,
             }
         )
         metric_rows.append(metrics)
 
-        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{CLASSIFICATION_TARGET}__{model_name}")
+        stem = safe_slug(f"{dataset_name}__{feature_set_name}__{target_spec.name}__{model_name}")
         current_plots_dir = model_plots_dir(plots_dir, model_name, feature_set_name)
         save_confusion_matrix_plot(y, y_pred.loc[y.index].to_numpy(), current_plots_dir / f"{stem}__confusion_matrix.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
         if score_values is not None:
             save_roc_curve_plot(y, score_values, current_plots_dir / f"{stem}__roc_curve.png", title=f"{dataset_name} | {feature_set_name} | {model_name}")
 
-        final_pipeline = clone(base_pipeline)
-        final_pipeline.fit(X, y)
         with (models_dir / f"{stem}.pkl").open("wb") as handle:
             pickle.dump(final_pipeline, handle)
 
-    return metric_rows
+        prediction_rows.extend(
+            {
+                "task": "classification",
+                "dataset": dataset_name,
+                "feature_set": feature_set_name,
+                "target": target_spec.name,
+                "model": model_name,
+                "physical_file": row["physical_file"],
+                "actual": bool(y.loc[index]),
+                "predicted": bool(y_pred.loc[index]),
+                "score": float(y_score.loc[index]) if pd.notna(y_score.loc[index]) else np.nan,
+                "residual": float(int(y.loc[index]) - int(bool(y_pred.loc[index]))),
+                **{column: row[column] for column in X.columns},
+            }
+            for index, row in frame.loc[y.index].iterrows()
+        )
+
+    return metric_rows, prediction_rows
 
 
 def regression_metric_summary(y_true: pd.Series, y_pred: np.ndarray) -> dict[str, float]:

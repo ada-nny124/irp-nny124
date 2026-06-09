@@ -65,6 +65,48 @@ class DatasetSpec:
     description: str
 
 
+@dataclass(frozen=True)
+class TargetSpec:
+    name: str
+    task: str
+    source_column: str
+    description: str
+
+
+TARGET_SPECS = [
+    TargetSpec(
+        name="has_any_bound_mass",
+        task="classification",
+        source_column="has_any_bound_mass",
+        description="Does a successful FoF run retain any bound mass at all?",
+    ),
+    TargetSpec(
+        name="bound_mass_fraction_ge_0_1",
+        task="classification",
+        source_column="bound_mass_fraction_ge_0_1",
+        description="Does a successful FoF run retain at least 10% of its mass in bound fragments?",
+    ),
+    TargetSpec(
+        name="bound_mass_fraction",
+        task="regression",
+        source_column="bound_mass_fraction",
+        description="What fraction of the run mass remains bound?",
+    ),
+    TargetSpec(
+        name="bound_fragment_count",
+        task="regression",
+        source_column="bound_fragment_count",
+        description="How many bound fragments are retained?",
+    ),
+    TargetSpec(
+        name="largest_bound_fragment_mass_kg",
+        task="regression",
+        source_column="largest_bound_fragment_mass_kg",
+        description="What is the largest bound fragment mass?",
+    ),
+]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(

@@ -1,8 +1,12 @@
 Bound outcome classification summary.
 
-This stage predicts whether a successful FoF run retains any bound mass at all.
+This stage predicts whether a successful FoF run retains any bound mass at all, plus a 10% retention threshold.
 Evaluation uses grouped folds by physical_file so alternate FoF linking lengths from the same physical snapshot stay together.
 
-Best classifiers by dataset and feature set:
-- all_successful_runs | with_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.927, f1=0.936, roc_auc=0.975)
-- all_successful_runs | without_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.914, f1=0.925, roc_auc=0.963)
+Best classifiers by target, dataset, and feature set:
+- bound_mass_fraction_ge_0_1 | all_successful_runs | with_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.962, f1=0.947, roc_auc=0.990)
+- bound_mass_fraction_ge_0_1 | all_successful_runs | without_fof_linking_length: random_forest_classifier (balanced_accuracy=0.953, f1=0.937, roc_auc=0.980)
+- bound_mass_fraction_ge_0_1 | positive_bound_runs | with_fof_linking_length: logistic_regression (balanced_accuracy=0.888, f1=0.922, roc_auc=0.925)
+- bound_mass_fraction_ge_0_1 | positive_bound_runs | without_fof_linking_length: logistic_regression (balanced_accuracy=0.888, f1=0.922, roc_auc=0.938)
+- has_any_bound_mass | all_successful_runs | with_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.927, f1=0.936, roc_auc=0.975)
+- has_any_bound_mass | all_successful_runs | without_fof_linking_length: gradient_boosting_classifier (balanced_accuracy=0.914, f1=0.925, roc_auc=0.963)

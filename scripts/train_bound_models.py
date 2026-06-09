@@ -599,10 +599,15 @@ def train_regressors_for_dataset(
     return metric_rows, prediction_rows
 
 
-def best_rows(metrics: pd.DataFrame, sort_columns: list[str], group_columns: list[str]) -> pd.DataFrame:
+def best_rows(
+    metrics: pd.DataFrame,
+    sort_columns: list[str],
+    group_columns: list[str],
+    ascending: list[bool],
+) -> pd.DataFrame:
     if metrics.empty:
         return pd.DataFrame()
-    return metrics.sort_values(sort_columns).groupby(group_columns, as_index=False).first()
+    return metrics.sort_values(sort_columns, ascending=ascending).groupby(group_columns, as_index=False).first()
 
 
 def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
@@ -613,6 +618,7 @@ def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
             metrics,
             ["target", "dataset", "feature_set", "balanced_accuracy", "f1", "roc_auc", "model"],
             ["target", "dataset", "feature_set"],
+            [True, True, True, False, False, False, True],
         )
         lines = [
             "Bound outcome classification summary.",
@@ -638,6 +644,7 @@ def write_regression_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
             metrics,
             ["target", "dataset", "feature_set", "mae", "rmse", "model"],
             ["target", "dataset", "feature_set"],
+            [True, True, True, True, True, True],
         )
         lines = [
             "Bound outcome regression summary.",

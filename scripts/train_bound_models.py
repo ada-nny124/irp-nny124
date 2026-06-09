@@ -149,6 +149,7 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     frame["spin_axis"] = frame["spin_axis"].fillna("none").replace("", "none")
     frame["special_case_code"] = frame["special_case_code"].fillna("").replace("", "none")
     frame["has_any_bound_mass"] = pd.to_numeric(frame["bound_mass_fraction"], errors="coerce") > 0
+    frame["bound_mass_fraction_ge_0_1"] = pd.to_numeric(frame["bound_mass_fraction"], errors="coerce") >= 0.1
     return frame
 
 

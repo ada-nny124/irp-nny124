@@ -33,6 +33,8 @@ RANDOM_STATE = 42
 N_SPLITS = 5
 CLASSIFICATION_TARGET = "has_any_bound_mass"
 REGRESSION_TARGET = "bound_mass_fraction"
+HIGH_RETENTION_THRESHOLD = 0.1
+RESIDUAL_GROUP_COLUMNS = ["periapsis_Rm", "mass_log10_kg", "v_inf_kms", "spin_axis", "fof_linking_length"]
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
@@ -597,26 +599,32 @@ def train_regressors_for_dataset(
     return metric_rows, prediction_rows
 
 
+def best_rows(metrics: pd.DataFrame, sort_columns: list[str], group_columns: list[str]) -> pd.DataFrame:
+    if metrics.empty:
+        return pd.DataFrame()
+    return metrics.sort_values(sort_columns).groupby(group_columns, as_index=False).first()
+
+
 def write_classification_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
     if metrics.empty:
         lines = ["Bound outcome classification summary.", "", "No classification models were trained."]
     else:
-        best = (
-            metrics.sort_values(["dataset", "feature_set", "balanced_accuracy", "f1", "model"], ascending=[True, True, False, False, True])
-            .groupby(["dataset", "feature_set"], as_index=False)
-            .first()
+        best = best_rows(
+            metrics,
+            ["target", "dataset", "feature_set", "balanced_accuracy", "f1", "roc_auc", "model"],
+            ["target", "dataset", "feature_set"],
         )
         lines = [
             "Bound outcome classification summary.",
             "",
-            "This stage predicts whether a successful FoF run retains any bound mass at all.",
+            "This stage predicts whether a successful FoF run retains any bound mass at all, plus a 10% retention threshold.",
             "Evaluation uses grouped folds by physical_file so alternate FoF linking lengths from the same physical snapshot stay together.",
             "",
-            "Best classifiers by dataset and feature set:",
+            "Best classifiers by target, dataset, and feature set:",
         ]
         for _, row in best.iterrows():
             lines.append(
-                f"- {row['dataset']} | {row['feature_set']}: {row['model']} "
+                f"- {row['target']} | {row['dataset']} | {row['feature_set']}: {row['model']} "
                 f"(balanced_accuracy={row['balanced_accuracy']:.3f}, f1={row['f1']:.3f}, roc_auc={row['roc_auc']:.3f})"
             )
     (ml_dir / "classification_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -626,25 +634,290 @@ def write_regression_summary(ml_dir: Path, metrics: pd.DataFrame) -> None:
     if metrics.empty:
         lines = ["Bound outcome regression summary.", "", "No regression models were trained."]
     else:
-        best = (
-            metrics.sort_values(["dataset", "feature_set", "mae", "rmse", "model"])
-            .groupby(["dataset", "feature_set"], as_index=False)
-            .first()
+        best = best_rows(
+            metrics,
+            ["target", "dataset", "feature_set", "mae", "rmse", "model"],
+            ["target", "dataset", "feature_set"],
         )
         lines = [
             "Bound outcome regression summary.",
             "",
-            "This stage predicts the retained bound mass fraction directly.",
+            "This stage predicts the retained bound mass fraction, bound fragment count, and the largest bound fragment mass.",
             "Evaluation again uses grouped folds by physical_file so different FoF linking lengths from the same physical case do not leak across folds.",
             "",
-            "Best regressors by dataset and feature set:",
+            "Best regressors by target, dataset, and feature set:",
         ]
         for _, row in best.iterrows():
             lines.append(
-                f"- {row['dataset']} | {row['feature_set']}: {row['model']} "
+                f"- {row['target']} | {row['dataset']} | {row['feature_set']}: {row['model']} "
                 f"(mae={row['mae']:.4f}, rmse={row['rmse']:.4f}, r2={row['r2']:.3f})"
             )
     (ml_dir / "regression_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_prediction_records(output_path: Path, prediction_rows: list[dict[str, object]]) -> None:
+    pd.DataFrame(prediction_rows).to_csv(output_path, index=False)
+
+
+def write_overfit_summary(output_path: Path, metrics: pd.DataFrame) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for _, row in metrics.iterrows():
+        if row["task"] == "classification":
+            rows.append(
+                {
+                    "task": row["task"],
+                    "dataset": row["dataset"],
+                    "feature_set": row["feature_set"],
+                    "target": row["target"],
+                    "model": row["model"],
+                    "rows": row["rows"],
+                    "unique_physical_files": row["unique_physical_files"],
+                    "train_accuracy": row["train_accuracy"],
+                    "test_accuracy": row["accuracy"],
+                    "accuracy_gap": row["train_accuracy"] - row["accuracy"],
+                    "train_balanced_accuracy": row["train_balanced_accuracy"],
+                    "test_balanced_accuracy": row["balanced_accuracy"],
+                    "balanced_accuracy_gap": row["train_balanced_accuracy"] - row["balanced_accuracy"],
+                    "train_f1": row["train_f1"],
+                    "test_f1": row["f1"],
+                    "f1_gap": row["train_f1"] - row["f1"],
+                    "train_roc_auc": row["train_roc_auc"],
+                    "test_roc_auc": row["roc_auc"],
+                    "roc_auc_gap": row["train_roc_auc"] - row["roc_auc"],
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "task": row["task"],
+                    "dataset": row["dataset"],
+                    "feature_set": row["feature_set"],
+                    "target": row["target"],
+                    "model": row["model"],
+                    "rows": row["rows"],
+                    "unique_physical_files": row["unique_physical_files"],
+                    "train_mae": row["train_mae"],
+                    "test_mae": row["mae"],
+                    "mae_gap": row["mae"] - row["train_mae"],
+                    "train_rmse": row["train_rmse"],
+                    "test_rmse": row["rmse"],
+                    "rmse_gap": row["rmse"] - row["train_rmse"],
+                    "train_r2": row["train_r2"],
+                    "test_r2": row["r2"],
+                    "r2_gap": row["train_r2"] - row["r2"],
+                }
+            )
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    return summary
+
+
+def write_calibration_summary(output_path: Path, predictions: pd.DataFrame) -> pd.DataFrame:
+    classification = predictions[predictions["task"] == "classification"].copy()
+    if classification.empty:
+        summary = pd.DataFrame(columns=["task", "dataset", "feature_set", "target", "model", "bin", "count", "mean_score", "actual_rate"])
+        summary.to_csv(output_path, index=False)
+        return summary
+
+    rows: list[dict[str, object]] = []
+    group_columns = ["task", "dataset", "feature_set", "target", "model"]
+    for keys, group in classification.groupby(group_columns, dropna=False):
+        scores = pd.to_numeric(group["score"], errors="coerce")
+        actuals = pd.to_numeric(group["actual"], errors="coerce")
+        valid = pd.DataFrame({"score": scores, "actual": actuals}).dropna()
+        if valid.empty:
+            continue
+        bins = min(5, valid["score"].nunique())
+        if bins < 2:
+            rows.append(
+                {
+                    **{column: value for column, value in zip(group_columns, keys)},
+                    "bin": "all",
+                    "count": int(len(valid)),
+                    "mean_score": float(valid["score"].mean()),
+                    "actual_rate": float(valid["actual"].mean()),
+                }
+            )
+            continue
+        bin_labels = pd.qcut(valid["score"].rank(method="first"), q=bins, duplicates="drop")
+        valid = valid.assign(score_bin=bin_labels)
+        for label, subset in valid.groupby("score_bin", dropna=False):
+            rows.append(
+                {
+                    **{column: value for column, value in zip(group_columns, keys)},
+                    "bin": str(label),
+                    "count": int(len(subset)),
+                    "mean_score": float(subset["score"].mean()),
+                    "actual_rate": float(subset["actual"].mean()),
+                }
+            )
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    return summary
+
+
+def write_prediction_bias_summary(output_path: Path, predictions: pd.DataFrame) -> pd.DataFrame:
+    regression = predictions[predictions["task"] == "regression"].copy()
+    if regression.empty:
+        summary = pd.DataFrame(columns=["task", "dataset", "feature_set", "target", "model", "bucket", "count", "mean_actual", "mean_predicted", "mean_residual", "underprediction_rate"])
+        summary.to_csv(output_path, index=False)
+        return summary
+
+    rows: list[dict[str, object]] = []
+    group_columns = ["task", "dataset", "feature_set", "target", "model"]
+    for keys, group in regression.groupby(group_columns, dropna=False):
+        actuals = pd.to_numeric(group["actual"], errors="coerce")
+        predicted = pd.to_numeric(group["predicted"], errors="coerce")
+        residual = pd.to_numeric(group["residual"], errors="coerce")
+        valid = pd.DataFrame({"actual": actuals, "predicted": predicted, "residual": residual}).dropna()
+        if valid.empty:
+            continue
+        q25 = valid["actual"].quantile(0.25)
+        q75 = valid["actual"].quantile(0.75)
+        buckets = {
+            "low_actual": valid[valid["actual"] <= q25],
+            "high_actual": valid[valid["actual"] >= q75],
+        }
+        for bucket_name, subset in buckets.items():
+            if subset.empty:
+                continue
+            rows.append(
+                {
+                    **{column: value for column, value in zip(group_columns, keys)},
+                    "bucket": bucket_name,
+                    "count": int(len(subset)),
+                    "mean_actual": float(subset["actual"].mean()),
+                    "mean_predicted": float(subset["predicted"].mean()),
+                    "mean_residual": float(subset["residual"].mean()),
+                    "underprediction_rate": float((subset["residual"] > 0).mean()),
+                }
+            )
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    return summary
+
+
+def write_residual_group_stats(output_path: Path, predictions: pd.DataFrame) -> pd.DataFrame:
+    regression = predictions[predictions["task"] == "regression"].copy()
+    if regression.empty:
+        summary = pd.DataFrame(columns=["task", "dataset", "feature_set", "target", "model", "group_column", "group_value", "count", "mean_residual", "mean_absolute_error", "underprediction_rate"])
+        summary.to_csv(output_path, index=False)
+        return summary
+
+    rows: list[dict[str, object]] = []
+    group_columns = ["task", "dataset", "feature_set", "target", "model"]
+    for group_column in RESIDUAL_GROUP_COLUMNS:
+        if group_column not in regression.columns:
+            continue
+        for keys, group in regression.groupby(group_columns, dropna=False):
+            working = group[[group_column, "residual", "actual", "predicted"]].copy()
+            working = working.dropna(subset=["residual"])
+            if working.empty:
+                continue
+            grouped = working.groupby(group_column, dropna=False)
+            for group_value, subset in grouped:
+                rows.append(
+                    {
+                        **{column: value for column, value in zip(group_columns, keys)},
+                        "group_column": group_column,
+                        "group_value": group_value,
+                        "count": int(len(subset)),
+                        "mean_residual": float(subset["residual"].mean()),
+                        "mean_absolute_error": float(np.abs(subset["residual"]).mean()),
+                        "underprediction_rate": float((subset["residual"] > 0).mean()),
+                    }
+                )
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    return summary
+
+
+def write_fof_linking_length_comparison(output_path: Path, metrics: pd.DataFrame) -> pd.DataFrame:
+    if metrics.empty:
+        summary = pd.DataFrame()
+        summary.to_csv(output_path, index=False)
+        return summary
+
+    rows: list[dict[str, object]] = []
+    comparison_keys = ["task", "dataset", "target", "model"]
+    for keys, group in metrics.groupby(comparison_keys, dropna=False):
+        if set(group["feature_set"]) != {"with_fof_linking_length", "without_fof_linking_length"}:
+            continue
+        with_row = group[group["feature_set"] == "with_fof_linking_length"].iloc[0]
+        without_row = group[group["feature_set"] == "without_fof_linking_length"].iloc[0]
+        base = {column: value for column, value in zip(comparison_keys, keys)}
+        base.update(
+            {
+                "with_feature_set": "with_fof_linking_length",
+                "without_feature_set": "without_fof_linking_length",
+                "rows": int(with_row["rows"]),
+                "unique_physical_files": int(with_row["unique_physical_files"]),
+            }
+        )
+        if with_row["task"] == "classification":
+            base.update(
+                {
+                    "test_balanced_accuracy_with": with_row["balanced_accuracy"],
+                    "test_balanced_accuracy_without": without_row["balanced_accuracy"],
+                    "balanced_accuracy_delta_with_minus_without": with_row["balanced_accuracy"] - without_row["balanced_accuracy"],
+                    "test_f1_with": with_row["f1"],
+                    "test_f1_without": without_row["f1"],
+                    "f1_delta_with_minus_without": with_row["f1"] - without_row["f1"],
+                    "test_roc_auc_with": with_row["roc_auc"],
+                    "test_roc_auc_without": without_row["roc_auc"],
+                    "roc_auc_delta_with_minus_without": with_row["roc_auc"] - without_row["roc_auc"],
+                }
+            )
+        else:
+            base.update(
+                {
+                    "test_mae_with": with_row["mae"],
+                    "test_mae_without": without_row["mae"],
+                    "mae_delta_without_minus_with": without_row["mae"] - with_row["mae"],
+                    "test_rmse_with": with_row["rmse"],
+                    "test_rmse_without": without_row["rmse"],
+                    "rmse_delta_without_minus_with": without_row["rmse"] - with_row["rmse"],
+                    "test_r2_with": with_row["r2"],
+                    "test_r2_without": without_row["r2"],
+                    "r2_delta_with_minus_without": with_row["r2"] - without_row["r2"],
+                }
+            )
+        rows.append(base)
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    return summary
+
+
+def write_target_difficulty_summary(output_path: Path, metrics: pd.DataFrame) -> pd.DataFrame:
+    if metrics.empty:
+        summary = pd.DataFrame()
+        summary.to_csv(output_path, index=False)
+        return summary
+
+    rows: list[dict[str, object]] = []
+    for target, group in metrics.groupby("target", dropna=False):
+        if group.iloc[0]["task"] == "classification":
+            best = group.sort_values(["balanced_accuracy", "f1", "roc_auc", "model"], ascending=[False, False, False, True]).iloc[0]
+            score_name = "balanced_accuracy"
+            score_value = best["balanced_accuracy"]
+        else:
+            best = group.sort_values(["r2", "mae", "rmse", "model"], ascending=[False, True, True, True]).iloc[0]
+            score_name = "r2"
+            score_value = best["r2"]
+        rows.append(
+            {
+                "target": target,
+                "task": best["task"],
+                "best_dataset": best["dataset"],
+                "best_feature_set": best["feature_set"],
+                "best_model": best["model"],
+                "best_metric_name": score_name,
+                "best_metric_value": score_value,
+            }
+        )
+    summary = pd.DataFrame(rows).sort_values(["task", "best_metric_value"], ascending=[True, False])
+    summary.to_csv(output_path, index=False)
+    return summary
 
 
 def main() -> int:
@@ -662,43 +935,65 @@ def main() -> int:
 
     classification_rows: list[dict[str, object]] = []
     regression_rows: list[dict[str, object]] = []
+    prediction_rows: list[dict[str, object]] = []
     for feature_set_name in FEATURE_SET_COLUMNS:
         for spec in dataset_specs:
-            classification_rows.extend(
-                train_classifiers_for_dataset(
-                    spec.name,
-                    spec.frame,
-                    feature_set_name,
-                    plots_dir,
-                    models_dir,
-                )
-            )
-            regression_rows.extend(
-                train_regressors_for_dataset(
-                    spec.name,
-                    spec.frame,
-                    feature_set_name,
-                    plots_dir,
-                    models_dir,
-                )
-            )
+            for target_spec in TARGET_SPECS:
+                if target_spec.task == "classification":
+                    rows, predictions = train_classifiers_for_dataset(
+                        spec.name,
+                        spec.frame,
+                        feature_set_name,
+                        target_spec,
+                        plots_dir,
+                        models_dir,
+                    )
+                    classification_rows.extend(rows)
+                    prediction_rows.extend(predictions)
+                else:
+                    rows, predictions = train_regressors_for_dataset(
+                        spec.name,
+                        spec.frame,
+                        feature_set_name,
+                        target_spec,
+                        plots_dir,
+                        models_dir,
+                    )
+                    regression_rows.extend(rows)
+                    prediction_rows.extend(predictions)
+
     classification_metrics = sort_or_empty(
         classification_rows,
-        ["dataset", "feature_set", "balanced_accuracy", "f1", "model"],
+        ["target", "dataset", "feature_set", "balanced_accuracy", "f1", "model"],
     )
     classification_metrics.to_csv(tables_dir / "classification_metrics.csv", index=False)
     write_classification_summary(ml_dir, classification_metrics)
     regression_metrics = sort_or_empty(
         regression_rows,
-        ["dataset", "feature_set", "mae", "rmse", "model"],
+        ["target", "dataset", "feature_set", "mae", "rmse", "model"],
     )
     regression_metrics.to_csv(tables_dir / "regression_metrics.csv", index=False)
     write_regression_summary(ml_dir, regression_metrics)
+    predictions = pd.DataFrame(prediction_rows)
+    predictions.to_csv(tables_dir / "prediction_records.csv", index=False)
+    overfit_summary = write_overfit_summary(tables_dir / "overfit_summary.csv", pd.concat([classification_metrics, regression_metrics], ignore_index=True))
+    calibration_summary = write_calibration_summary(tables_dir / "calibration_summary.csv", predictions)
+    bias_summary = write_prediction_bias_summary(tables_dir / "prediction_bias_summary.csv", predictions)
+    residual_summary = write_residual_group_stats(tables_dir / "residual_group_stats.csv", predictions)
+    fof_comparison = write_fof_linking_length_comparison(tables_dir / "fof_linking_length_comparison.csv", pd.concat([classification_metrics, regression_metrics], ignore_index=True))
+    target_difficulty = write_target_difficulty_summary(tables_dir / "target_difficulty_summary.csv", pd.concat([classification_metrics, regression_metrics], ignore_index=True))
 
     print(f"Loaded {len(df)} successful bound outcome rows from {args.dataset}")
     print(f"Wrote dataset summary to {tables_dir / 'dataset_summaries.csv'}")
     print(f"Wrote classification metrics to {tables_dir / 'classification_metrics.csv'}")
     print(f"Wrote regression metrics to {tables_dir / 'regression_metrics.csv'}")
+    print(f"Wrote prediction records to {tables_dir / 'prediction_records.csv'}")
+    print(f"Wrote overfit summary to {tables_dir / 'overfit_summary.csv'}")
+    print(f"Wrote calibration summary to {tables_dir / 'calibration_summary.csv'}")
+    print(f"Wrote prediction bias summary to {tables_dir / 'prediction_bias_summary.csv'}")
+    print(f"Wrote residual group stats to {tables_dir / 'residual_group_stats.csv'}")
+    print(f"Wrote FoF linking length comparison to {tables_dir / 'fof_linking_length_comparison.csv'}")
+    print(f"Wrote target difficulty summary to {tables_dir / 'target_difficulty_summary.csv'}")
     return 0
 
 

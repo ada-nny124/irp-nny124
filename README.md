@@ -14,7 +14,8 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 
 2. EDA: Inspect parameter coverage and outcome trends, especially the effects of periapsis, mass, velocity, and FoF linking length on fragmentation and retained bound mass.
 
-3. Machine Learning: Train baseline models on one row per simulation to test how predictable disruption outcomes are from simulation metadata.
+3. Machine Learning: Train models using one row per simulation to evaluate how predictable disruption outcomes are from simulation metadata. Compare several baseline model families, including linear models and tree-based methods, using grouped cross-validation to avoid leakage between related simulation runs. Benchmark model performance across the main FoF and bound-aware targets, report the best-performing models, and analyse where predictions succeed or fail through residual and feature-importance checks.
+
 
 ## Main Scripts
 

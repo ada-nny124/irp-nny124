@@ -254,13 +254,16 @@ def main() -> None:
 
     # ─── Individual ROC plots (one per target) ─────────────────────────────
     for target_col, target_name, fs_lookup in all_targets:
-        feature_set = best_feature_set(metrics, fs_lookup) if not ("_gt" in target_col) else "with_fof_linking_length"
+        is_derived  = "_gt" in target_col
+        feature_set = "with_fof_linking_length" if is_derived else best_feature_set(metrics, fs_lookup)
         dataset     = "all_successful_runs"
+        model_list  = REGRESSOR_MODELS if is_derived else CLASSIFIER_MODELS
 
         fig, ax = plt.subplots(figsize=(7, 5))
         roc_for_target(
             records, target_col, target_name, feature_set, dataset, ax,
             title=f"ROC — {target_name}",
+            model_list=model_list,
         )
         fname = f"roc_{target_col.replace('/', '_').replace('.','p')}.png"
         fig.tight_layout()
@@ -280,10 +283,13 @@ def main() -> None:
     for ax_idx, ((target_col, target_name, fs_lookup), title) in enumerate(
         zip(all_targets, titles)
     ):
-        feature_set = best_feature_set(metrics, fs_lookup) if not ("_gt" in target_col) else "with_fof_linking_length"
+        is_derived  = "_gt" in target_col
+        feature_set = "with_fof_linking_length" if is_derived else best_feature_set(metrics, fs_lookup)
+        model_list  = REGRESSOR_MODELS if is_derived else CLASSIFIER_MODELS
         roc_for_target(
             records, target_col, target_name, feature_set,
             "all_successful_runs", axes_flat[ax_idx], title=title,
+            model_list=model_list,
         )
 
     fig.suptitle("ROC Curves — Four Classification Targets", fontsize=15, y=1.01)

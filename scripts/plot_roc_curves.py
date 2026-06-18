@@ -36,18 +36,44 @@ from sklearn.metrics import roc_auc_score, roc_curve
 # ── config ───────────────────────────────────────────────────────────────────
 
 MODEL_COLORS = {
-    "dummy_most_frequent":          "#999999",
-    "logistic_regression":          "#1f77b4",
-    "random_forest_classifier":     "#2ca02c",
-    "gradient_boosting_classifier": "#d62728",
+    # classifiers
+    "dummy_most_frequent":           "#999999",
+    "logistic_regression":           "#1f77b4",
+    "random_forest_classifier":      "#2ca02c",
+    "gradient_boosting_classifier":  "#d62728",
+    # regressors (used for binarised regression targets)
+    "dummy_mean":                    "#999999",
+    "ridge":                         "#1f77b4",
+    "random_forest_regressor":       "#2ca02c",
+    "gradient_boosting_regressor":   "#d62728",
 }
 
 MODEL_LABELS = {
-    "dummy_most_frequent":          "Dummy (most-frequent)",
-    "logistic_regression":          "Logistic Regression",
-    "random_forest_classifier":     "Random Forest",
-    "gradient_boosting_classifier": "Gradient Boosting",
+    # classifiers
+    "dummy_most_frequent":           "Dummy (most-frequent)",
+    "logistic_regression":           "Logistic Regression",
+    "random_forest_classifier":      "Random Forest",
+    "gradient_boosting_classifier":  "Gradient Boosting",
+    # regressors
+    "dummy_mean":                    "Dummy (mean)",
+    "ridge":                         "Ridge Regression",
+    "random_forest_regressor":       "Random Forest",
+    "gradient_boosting_regressor":   "Gradient Boosting",
 }
+
+CLASSIFIER_MODELS = [
+    "dummy_most_frequent",
+    "logistic_regression",
+    "random_forest_classifier",
+    "gradient_boosting_classifier",
+]
+
+REGRESSOR_MODELS = [
+    "dummy_mean",
+    "ridge",
+    "random_forest_regressor",
+    "gradient_boosting_regressor",
+]
 
 # For targets that exist only as regression in predictions, we binarise them:
 # Each entry: (nice name, source column in predictions, threshold, threshold description)
@@ -96,6 +122,22 @@ def best_feature_set(metrics: pd.DataFrame, target: str) -> str:
     return str(best["feature_set"])
 
 
+def _parse_actual(series: pd.Series) -> pd.Series:
+    """Convert actual column to bool correctly.
+
+    prediction_records.csv stores booleans as the *strings* 'True' / 'False'.
+    Calling .astype(bool) on a string treats any non-empty string — including
+    'False' — as True, collapsing both classes to the same label.
+    This helper handles both string and numeric representations.
+    """
+    # If already numeric (0/1) — e.g. derived regression rows — just coerce
+    numeric = pd.to_numeric(series, errors="coerce")
+    if numeric.notna().all():
+        return numeric.astype(bool)
+    # Otherwise map string literals
+    return series.map({"True": True, "False": False, True: True, False: False})
+
+
 def roc_for_target(
     records: pd.DataFrame,
     target_col: str,
@@ -104,8 +146,12 @@ def roc_for_target(
     dataset: str,
     ax: plt.Axes,
     title: str,
+    model_list: list[str] | None = None,
 ) -> None:
     """Draw ROC curves for all models on a single axis."""
+    if model_list is None:
+        model_list = CLASSIFIER_MODELS
+
     sub = records[
         (records["task"] == "classification")
         & (records["target"] == target_col)
@@ -120,17 +166,16 @@ def roc_for_target(
 
     ax.plot([0, 1], [0, 1], "--", color="#bbbbbb", linewidth=1, label="Random (AUC=0.50)")
 
-    for model_name in ["dummy_most_frequent", "logistic_regression",
-                       "random_forest_classifier", "gradient_boosting_classifier"]:
+    for model_name in model_list:
         msub = sub[sub["model"] == model_name].copy()
         if msub.empty:
             continue
-        y_true = msub["actual"].astype(bool)
+        y_true  = _parse_actual(msub["actual"])
         y_score = pd.to_numeric(msub["score"], errors="coerce")
-        valid = ~y_score.isna()
-        y_true  = y_true[valid]
+        valid   = y_true.notna() & y_score.notna()
+        y_true  = y_true[valid].astype(bool)
         y_score = y_score[valid]
-        if y_true.nunique() < 2 or y_score.isna().all():
+        if y_true.nunique() < 2:
             continue
         try:
             fpr, tpr, _ = roc_curve(y_true, y_score)

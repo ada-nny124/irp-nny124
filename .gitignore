@@ -47,6 +47,15 @@ ml/model_diagnostics/tables/*
 !ml/model_diagnostics/tables/overfit_summary.csv
 !ml/bound_outcomes/
 ml/bound_outcomes/*
+!ml/bound_outcomes/plots/
+ml/bound_outcomes/plots/*
+!ml/bound_outcomes/plots/roc_four_targets/
+ml/bound_outcomes/plots/roc_four_targets/*
+!ml/bound_outcomes/plots/roc_four_targets/roc_has_any_bound_mass.png
+!ml/bound_outcomes/plots/roc_four_targets/roc_bound_mass_fraction_ge_0_1.png
+!ml/bound_outcomes/plots/roc_four_targets/roc_bound_fragment_count_gt0p0.png
+!ml/bound_outcomes/plots/roc_four_targets/roc_largest_bound_fragment_mass_kg_gt0p0.png
+!ml/bound_outcomes/plots/roc_four_targets/roc_combined_four_targets.png
 !ml/bound_outcomes/tables/
 !ml/bound_outcomes/classification_summary.txt
 !ml/bound_outcomes/regression_summary.txt
@@ -69,6 +78,10 @@ ml/plots/random_forest/with_fof_linking_length/*
 !ml/plots/random_forest/with_fof_linking_length/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png
 eda/bound_eda/plots/*
 !eda/bound_eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png
+!eda/bound_eda/plots/combined_all_params_bmf_vs_periapsis.png
+!eda/bound_eda/plots/combined_all_params_bfc_vs_periapsis.png
+!eda/bound_eda/plots/combined_all_params_bur_vs_periapsis.png
+!eda/bound_eda/plots/combined_all_params_lbfm_vs_periapsis.png
 eda/bound_eda/tables/*
 !eda/bound_eda/tables/dataset_overview.csv
 !eda/bound_eda/tables/extraction_status_summary.csv

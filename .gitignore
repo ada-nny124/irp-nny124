@@ -82,6 +82,9 @@ eda/bound_eda/plots/*
 !eda/bound_eda/plots/combined_all_params_bfc_vs_periapsis.png
 !eda/bound_eda/plots/combined_all_params_bur_vs_periapsis.png
 !eda/bound_eda/plots/combined_all_params_lbfm_vs_periapsis.png
+!eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_full.png
+!eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_nospin.png
+!eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png
 eda/bound_eda/tables/*
 !eda/bound_eda/tables/dataset_overview.csv
 !eda/bound_eda/tables/extraction_status_summary.csv

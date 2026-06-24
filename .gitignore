@@ -85,6 +85,9 @@ eda/bound_eda/plots/*
 !eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_full.png
 !eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_nospin.png
 !eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png
+!eda/bound_eda/plots/retained_mass_nospin.png
+!eda/bound_eda/plots/retained_mass_spin_effect.png
+!eda/bound_eda/plots/retained_mass_spin_period.png
 eda/bound_eda/tables/*
 !eda/bound_eda/tables/dataset_overview.csv
 !eda/bound_eda/tables/extraction_status_summary.csv

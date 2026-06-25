@@ -132,7 +132,7 @@ Generated outputs include:
 ## Re-run
 
 ```bash
-python scripts/eda_outcome_eda.py \
+python scripts/eda/eda_outcome_eda.py \
   --outcomes outputs/fof_outcomes.csv \
   --fragments outputs/fragment_catalog.csv \
   --errors outputs/extraction_errors.csv \

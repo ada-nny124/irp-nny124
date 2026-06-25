@@ -15,7 +15,7 @@ Each ROC plot shows all four classifiers (dummy, LR, RF, GBT) on the same
 axis for that target so you can compare the family of models.
 
 Run:
-    python scripts/plot_roc_curves.py \
+    python scripts/eda/plot_roc_curves.py \
       --predictions ml/bound_outcomes/tables/prediction_records.csv \
       --metrics     ml/bound_outcomes/tables/classification_metrics.csv \
       --out-dir     ml/bound_outcomes/plots/roc_four_targets

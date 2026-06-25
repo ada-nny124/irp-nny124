@@ -423,7 +423,7 @@ It does not use `outputs/fof_outcomes.csv` or `outputs/fragment_catalog.csv`.
 ## Re-run
 
 ```bash
-python scripts/eda_raw_data_overview.py \
+python scripts/eda/eda_raw_data_overview.py \
   --manifest outputs/manifest.csv \
   --schema outputs/hdf5_schema_summary.csv \
   --eda-dir eda/raw_data_overview
@@ -479,7 +479,7 @@ def write_analysis_summary(
         "We cannot use this stage for physical outcome EDA or ML targets because fof_outcomes.csv is not yet complete.",
         "",
         "Next step:",
-        "Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda_outcome_eda.py.",
+        "Wait until outputs/fof_outcomes.csv reaches about 490 lines, then run scripts/eda/eda_outcome_eda.py.",
     ]
     (base_dir / "analysis_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

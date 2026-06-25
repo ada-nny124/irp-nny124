@@ -23,7 +23,7 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 - scripts/inspect_hdf5_schema.py: inspect sampled HDF5 structure
 - scripts/extract_fof_outcomes.py: extract FoF outcome tables
 - scripts/extract_bound_unbound_outcomes.py: compute bound vs unbound run-level/fragment-level outputs
-- scripts/eda_bound_eda.py: bound/unbound exploratory analysis
+- scripts/eda/eda_bound_eda.py: bound/unbound exploratory analysis
 - scripts/train_baseline_models.py: baseline ML for FoF outcomes
 - scripts/train_bound_models.py: run-level ML for bound outcomes
 

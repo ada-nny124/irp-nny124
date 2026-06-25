@@ -267,7 +267,7 @@ This EDA uses:
 - `outputs/bound_outcomes.csv` for run-level aggregation.
 - `outputs/bound_unbound_extraction_log.csv` for QA and coverage only.
 
-The reproducible script is [scripts/eda_bound_eda.py](/Users/nny124/irp/scripts/eda_bound_eda.py). It writes artifacts under [eda/bound_eda](/Users/nny124/irp/eda/bound_eda).
+The reproducible script is [scripts/eda/eda_bound_eda.py](/Users/nny124/irp/scripts/eda/eda_bound_eda.py). It writes artifacts under [eda/bound_eda](/Users/nny124/irp/eda/bound_eda).
 
 ### Executive Read
 
@@ -418,7 +418,7 @@ For run-level modeling:
 
 ### Artifacts
 
-- Script: [scripts/eda_bound_eda.py](/Users/nny124/irp/scripts/eda_bound_eda.py)
+- Script: [scripts/eda/eda_bound_eda.py](/Users/nny124/irp/scripts/eda/eda_bound_eda.py)
 - EDA folder: [eda/bound_eda](/Users/nny124/irp/eda/bound_eda)
 - Overview table: `eda/bound_eda/tables/dataset_overview.csv`
 - Parameter summary: `eda/bound_eda/tables/parameter_bound_summary.csv`

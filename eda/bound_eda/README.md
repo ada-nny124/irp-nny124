@@ -10,5 +10,5 @@ Outputs:
 ## Re-run
 
 ```bash
-python scripts/eda_bound_eda.py   --fragments outputs/fragment_orbital_catalog.csv   --outcomes outputs/bound_outcomes.csv   --log outputs/bound_unbound_extraction_log.csv   --eda-dir eda/bound_eda
+python scripts/eda/eda_bound_eda.py   --fragments outputs/fragment_orbital_catalog.csv   --outcomes outputs/bound_outcomes.csv   --log outputs/bound_unbound_extraction_log.csv   --eda-dir eda/bound_eda
 ```

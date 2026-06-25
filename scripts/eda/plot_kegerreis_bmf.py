@@ -13,7 +13,7 @@ Only the "standard" resolution is included for the no-spin runs (controlled
 subset); spin runs are plotted separately with a faint background style.
 
 Run:
-    python scripts/plot_kegerreis_bmf.py \
+    python scripts/eda/plot_kegerreis_bmf.py \
         --outcomes outputs/bound_outcomes_dedup.csv \
         --out      eda/bound_eda/plots/kegerreis_bmf_vs_periapsis.png
 """

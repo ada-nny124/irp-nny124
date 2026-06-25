@@ -368,9 +368,12 @@ def save_confusion_matrix_plot(y_true: pd.Series, y_pred: np.ndarray, output_pat
     ax.set_xlabel("Predicted")
     ax.set_ylabel("Actual")
     ax.set_title(title)
+    threshold = matrix.max() / 2.0 if matrix.size else 0.0
     for i in range(matrix.shape[0]):
         for j in range(matrix.shape[1]):
-            ax.text(j, i, str(matrix[i, j]), ha="center", va="center", color="black")
+            value = matrix[i, j]
+            text_color = "white" if value > threshold else "black"
+            ax.text(j, i, str(value), ha="center", va="center", color=text_color, fontweight="semibold")
     fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)

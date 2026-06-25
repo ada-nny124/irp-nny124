@@ -23,7 +23,7 @@ Zero-BMF rows are omitted for log scale; a note is added to every plot.
 Only groups with >= MIN_POINTS periapsis values after aggregation are drawn.
 
 Run:
-    python scripts/plot_retained_mass.py \\
+    python scripts/eda/plot_retained_mass.py \\
         --outcomes outputs/bound_outcomes_dedup.csv \\
         --out-dir  eda/bound_eda/plots
 """

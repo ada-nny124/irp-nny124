@@ -6,7 +6,7 @@ varies with periapsis distance while colouring/styling by every other
 parameter (velocity, mass, spin axis, spin period, resolution).
 
 Run:
-    python scripts/eda_bound_mass_by_params.py \
+    python scripts/eda/eda_bound_mass_by_params.py \
       --outcomes outputs/bound_outcomes.csv \
       --eda-dir eda/bound_eda
 """

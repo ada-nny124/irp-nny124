@@ -13,6 +13,7 @@ if str(SRC) not in sys.path:
 
 from irp_triage.decision import check_training_domain, make_sph_recommendation
 from irp_triage.features import add_derived_features, prepare_features, validate_required_columns
+from irp_triage.predict import add_severity_from_predictions
 
 
 def test_prepare_features_adds_expected_columns():
@@ -77,3 +78,17 @@ def test_add_derived_features_defaults_spin_axis():
     features = add_derived_features(df)
     assert features.loc[0, "spin_axis"] == "none"
     assert bool(features.loc[0, "has_explicit_spin"]) is False
+
+
+def test_add_severity_from_predictions_creates_proxy_label():
+    df = pd.DataFrame(
+        [
+            {
+                "mass_log10_kg": 18.0,
+                "fragmentation_probability": 0.9,
+                "predicted_largest_fragment_mass_kg": 1.0e17,
+            }
+        ]
+    )
+    result = add_severity_from_predictions(df)
+    assert result.loc[0, "severity_class"] == "strong_fragmentation"

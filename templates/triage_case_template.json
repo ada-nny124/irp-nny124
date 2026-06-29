@@ -1,0 +1,30 @@
+[
+  {
+    "case_name": "baseline_in_domain_case",
+    "mass_log10_kg": 18.0,
+    "mass_code": "A1800",
+    "periapsis_Rm": 1.2,
+    "v_inf_kms": 0.8,
+    "spin_period_hr": 3.0,
+    "spin_axis": "z",
+    "resolution_code": "n60",
+    "resolution_value": 60,
+    "timestep": 90000,
+    "fof_linking_length": 0.002,
+    "has_explicit_spin": true
+  },
+  {
+    "case_name": "higher_energy_case",
+    "mass_log10_kg": 19.5,
+    "mass_code": "A1950",
+    "periapsis_Rm": 2.4,
+    "v_inf_kms": 1.6,
+    "spin_period_hr": null,
+    "spin_axis": "none",
+    "resolution_code": "n65",
+    "resolution_value": 65,
+    "timestep": 90000,
+    "fof_linking_length": 0.002,
+    "has_explicit_spin": false
+  }
+]

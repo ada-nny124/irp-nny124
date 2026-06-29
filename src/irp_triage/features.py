@@ -42,6 +42,21 @@ MODEL_FEATURE_COLUMNS = [
 
 CATEGORICAL_FEATURE_COLUMNS = ["mass_code", "spin_axis", "resolution_code"]
 NUMERIC_FEATURE_COLUMNS = [column for column in MODEL_FEATURE_COLUMNS if column not in CATEGORICAL_FEATURE_COLUMNS]
+DOMAIN_NUMERIC_FEATURE_COLUMNS = [
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "timestep",
+    "fof_linking_length",
+]
+DOMAIN_CATEGORICAL_FEATURE_COLUMNS = [
+    "spin_axis",
+    "resolution_code",
+    "has_explicit_spin",
+    "high_velocity_flag",
+    "low_periapsis_flag",
+]
 
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5

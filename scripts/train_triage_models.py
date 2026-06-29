@@ -26,7 +26,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from irp_triage.features import CATEGORICAL_FEATURE_COLUMNS, MODEL_FEATURE_COLUMNS, NUMERIC_FEATURE_COLUMNS, add_derived_features, load_fof_data, prepare_features
+from irp_triage.features import CATEGORICAL_FEATURE_COLUMNS, DOMAIN_CATEGORICAL_FEATURE_COLUMNS, DOMAIN_NUMERIC_FEATURE_COLUMNS, MODEL_FEATURE_COLUMNS, NUMERIC_FEATURE_COLUMNS, add_derived_features, load_fof_data, prepare_features
 
 
 RANDOM_STATE = 42
@@ -202,7 +202,7 @@ def evaluate_regressor(models: dict[str, Pipeline], X: pd.DataFrame, y: pd.Serie
 
 def build_training_domain(features: pd.DataFrame) -> dict[str, object]:
     numeric = {}
-    for column in NUMERIC_FEATURE_COLUMNS:
+    for column in DOMAIN_NUMERIC_FEATURE_COLUMNS:
         values = pd.to_numeric(features[column], errors="coerce").dropna()
         if values.empty:
             continue
@@ -217,9 +217,11 @@ def build_training_domain(features: pd.DataFrame) -> dict[str, object]:
         }
 
     categorical = {}
-    for column in CATEGORICAL_FEATURE_COLUMNS:
-        values = sorted(features[column].dropna().astype(str).unique().tolist())
-        categorical[column] = {"allowed": values}
+    for column in DOMAIN_CATEGORICAL_FEATURE_COLUMNS:
+        values = features[column].dropna().astype(str)
+        allowed = sorted(values.unique().tolist())
+        counts = values.value_counts().sort_index().to_dict()
+        categorical[column] = {"allowed": allowed, "counts": counts}
 
     return {"numeric": numeric, "categorical": categorical}
 

@@ -52,10 +52,11 @@ def test_validate_required_columns_raises_for_missing_input():
 def test_domain_check_flags_near_edge_and_out_of_domain():
     domain = {
         "numeric": {"periapsis_Rm": {"min": 1.1, "max": 3.0, "step_hint": 0.1}},
-        "categorical": {"spin_axis": {"allowed": ["none", "x", "z"]}},
+        "categorical": {"spin_axis": {"allowed": ["none", "x", "z"], "counts": {"x": 5, "z": 2}}},
     }
     near = check_training_domain({"periapsis_Rm": 1.15, "spin_axis": "x"}, domain)
     assert near["status"] == "near_edge"
+    assert near["numeric_details"][0]["status"] == "near_edge"
 
     out = check_training_domain({"periapsis_Rm": 3.5, "spin_axis": "y"}, domain)
     assert out["status"] == "out_of_domain"
@@ -65,7 +66,7 @@ def test_domain_check_flags_near_edge_and_out_of_domain():
 
 def test_recommendation_prefers_must_run_for_out_of_domain():
     recommendation = make_sph_recommendation(
-        {"fragmentation_probability": 0.9, "severity_class": "strong_fragmentation"},
+        {"fragmentation_probability": 0.9, "predicted_largest_fragment_mass_fraction": 0.05},
         {"status": "out_of_domain", "out_of_domain_features": ["periapsis_Rm"], "near_edge_features": []},
     )
     assert recommendation["recommendation"] == "must run SPH"
@@ -91,4 +92,5 @@ def test_add_severity_from_predictions_creates_proxy_label():
         ]
     )
     result = add_severity_from_predictions(df)
-    assert result.loc[0, "severity_class"] == "strong_fragmentation"
+    assert result.loc[0, "severity_class"] == "moderate_fragmentation"
+    assert result.loc[0, "predicted_largest_fragment_mass_fraction"] == pytest.approx(0.1)

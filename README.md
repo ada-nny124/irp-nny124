@@ -26,6 +26,7 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 - scripts/eda/eda_bound_eda.py: bound/unbound exploratory analysis
 - scripts/train_baseline_models.py: baseline ML for FoF outcomes
 - scripts/train_bound_models.py: run-level ML for bound outcomes
+- scripts/train_triage_models.py: train a decision-support surrogate for FoF-derived fragmentation proxies
 
 ## Repository Layout
 
@@ -38,3 +39,83 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 
 - Large generated artifacts are mostly kept out of Git.
 - Some compact tables and representative plots are retained for review.
+
+## SPH Fragmentation Triage Tool
+
+The repository now includes a lightweight local triage demo that uses the extracted `outputs/fof_outcomes.csv` table to triage new simulation proposals. The tool predicts FoF-derived proxy outcomes rather than physically bound moon-forming material.
+
+Disclaimer:
+“This tool predicts FoF-derived fragmentation proxy outcomes. It does not replace SPH and does not directly validate long-term capture, disk mass, or moon formation.”
+
+Use it to prioritise which new simulations deserve expensive SPH follow-up.
+
+### Train the triage models
+
+```bash
+python scripts/train_triage_models.py
+```
+
+This writes local artifacts under `ml/triage/`:
+
+- `fragmentation_classifier.pkl`
+- `fragmentation_regressor.pkl`
+- `metrics.json`
+- `training_domain.json`
+
+### Run the local demo from an editable template
+
+```bash
+python scripts/run_triage_demo.py
+```
+
+Edit [templates/triage_case_template.json](/Users/nny124/irp/templates/triage_case_template.json:1) and rerun the command. The script prints the prediction summary to the terminal and saves the full results table to `outputs/triage_demo_predictions.csv`.
+
+If the model files are missing, the runner shows a message telling you to run `python scripts/train_triage_models.py`.
+
+### Template fields
+
+- `mass_log10_kg`
+- `mass_code`
+- `periapsis_Rm`
+- `v_inf_kms`
+- `spin_period_hr`
+- `spin_axis`
+- `resolution_code`
+- `resolution_value`
+- `timestep`
+- `fof_linking_length`
+- `has_explicit_spin`
+
+### Example JSON template
+
+```json
+[
+  {
+    "case_name": "baseline_in_domain_case",
+    "mass_log10_kg": 18.0,
+    "mass_code": "A1800",
+    "periapsis_Rm": 1.2,
+    "v_inf_kms": 0.8,
+    "spin_period_hr": 3.0,
+    "spin_axis": "z",
+    "resolution_code": "n60",
+    "resolution_value": 60,
+    "timestep": 90000,
+    "fof_linking_length": 0.002,
+    "has_explicit_spin": true
+  }
+]
+```
+
+### Optional web wrapper later
+
+The same prediction core is also reusable from `app.py` if you later want a simple browser UI, but the local file-based runner is the primary demo path now.
+
+### Output fields
+
+- Fragmentation probability
+- Predicted largest fragment mass
+- Severity class
+- Domain status: `in_domain`, `near_edge`, or `out_of_domain`
+- SPH recommendation
+- Short explanation of the recommendation

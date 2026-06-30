@@ -16,6 +16,15 @@ This project investigates how the initial conditions of asteroid tidal-disruptio
 
 3. Machine Learning: Train models using one row per simulation to evaluate how predictable disruption outcomes are from simulation metadata. Compare several baseline model families, including linear models and tree-based methods, using grouped cross-validation to avoid leakage between related simulation runs. Benchmark model performance across the main FoF and bound-aware targets, report the best-performing models, and analyse where predictions succeed or fail through residual and feature-importance checks.
 
+For bound-retention work, the repository now treats these as the main regression targets:
+
+- `bound_mass_fraction`
+- `bound_fragment_count`
+- `largest_bound_fragment_mass_kg`
+- `average_bound_fragment_mass_kg`
+
+Threshold labels such as `has_any_bound_mass` and `bound_mass_fraction_ge_0_1` are still retained for analysis and classifier diagnostics, but they are no longer the primary bound-retention prediction targets for triage.
+
 
 ## Main Scripts
 

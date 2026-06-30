@@ -106,6 +106,12 @@ TARGET_SPECS = [
         source_column="largest_bound_fragment_mass_kg",
         description="What is the largest bound fragment mass?",
     ),
+    TargetSpec(
+        name="average_bound_fragment_mass_kg",
+        task="regression",
+        source_column="average_bound_fragment_mass_kg",
+        description="What is the average mass per bound fragment?",
+    ),
 ]
 
 
@@ -194,6 +200,9 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     frame["special_case_code"] = frame["special_case_code"].fillna("").replace("", "none")
     frame["has_any_bound_mass"] = pd.to_numeric(frame["bound_mass_fraction"], errors="coerce") > 0
     frame["bound_mass_fraction_ge_0_1"] = pd.to_numeric(frame["bound_mass_fraction"], errors="coerce") >= 0.1
+    bound_mass_kg = pd.to_numeric(frame["bound_mass_kg"], errors="coerce")
+    bound_fragment_count = pd.to_numeric(frame["bound_fragment_count"], errors="coerce").replace(0, np.nan)
+    frame["average_bound_fragment_mass_kg"] = bound_mass_kg / bound_fragment_count
     return frame
 
 

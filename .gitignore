@@ -25,6 +25,7 @@ scripts/eda/plot_bound_mass_variations.py
 logs/*.out
 logs/*.err
 tmp/
+.tmp/
 
 # Archived data
 archived/
@@ -113,6 +114,9 @@ eda/raw_data_overview/tables/*
 !eda/raw_data_overview/tables/coverage_mass_vs_periapsis.csv
 !eda/raw_data_overview/tables/dataset_overview.csv
 !eda/raw_data_overview/tables/parameter_summary_stats.csv
+eda/eccentricity_eda/plots/*
+eda/eccentricity_eda/tables/*
+eda/eccentricity_eda/analysis_summary.txt
 
 # Reference materials and deliverables
 reference/

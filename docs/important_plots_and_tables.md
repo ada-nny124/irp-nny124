@@ -1,6 +1,6 @@
 # Important Plots and Tables
 
-This file lists the plots and tables worth keeping in Git. Priority is based on the 26 June 2026 slide deck.
+This file lists the plots and tables kept in Git and used in slides.
 
 ## Tier 1: core figures used in slides
 

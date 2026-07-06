@@ -4,12 +4,12 @@ Parameter sensitivity and ML prediction of tidal-disruption outcomes in SPH simu
 
 ## What is here
 
-- `scripts/`: extraction, EDA, and ML pipelines
+- `scripts/`: extraction, EDA script, and ML pipelines
 - `outputs/`: core extracted tables used by the analysis
 - `eda/`: selected EDA plots and summary tables kept for review
 - `ml/`: selected model metrics and representative plots kept for review
-- `src/irp_triage/`: lightweight triage prediction code
-- `important_plots_and_tables.md`: slide-backed figure/table index
+- `src/irp_triage/`: builds features, loads saved models, predicts outcomes, and recommends whether SPH is needed
+- `important_plots_and_tables.md`: figure/table index used in presentation slides
 
 ## Core data products kept in Git
 
@@ -18,7 +18,7 @@ Parameter sensitivity and ML prediction of tidal-disruption outcomes in SPH simu
 - `outputs/bound_outcomes.csv`
 - `outputs/hdf5_schema_summary.csv`
 
-These are the smallest useful tables for checking the extraction and analysis pipeline without rerunning the full project.
+Pushed to repo because they are small enough + constain useful tables for checking the extraction and analysis pipeline without rerunning the full project.
 
 ## Main scripts
 
@@ -33,8 +33,4 @@ These are the smallest useful tables for checking the extraction and analysis pi
 - `scripts/train_bound_models.py`
 - `scripts/train_triage_models.py`
 
-## Repo policy
-
-- Keep only the plots and tables that support the slides or are needed to understand the pipeline.
-- Ignore regenerated bulk outputs, model binaries, full diagnostics trees, and long auto-generated text summaries.
-- Use `important_plots_and_tables.md` as the reference for what should stay tracked.
+ML training & results summarised in Notebook for demo: `model_training.ipynb`

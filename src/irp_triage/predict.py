@@ -49,13 +49,13 @@ def get_artifact_status(model_dir: str | Path) -> list[dict[str, str]]:
             "label": "bound_mass_classifier.pkl",
             "path": str(model_dir / "bound_mass_classifier.pkl"),
             "status": "loaded" if (model_dir / "bound_mass_classifier.pkl").exists() else "missing",
-            "target": "has_any_bound_mass",
+            "target": "has_any_bound_mass (analysis only)",
         },
         {
             "label": "bmf_ge_0p1_classifier.pkl",
             "path": str(model_dir / "bmf_ge_0p1_classifier.pkl"),
             "status": "loaded" if (model_dir / "bmf_ge_0p1_classifier.pkl").exists() else "missing",
-            "target": "bound_mass_fraction_ge_0p1",
+            "target": "bound_mass_fraction_ge_0p1 (analysis only)",
         },
         {
             "label": "training_domain.json",
@@ -141,11 +141,12 @@ def predict_cases(input_df: pd.DataFrame, classifier, regressor, training_domain
     result["fragment_count_min_particles"] = unavailable_reason("no fragment-count regressor trained for the dashboard yet")
     result["largest_fragment_particle_count"] = unavailable_reason("no particle-count regressor trained for the dashboard yet")
     result["largest_fragment_mass_fraction"] = result["predicted_largest_fragment_mass_fraction"]
-    result["has_any_bound_mass"] = unavailable_reason("no bound-retention classifier is connected to this dashboard yet")
+    result["has_any_bound_mass"] = unavailable_reason("no bound-mass regression score is connected to this dashboard yet")
     result["bound_mass_fraction"] = unavailable_reason("no bound-mass regressor is connected to this dashboard yet")
-    result["bound_mass_fraction_ge_0p1"] = unavailable_reason("no BMF >= 10% classifier is connected to this dashboard yet")
+    result["bound_mass_fraction_ge_0p1"] = unavailable_reason("no bound-mass regression score is connected to this dashboard yet")
     result["bound_fragment_count"] = unavailable_reason("no bound-fragment-count regressor is connected to this dashboard yet")
     result["largest_bound_fragment_mass_kg"] = unavailable_reason("no largest-bound-fragment regressor is connected to this dashboard yet")
+    result["average_bound_fragment_mass_kg"] = unavailable_reason("no average-bound-fragment-mass regressor is connected to this dashboard yet")
     result["bound_fragment_eccentricity"] = unavailable_reason("orbital-eccentricity targets have not been modelled yet")
     result["minimum_bound_eccentricity"] = unavailable_reason("orbital-eccentricity targets have not been modelled yet")
     result["low_eccentricity_bound_fragment_flag"] = unavailable_reason("orbital-eccentricity targets have not been modelled yet")

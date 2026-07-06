@@ -1,121 +1,36 @@
 # IRP Repository
 
-## Project
+Parameter sensitivity and ML prediction of tidal-disruption outcomes in SPH simulations of Martian moon formation.
 
-**Parameter Sensitivity Analysis and Machine Learning Prediction of Tidal Disruption Outcomes in SPH Simulations of Martian Moon Formation**
+## What is here
 
-## Abstract
+- `scripts/`: extraction, EDA script, and ML pipelines
+- `outputs/`: core extracted tables used by the analysis
+- `eda/`: selected EDA plots and summary tables kept for review
+- `ml/`: selected model metrics and representative plots kept for review
+- `src/irp_triage/`: builds features, loads saved models, predicts outcomes, and recommends whether SPH is needed
+- `important_plots_and_tables.md`: figure/table index used in presentation slides
 
-This project investigates how the initial conditions of asteroid tidal-disruption simulations control the production of debris relevant to the origin of Mars's moons. The immediate challenge is that the current workflow extracts Friends-of-Friends (FoF) fragment statistics, which are useful proxies for disruption severity but are not yet equivalent to physically bound moon-forming material. The project therefore combines three stages: structured extraction from SPH/HDF5 outputs, exploratory and statistical analysis of parameter sensitivity, and machine-learning models that test how well disruption outcomes can be predicted from simulation metadata. Initial results already show strong structure in the data, with clear dependence on periapsis and substantial sensitivity to FoF linking length. The main next step is to extend the extractor so that bound-versus-unbound outcomes can be measured directly from matching physical snapshots.
+## Core data products kept in Git
 
-## What This Repo Have
+- `outputs/manifest.csv`
+- `outputs/fof_outcomes.csv`
+- `outputs/bound_outcomes.csv`
+- `outputs/hdf5_schema_summary.csv`
 
-1. Extraction: Parse simulation filenames and HDF5 outputs into compact CSV tables such as outputs/manifest.csv, outputs/fof_outcomes.csv, and bound/unbound outcome summaries.
+Pushed to repo because they are small enough + constain useful tables for checking the extraction and analysis pipeline without rerunning the full project.
 
-2. EDA: Inspect parameter coverage and outcome trends, especially the effects of periapsis, mass, velocity, and FoF linking length on fragmentation and retained bound mass.
+## Main scripts
 
-3. Machine Learning: Train models using one row per simulation to evaluate how predictable disruption outcomes are from simulation metadata. Compare several baseline model families, including linear models and tree-based methods, using grouped cross-validation to avoid leakage between related simulation runs. Benchmark model performance across the main FoF and bound-aware targets, report the best-performing models, and analyse where predictions succeed or fail through residual and feature-importance checks.
+- `scripts/make_manifest.py`
+- `scripts/extract_fof_outcomes.py`
+- `scripts/extract_bound_unbound_outcomes.py`
+- `scripts/eda/eda_raw_data_overview.py`
+- `scripts/eda/eda_outcome_eda.py`
+- `scripts/eda/eda_bound_eda.py`
+- `scripts/eda/eda_eccentricity.py`
+- `scripts/train_baseline_models.py`
+- `scripts/train_bound_models.py`
+- `scripts/train_triage_models.py`
 
-
-## Main Scripts
-
-- scripts/make_manifest.py: build a manifest from simulation filenames
-- scripts/inspect_hdf5_schema.py: inspect sampled HDF5 structure
-- scripts/extract_fof_outcomes.py: extract FoF outcome tables
-- scripts/extract_bound_unbound_outcomes.py: compute bound vs unbound run-level/fragment-level outputs
-- scripts/eda/eda_bound_eda.py: bound/unbound exploratory analysis
-- scripts/train_baseline_models.py: baseline ML for FoF outcomes
-- scripts/train_bound_models.py: run-level ML for bound outcomes
-- scripts/train_triage_models.py: train a decision-support surrogate for FoF-derived fragmentation proxies
-
-## Repository Layout
-
-- outputs/: extracted CSV outputs used by analysis
-- scripts/: extraction, EDA, and ML scripts
-- documentation.md: interpretation and project notes
-- deliverables/: project-plan and submission-facing material
-
-## Notes
-
-- Large generated artifacts are mostly kept out of Git.
-- Some compact tables and representative plots are retained for review.
-
-## SPH Fragmentation Triage Tool
-
-The repository now includes a lightweight local triage demo that uses the extracted `outputs/fof_outcomes.csv` table to triage new simulation proposals. The tool predicts FoF-derived proxy outcomes rather than physically bound moon-forming material.
-
-Disclaimer:
-“This tool predicts FoF-derived fragmentation proxy outcomes. It does not replace SPH and does not directly validate long-term capture, disk mass, or moon formation.”
-
-Use it to prioritise which new simulations deserve expensive SPH follow-up.
-
-### Train the triage models
-
-```bash
-python scripts/train_triage_models.py
-```
-
-This writes local artifacts under `ml/triage/`:
-
-- `fragmentation_classifier.pkl`
-- `fragmentation_regressor.pkl`
-- `metrics.json`
-- `training_domain.json`
-
-### Run the local demo from an editable template
-
-```bash
-python scripts/run_triage_demo.py
-```
-
-Edit [templates/triage_case_template.json](/Users/nny124/irp/templates/triage_case_template.json:1) and rerun the command. The script prints the prediction summary to the terminal and saves the full results table to `outputs/triage_demo_predictions.csv`.
-
-If the model files are missing, the runner shows a message telling you to run `python scripts/train_triage_models.py`.
-
-### Template fields
-
-- `mass_log10_kg`
-- `mass_code`
-- `periapsis_Rm`
-- `v_inf_kms`
-- `spin_period_hr`
-- `spin_axis`
-- `resolution_code`
-- `resolution_value`
-- `timestep`
-- `fof_linking_length`
-- `has_explicit_spin`
-
-### Example JSON template
-
-```json
-[
-  {
-    "case_name": "baseline_in_domain_case",
-    "mass_log10_kg": 18.0,
-    "mass_code": "A1800",
-    "periapsis_Rm": 1.2,
-    "v_inf_kms": 0.8,
-    "spin_period_hr": 3.0,
-    "spin_axis": "z",
-    "resolution_code": "n60",
-    "resolution_value": 60,
-    "timestep": 90000,
-    "fof_linking_length": 0.002,
-    "has_explicit_spin": true
-  }
-]
-```
-
-### Optional web wrapper later
-
-The same prediction core is also reusable from `app.py` if you later want a simple browser UI, but the local file-based runner is the primary demo path now.
-
-### Output fields
-
-- Fragmentation probability
-- Predicted largest fragment mass
-- Severity class
-- Domain status: `in_domain`, `near_edge`, or `out_of_domain`
-- SPH recommendation
-- Short explanation of the recommendation
+ML training & results summarised in Notebook for demo: `model_training.ipynb`

@@ -25,6 +25,7 @@ PHYSICAL_PATTERN = re.compile(
 
 BOUND_NUMERIC_COLUMNS = (
     "n_fragments",
+    "largest_fragment_particle_count",
     "total_fragment_mass_kg",
     "bound_fragment_count",
     "bound_mass_kg",

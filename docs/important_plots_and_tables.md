@@ -8,7 +8,10 @@ This file lists the plots and tables kept in Git and used in slides.
 | --- | --- | --- |
 | Dataset coverage heatmap | Shows uneven sampling and justifies the clean subset. Used in the data coverage slide. | `eda/raw_data_overview/plots/heatmap_mass_vs_periapsis_count.png` |
 | Fragment count vs periapsis | Main fragmentation trend: close encounters enable stronger disruption. | `eda/outcome_eda/plots/fragment_count_vs_periapsis.png` |
-| Largest fragment vs FoF linking length | Separates physical signal from post-processing sensitivity. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_linking_length.png` |
+| Largest fragment vs FoF linking length | Raw scatter only. It mixes many physical scenarios, so use it as a confounding check rather than a clean FoF-sensitivity result. See the matched-scenario diagnostics and note in `eda/outcome_eda/plots/fof_linking_length_diagnostic_note.md`. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_linking_length.png` |
+| Largest fragment vs FoF linking length, single matched scenario | Controlled FoF-sensitivity check within one fixed physical scenario. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_single_scenario.png` |
+| Largest fragment vs FoF linking length, matched scenarios | Multi-line comparison across several fixed physical scenarios. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_multiscenario.png` |
+| Largest fragment fraction vs FoF linking length, matched scenarios | Normalized version that reduces total-particle-count scale effects across scenarios. | `eda/outcome_eda/plots/largest_fragment_fraction_vs_fof_multiscenario.png` |
 | Bound mass fraction heatmap | Main retention overview across periapsis and velocity. | `eda/bound_eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png` |
 | Bound mass fraction vs periapsis, full | Main retained-mass trend used for the bound-retention story. | `eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_full.png` |
 | Bound mass fraction vs periapsis, spin effect | Supports the spin interpretation without making it the main claim. | `eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png` |
@@ -27,6 +30,8 @@ This file lists the plots and tables kept in Git and used in slides.
 | Parameter summary stats | Quick reference for dominant ranges and skew. | `eda/raw_data_overview/tables/parameter_summary_stats.csv` |
 | Outcome dataset overview | Confirms extracted outcome completeness. | `eda/outcome_eda/tables/outcome_dataset_overview.csv` |
 | Outcome summary stats | Source for fragment target ranges and skew. | `eda/outcome_eda/tables/outcome_summary_stats.csv` |
+| FoF scenario summary | Shows how many physical scenarios are mixed in the raw FoF scatter and which ones have repeated FoF sweeps. | `eda/outcome_eda/tables/fof_linking_length_scenario_summary.csv` |
+| Matched FoF scenarios | Restricted table of scenarios with more than one FoF linking length. | `eda/outcome_eda/tables/fof_linking_length_matched_scenarios.csv` |
 | Clean subset summary | Justifies the controlled subset used in interpretation. | `eda/outcome_eda/tables/clean_physical_subset_summary.csv` |
 | Bound dataset overview | Source for bound-retention coverage and extraction status. | `eda/bound_eda/tables/dataset_overview.csv` |
 | Parameter bound summary | Supports the observed parameter effects table in the deck. | `eda/bound_eda/tables/parameter_bound_summary.csv` |

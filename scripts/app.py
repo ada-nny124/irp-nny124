@@ -18,7 +18,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from irp_triage import add_derived_features, load_artifacts, predict_cases
+from triage import add_derived_features, load_artifacts, predict_cases
 
 MODEL_DIR = ROOT / "ml" / "triage"
 BOUND_MODELS_DIR = ROOT / "ml" / "bound_outcomes" / "models"

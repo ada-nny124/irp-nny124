@@ -15,7 +15,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from irp_triage.predict import load_artifacts, predict_cases
+from triage.predict import load_artifacts, predict_cases
 
 
 DEFAULT_TEMPLATE = ROOT / "templates" / "triage_case_template.json"

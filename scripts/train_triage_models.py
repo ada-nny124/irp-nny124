@@ -27,7 +27,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from irp_triage.features import CATEGORICAL_FEATURE_COLUMNS, DOMAIN_CATEGORICAL_FEATURE_COLUMNS, DOMAIN_NUMERIC_FEATURE_COLUMNS, MODEL_FEATURE_COLUMNS, NUMERIC_FEATURE_COLUMNS, add_derived_features, load_fof_data, prepare_features
+from triage.features import CATEGORICAL_FEATURE_COLUMNS, DOMAIN_CATEGORICAL_FEATURE_COLUMNS, DOMAIN_NUMERIC_FEATURE_COLUMNS, MODEL_FEATURE_COLUMNS, NUMERIC_FEATURE_COLUMNS, add_derived_features, load_fof_data, prepare_features
 
 
 RANDOM_STATE = 42

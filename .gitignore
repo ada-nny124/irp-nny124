@@ -18,8 +18,7 @@ tmp/
 .tmp/
 logs/*.out
 logs/*.err
-scripts/eda/build_kegerreis_style_aggregated.py
-scripts/eda/plot_bound_mass_variations.py
+scripts/eda/*
 
 # Archived / external / report material
 archived/
@@ -34,13 +33,13 @@ report/
 *.parquet
 martian_moon_data/
 
-# Generated outputs: keep only core tables
-outputs/*
-!outputs/.gitkeep
-!outputs/manifest.csv
-!outputs/fof_outcomes.csv
-!outputs/bound_outcomes.csv
-!outputs/hdf5_schema_summary.csv
+# Generated extraction_outputs: keep only core tables
+extraction_outputs/*
+!extraction_outputs/.gitkeep
+!extraction_outputs/manifest.csv
+!extraction_outputs/fof_outcomes.csv
+!extraction_outputs/bound_outcomes.csv
+!extraction_outputs/hdf5_schema_summary.csv
 
 # Raw-data EDA: keep only slide-backed plot/table set
 eda/raw_data_overview/plots/*
@@ -121,4 +120,6 @@ ml/model_diagnostics/tables/*
 ml/model_diagnostics/plots/
 
 # Triage-generated artifacts
-ml/triage/
+ml/triage/*
+src/triage/*
+model_training_annotated.ipynb

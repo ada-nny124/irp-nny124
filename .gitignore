@@ -1,39 +1,55 @@
-# Local config
+# Local environment and secrets
 .env
+.env.*
 configs/paths.yaml
 configs/ssh.yaml
 
-# Python / notebook / OS noise
+# Python / notebook / editor noise
 __pycache__/
-scripts/__pycache__/
-scripts/eda/__pycache__/
+*.py[cod]
+*.so
 .ipynb_checkpoints/
 .pytest_cache/
-*.py[cod]
-*.pkl
+.mypy_cache/
+.ruff_cache/
 .DS_Store
 
-# Temp / local-only
+# Temporary and local-only files
 tmp/
-.tmp/
+temp/
+.scratch/
+*.tmp
+*.swp
+*.bak
+*.log
 logs/*.out
 logs/*.err
-scripts/eda/*
 
-# Archived / external / report material
-archived/
+# Large data and binary artifacts
+*.h5
+*.hdf5
+*.parquet
+*.pkl
+*.npz
+*.npy
+*.zip
+*.tar
+*.gz
+
+# Images, tables, and other generated outputs
+*.png
+*.csv
+*.svg
+*.txt
+
+# Local data and archived material
 data/
 scratch/
 reference/
+archived/
 report/
 
-# Large raw data
-*.hdf5
-*.h5
-*.parquet
-martian_moon_data/
-
-# Generated extraction_outputs: keep only core tables
+# Keep only the core extraction outputs tracked
 extraction_outputs/*
 !extraction_outputs/.gitkeep
 !extraction_outputs/manifest.csv
@@ -41,85 +57,8 @@ extraction_outputs/*
 !extraction_outputs/bound_outcomes.csv
 !extraction_outputs/hdf5_schema_summary.csv
 
-# Raw-data EDA: keep only slide-backed plot/table set
-eda/raw_data_overview/plots/*
-!eda/raw_data_overview/plots/heatmap_mass_vs_periapsis_count.png
-eda/raw_data_overview/tables/*
-!eda/raw_data_overview/tables/dataset_overview.csv
-!eda/raw_data_overview/tables/coverage_mass_vs_periapsis.csv
-!eda/raw_data_overview/tables/parameter_summary_stats.csv
-
-# Outcome EDA
-eda/outcome_eda/plots/*
-!eda/outcome_eda/plots/fragment_count_vs_periapsis.png
-!eda/outcome_eda/plots/largest_fragment_particles_vs_fof_linking_length.png
-eda/outcome_eda/tables/*
-!eda/outcome_eda/tables/outcome_dataset_overview.csv
-!eda/outcome_eda/tables/outcome_summary_stats.csv
-!eda/outcome_eda/tables/clean_physical_subset_summary.csv
-eda/outcome_eda/analysis_summary.txt
-
-# Bound EDA
-eda/bound_eda/plots/*
-!eda/bound_eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png
-!eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_full.png
-!eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png
-eda/bound_eda/tables/*
-!eda/bound_eda/tables/dataset_overview.csv
-!eda/bound_eda/tables/parameter_bound_summary.csv
-!eda/bound_eda/tables/extraction_status_summary.csv
-eda/bound_eda/analysis_summary.txt
-
-# Eccentricity EDA
-eda/eccentricity_eda/plots/*
-!eda/eccentricity_eda/plots/eccentricity_vs_bound_mass_fraction.png
-eda/eccentricity_eda/tables/*
-!eda/eccentricity_eda/tables/dataset_overview.csv
-!eda/eccentricity_eda/tables/fragmentation_summary_by_eccentricity.csv
-eda/eccentricity_eda/analysis_summary.txt
-
-# Fragment ML: keep compact summary tables and three representative plots
-ml/tables/*
-!ml/tables/model_metrics.csv
-!ml/tables/dataset_summaries.csv
-!ml/tables/feature_importance.csv
-
-ml/plots/*
-!ml/plots/gradient_boosting/
-!ml/plots/random_forest/
-ml/plots/gradient_boosting/*
-ml/plots/random_forest/*
-!ml/plots/gradient_boosting/with_fof_linking_length/
-!ml/plots/random_forest/with_fof_linking_length/
-ml/plots/gradient_boosting/with_fof_linking_length/*
-ml/plots/random_forest/with_fof_linking_length/*
-!ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_particle_count__gradient_boosting__actual_vs_predicted.png
-!ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_mass_kg__gradient_boosting__actual_vs_predicted.png
-!ml/plots/random_forest/with_fof_linking_length/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png
-
-# Bound ML: keep compact metrics and one appendix ROC panel
-ml/bound_outcomes/*
-!ml/bound_outcomes/tables/
-!ml/bound_outcomes/plots/
-ml/bound_outcomes/tables/*
-!ml/bound_outcomes/tables/classification_metrics.csv
-!ml/bound_outcomes/tables/regression_metrics.csv
-!ml/bound_outcomes/tables/dataset_summaries.csv
-ml/bound_outcomes/plots/*
-!ml/bound_outcomes/plots/roc_four_targets/
-ml/bound_outcomes/plots/roc_four_targets/*
-!ml/bound_outcomes/plots/roc_four_targets/roc_combined_four_targets.png
-ml/bound_outcomes/classification_summary.txt
-ml/bound_outcomes/regression_summary.txt
-ml/bound_outcomes/models/
-
-# Diagnostics: keep only the two compact comparison tables
-ml/model_diagnostics/tables/*
-!ml/model_diagnostics/tables/fof_linking_length_comparison.csv
-!ml/model_diagnostics/tables/overfit_summary.csv
-ml/model_diagnostics/plots/
-
-# Triage-generated artifacts
-ml/triage/*
-src/triage/*
+# Local experiment artifacts
+ml/triage/
+src/triage/
 model_training_annotated.ipynb
+scripts/eda/

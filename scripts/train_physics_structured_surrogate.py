@@ -105,16 +105,23 @@ def parse_args() -> argparse.Namespace:
         "--stage",
         choices=[
             "baseline",
-            "tuning",
+            "tune",
             "fof_compare",
-            "feature_ablation",
             "target_transforms",
             "trust",
             "diagnostics",
+            "package",
             "all",
         ],
         default="all",
         help="Pipeline stage to run.",
+    )
+    parser.add_argument(
+        "--fast",
+        "--compact-search",
+        dest="compact_search",
+        action="store_true",
+        help="Use the compact hyperparameter grid for the first BMF tuning pass.",
     )
     return parser.parse_args()
 
@@ -348,7 +355,17 @@ def run_baseline_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     return {"frame": frame, "fold_assignments": fold_assignments, "baseline_metrics": baseline_metrics, "baseline_predictions": baseline_predictions}
 
 
-def random_forest_search_space() -> list[dict[str, object]]:
+def random_forest_search_space(compact: bool = False) -> list[dict[str, object]]:
+    if compact:
+        estimator_values = [300, 500]
+        depth_values = [None, 10]
+        leaf_values = [2, 4]
+        feature_values = ["sqrt", 0.8]
+    else:
+        estimator_values = [300, 500, 800]
+        depth_values = [None, 6, 10, 16]
+        leaf_values = [1, 2, 4, 8]
+        feature_values = ["sqrt", 0.5, 0.8, 1.0]
     return [
         {
             "model": "random_forest",
@@ -358,15 +375,27 @@ def random_forest_search_space() -> list[dict[str, object]]:
             "max_features": max_features,
         }
         for n_estimators, max_depth, min_samples_leaf, max_features in itertools.product(
-            [300, 500, 800],
-            [None, 6, 10, 16],
-            [1, 2, 4, 8],
-            ["sqrt", 0.5, 0.8, 1.0],
+            estimator_values,
+            depth_values,
+            leaf_values,
+            feature_values,
         )
     ]
 
 
-def gradient_boosting_search_space() -> list[dict[str, object]]:
+def gradient_boosting_search_space(compact: bool = False) -> list[dict[str, object]]:
+    if compact:
+        estimator_values = [100, 200]
+        learning_rates = [0.05, 0.1]
+        depth_values = [2, 3]
+        subsample_values = [0.9, 1.0]
+        leaf_values = [2]
+    else:
+        estimator_values = [100, 200, 400]
+        learning_rates = [0.03, 0.05, 0.1]
+        depth_values = [2, 3, 4]
+        subsample_values = [0.7, 0.9, 1.0]
+        leaf_values = [1, 2, 4]
     return [
         {
             "model": "gradient_boosting",
@@ -377,11 +406,11 @@ def gradient_boosting_search_space() -> list[dict[str, object]]:
             "min_samples_leaf": min_samples_leaf,
         }
         for n_estimators, learning_rate, max_depth, subsample, min_samples_leaf in itertools.product(
-            [100, 200, 400],
-            [0.03, 0.05, 0.1],
-            [2, 3, 4],
-            [0.7, 0.9, 1.0],
-            [1, 2, 4],
+            estimator_values,
+            learning_rates,
+            depth_values,
+            subsample_values,
+            leaf_values,
         )
     ]
 
@@ -961,7 +990,7 @@ def summarize_tuning_promotion(
     )
 
 
-def run_tuning_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
+def run_tuning_stage(dataset_path: Path, compact_search: bool = False) -> dict[str, pd.DataFrame]:
     ensure_output_dirs()
     frame = load_canonical_dataset(dataset_path)
     fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
@@ -972,8 +1001,8 @@ def run_tuning_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     for feature_set_name, feature_columns in FEATURE_SET_COLUMNS.items():
         feature_search_results = pd.concat(
             [
-                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, random_forest_search_space(), feature_set_name),
-                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, gradient_boosting_search_space(), feature_set_name),
+                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, random_forest_search_space(compact=compact_search), feature_set_name),
+                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, gradient_boosting_search_space(compact=compact_search), feature_set_name),
             ],
             ignore_index=True,
         )
@@ -1071,19 +1100,17 @@ def main() -> None:
     args = parse_args()
     if args.stage in {"baseline", "all"}:
         run_baseline_stage(args.dataset)
-    if args.stage in {"tuning", "all"}:
-        run_tuning_stage(args.dataset)
+    if args.stage in {"tune", "all"}:
+        run_tuning_stage(args.dataset, compact_search=args.compact_search)
     if args.stage in {"fof_compare", "all"}:
         run_fof_compare_stage(args.dataset)
-    if args.stage in {"feature_ablation", "all"}:
-        run_feature_ablation_stage(args.dataset)
     if args.stage in {"target_transforms", "all"}:
         run_target_transform_stage(args.dataset)
     if args.stage in {"trust", "all"}:
         run_trust_stage(args.dataset)
     if args.stage in {"diagnostics", "all"}:
         run_diagnostics_stage(args.dataset)
-    if args.stage == "all":
+    if args.stage in {"package", "all"}:
         write_model_card(args.dataset)
         write_notebook_stub()
 

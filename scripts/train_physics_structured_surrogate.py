@@ -809,6 +809,61 @@ def run_slice_diagnostics_stage(dataset_path: Path) -> None:
             plot_slice_diagnostic(frame, baseline_predictions, target_predictions, target, feature_columns, fitted_target, PLOTS_DIR / path_name)
 
 
+def draw_heatmap(ax: plt.Axes, table: pd.DataFrame, title: str, cmap: str, cbar_label: str) -> None:
+    image = ax.imshow(table.to_numpy(dtype=float), aspect="auto", origin="lower", cmap=cmap)
+    ax.set_title(title)
+    ax.set_xticks(range(len(table.columns)))
+    ax.set_xticklabels([str(value) for value in table.columns], rotation=45, ha="right")
+    ax.set_yticks(range(len(table.index)))
+    ax.set_yticklabels([str(value) for value in table.index])
+    plt.colorbar(image, ax=ax, fraction=0.046, pad=0.04, label=cbar_label)
+
+
+def plot_coverage_and_error_heatmaps(frame: pd.DataFrame, trust_predictions: pd.DataFrame) -> pd.DataFrame:
+    coverage_mass_peri = frame.pivot_table(index="mass_log10_kg", columns="periapsis_Rm", values="physical_file", aggfunc="count", fill_value=0)
+    coverage_peri_vel = frame.pivot_table(index="periapsis_Rm", columns="v_inf_kms", values="physical_file", aggfunc="count", fill_value=0)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+    draw_heatmap(axes[0], coverage_mass_peri, "Coverage: mass vs periapsis", "Blues", "Runs")
+    draw_heatmap(axes[1], coverage_peri_vel, "Coverage: periapsis vs velocity", "Blues", "Runs")
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / "parameter_coverage_heatmaps.png", dpi=180)
+    plt.close(fig)
+    trust_predictions = trust_predictions.copy()
+    trust_predictions["abs_error"] = trust_predictions["residual"].abs()
+    error_mass_peri = trust_predictions.pivot_table(index="mass_log10_kg", columns="periapsis_Rm", values="abs_error", aggfunc="mean")
+    error_peri_vel = trust_predictions.pivot_table(index="periapsis_Rm", columns="v_inf_kms", values="abs_error", aggfunc="mean")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+    draw_heatmap(axes[0], error_mass_peri, "Mean |error|: mass vs periapsis", "OrRd", "|error|")
+    draw_heatmap(axes[1], error_peri_vel, "Mean |error|: periapsis vs velocity", "OrRd", "|error|")
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / "coverage_vs_error_heatmaps.png", dpi=180)
+    plt.close(fig)
+    sparse_mask = trust_predictions["sparse_bin_flag"]
+    summary = pd.DataFrame(
+        [
+            {
+                "occupied_mass_peri_bins": int((coverage_mass_peri > 0).sum().sum()),
+                "total_mass_peri_bins": int(coverage_mass_peri.size),
+                "occupied_peri_vel_bins": int((coverage_peri_vel > 0).sum().sum()),
+                "total_peri_vel_bins": int(coverage_peri_vel.size),
+                "mean_error_dense_bins": float(trust_predictions.loc[~sparse_mask, "abs_error"].mean()),
+                "mean_error_sparse_bins": float(trust_predictions.loc[sparse_mask, "abs_error"].mean()),
+                "worst_error_bin_mass_peri": str(error_mass_peri.stack().idxmax()) if error_mass_peri.notna().any().any() else "",
+                "worst_error_bin_peri_vel": str(error_peri_vel.stack().idxmax()) if error_peri_vel.notna().any().any() else "",
+            }
+        ]
+    )
+    summary.to_csv(TABLES_DIR / "coverage_error_summary.csv", index=False)
+    return summary
+
+
+def run_diagnostics_stage(dataset_path: Path) -> pd.DataFrame:
+    trust_predictions = pd.read_csv(TABLES_DIR / "predictions_with_trust_flags.csv") if (TABLES_DIR / "predictions_with_trust_flags.csv").exists() else run_trust_stage(dataset_path)[1]
+    frame = add_physics_features(load_canonical_dataset(dataset_path))
+    run_slice_diagnostics_stage(dataset_path)
+    return plot_coverage_and_error_heatmaps(frame.loc[frame[PRIMARY_TARGET].notna()].copy(), trust_predictions)
+
+
 def summarize_tuning_promotion(
     baseline_metrics: pd.DataFrame,
     tuning_results: pd.DataFrame,

@@ -14,6 +14,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -40,6 +41,14 @@ FOLD_ASSIGNMENTS_PATH = TABLES_DIR / "fold_assignments.csv"
 PROMOTED_MODEL_INFO_PATH = TABLES_DIR / "promoted_model_info.json"
 PRIMARY_TARGET = "bound_mass_fraction"
 SECONDARY_TARGETS = ["n_fragments", "largest_fragment_mass_kg", "largest_fragment_particle_count"]
+REPRESENTATIVE_SLICE = {
+    "mass_code": "A2000",
+    "resolution_code": "n65",
+    "velocity_code": "v00",
+    "spin_code": "s030z",
+    "timestep": 90000,
+    "fof_linking_length": 0.004,
+}
 BASE_FEATURE_COLUMNS = [
     "mass_log10_kg",
     "particle_log10",
@@ -733,6 +742,71 @@ def run_trust_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     flagged_predictions.to_csv(TABLES_DIR / "predictions_with_trust_flags.csv", index=False)
     trust_summary.to_csv(TABLES_DIR / "trust_summary.csv", index=False)
     return trust_summary, flagged_predictions
+
+
+def representative_slice_mask(frame: pd.DataFrame) -> pd.Series:
+    mask = pd.Series(True, index=frame.index)
+    for column, value in REPRESENTATIVE_SLICE.items():
+        mask &= frame[column] == value
+    return mask
+
+
+def plot_slice_diagnostic(
+    frame: pd.DataFrame,
+    baseline_predictions: pd.DataFrame,
+    promoted_predictions: pd.DataFrame,
+    target: str,
+    feature_columns: list[str],
+    promoted_model: Pipeline,
+    output_path: Path,
+) -> None:
+    slice_frame = frame.loc[representative_slice_mask(frame)].sort_values("periapsis_Rm").copy()
+    if slice_frame.empty or target not in slice_frame.columns:
+        return
+    grid = pd.concat([slice_frame.iloc[[0]].copy()] * 250, ignore_index=True)
+    observed = np.sort(slice_frame["periapsis_Rm"].unique())
+    grid["periapsis_Rm"] = np.linspace(max(0.0, observed.min() - 0.1), observed.max() + 0.1, len(grid))
+    grid["periapsis_value"] = np.round(grid["periapsis_Rm"] * 10.0).astype(int)
+    full_curve = promoted_model.predict(grid[feature_columns])
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    ax.axvspan(grid["periapsis_Rm"].min(), observed.min(), color="#f3d3d3", alpha=0.45)
+    ax.axvspan(observed.min(), observed.max(), color="#dbe8ff", alpha=0.25)
+    ax.axvspan(observed.max(), grid["periapsis_Rm"].max(), color="#f3d3d3", alpha=0.45)
+    ax.scatter(slice_frame["periapsis_Rm"], slice_frame[target], color="black", s=35, label="SPH simulation")
+    base_slice = baseline_predictions[(baseline_predictions["target"] == target) & (baseline_predictions["model"] == "random_forest")]
+    base_slice = base_slice.loc[representative_slice_mask(base_slice)]
+    promoted_slice = promoted_predictions[promoted_predictions["target"] == target].loc[representative_slice_mask(promoted_predictions)]
+    if not base_slice.empty:
+        ax.scatter(base_slice["periapsis_Rm"], base_slice["predicted"], color="#1f77b4", marker="^", s=45, label="baseline RF OOF")
+    if not promoted_slice.empty:
+        ax.scatter(promoted_slice["periapsis_Rm"], promoted_slice["predicted"], color="#d62728", marker="D", s=45, label="promoted OOF")
+    ax.plot(grid["periapsis_Rm"], full_curve, color="#d62728", linewidth=2.2, label="promoted full-model curve")
+    ax.set_xlabel("Periapsis ($R_{Mars}$)")
+    ax.set_ylabel(target)
+    ax.set_title(f"{target} slice: baseline vs promoted")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def run_slice_diagnostics_stage(dataset_path: Path) -> None:
+    frame = add_physics_features(load_canonical_dataset(dataset_path))
+    promoted = determine_promoted_model(dataset_path)
+    baseline_predictions = pd.read_csv(TABLES_DIR / "baseline_oof_predictions.csv")
+    trust_predictions = pd.read_csv(TABLES_DIR / "predictions_with_trust_flags.csv") if (TABLES_DIR / "predictions_with_trust_flags.csv").exists() else run_trust_stage(dataset_path)[1]
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH)
+    feature_columns = feature_columns_for_set(str(promoted["feature_set"]), bool(promoted["include_physics_features"]))
+    _, _, fitted_model = evaluate_model_config_oof(frame, PRIMARY_TARGET, feature_columns, fold_assignments, str(promoted["model_name"]), promoted["params"])
+    plot_slice_diagnostic(frame, baseline_predictions, trust_predictions, PRIMARY_TARGET, feature_columns, fitted_model, PLOTS_DIR / "bmf_slice_baseline_vs_promoted.png")
+    for target, path_name in [
+        ("n_fragments", "fragment_count_slice_baseline_vs_promoted.png"),
+        ("largest_fragment_mass_kg", "largest_fragment_mass_slice_baseline_vs_promoted.png"),
+        ("largest_fragment_particle_count", "largest_fragment_particle_count_slice_baseline_vs_promoted.png"),
+    ]:
+        if target in frame.columns:
+            _, target_predictions, fitted_target = evaluate_model_config_oof(frame, target, feature_columns, fold_assignments, str(promoted["model_name"]), promoted["params"])
+            plot_slice_diagnostic(frame, baseline_predictions, target_predictions, target, feature_columns, fitted_target, PLOTS_DIR / path_name)
 
 
 def summarize_tuning_promotion(

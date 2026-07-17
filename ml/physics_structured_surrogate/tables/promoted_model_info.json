@@ -1,0 +1,10 @@
+{
+  "feature_set": "with_fof_linking_length",
+  "include_physics_features": true,
+  "mae": 0.0179005329016041,
+  "model_name": "random_forest",
+  "params": null,
+  "promotion_label": "physics-feature RF",
+  "r2": 0.9225285941091428,
+  "reason": "physics-feature ablation materially improved BMF"
+}

@@ -41,6 +41,7 @@ logs/*.err
 *.csv
 *.svg
 *.txt
+important_plots_and_tables.md
 
 # Local data and archived material
 data/

@@ -650,6 +650,7 @@ def run_target_transform_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.Dat
 
 def determine_promoted_model(dataset_path: Path) -> dict[str, object]:
     ensure_output_dirs()
+    frame = add_physics_features(load_canonical_dataset(dataset_path))
     baseline_metrics = pd.read_csv(TABLES_DIR / "baseline_metrics.csv") if (TABLES_DIR / "baseline_metrics.csv").exists() else run_baseline_stage(dataset_path)["baseline_metrics"]
     ablation_metrics = pd.read_csv(TABLES_DIR / "physics_feature_ablation_metrics.csv") if (TABLES_DIR / "physics_feature_ablation_metrics.csv").exists() else run_feature_ablation_stage(dataset_path)[0]
     tuning_promotion = pd.read_csv(TABLES_DIR / "promotion_summary.csv") if (TABLES_DIR / "promotion_summary.csv").exists() else run_tuning_stage(dataset_path)["promotion_summary"]
@@ -679,7 +680,19 @@ def determine_promoted_model(dataset_path: Path) -> dict[str, object]:
                 "reason": str(tuned_choice["promotion_reason"]),
             }
         )
-    if float(best_ablation["r2"]) >= promoted["r2"] + 0.02:
+    baseline_slice = representative_slice_plausibility(frame, "random_forest", str(baseline_row["feature_set"]), False, None)
+    candidate_slice = representative_slice_plausibility(
+        frame,
+        str(best_ablation["model"]),
+        str(best_ablation["feature_set"]),
+        bool(best_ablation["include_physics_features"]),
+        None,
+    )
+    slice_plausible = (
+        candidate_slice["slice_mae"] <= baseline_slice["slice_mae"] * 1.05
+        and candidate_slice["slice_prediction_range"] >= baseline_slice["slice_prediction_range"] * 0.7
+    )
+    if float(best_ablation["r2"]) >= promoted["r2"] + 0.02 and slice_plausible:
         promoted.update(
             {
                 "promotion_label": "physics-feature RF" if best_ablation["model"] == "random_forest" else "physics-feature GB",
@@ -692,6 +705,8 @@ def determine_promoted_model(dataset_path: Path) -> dict[str, object]:
                 "reason": "physics-feature ablation materially improved BMF",
             }
         )
+    elif float(best_ablation["r2"]) >= promoted["r2"] + 0.02:
+        promoted["reason"] = "simplicity preferred because the physics-feature candidate failed the representative-slice plausibility check"
     write_promoted_model_info(promoted)
     return promoted
 
@@ -780,6 +795,25 @@ def representative_slice_mask(frame: pd.DataFrame) -> pd.Series:
     for column, value in REPRESENTATIVE_SLICE.items():
         mask &= frame[column] == value
     return mask
+
+
+def representative_slice_plausibility(
+    frame: pd.DataFrame,
+    model_name: str,
+    feature_set: str,
+    include_physics_features: bool,
+    params: dict[str, object] | None,
+) -> dict[str, float]:
+    slice_frame = frame.loc[representative_slice_mask(frame) & frame[PRIMARY_TARGET].notna()].sort_values("periapsis_Rm").copy()
+    feature_columns = feature_columns_for_set(feature_set, include_physics_features)
+    fitted = build_regression_pipeline(frame[feature_columns], model_name, params).fit(
+        frame[feature_columns], pd.to_numeric(frame[PRIMARY_TARGET], errors="coerce")
+    )
+    predictions = pd.Series(fitted.predict(slice_frame[feature_columns]), index=slice_frame.index).clip(0.0, 1.0)
+    return {
+        "slice_mae": float(np.abs(slice_frame[PRIMARY_TARGET] - predictions).mean()),
+        "slice_prediction_range": float(predictions.max() - predictions.min()),
+    }
 
 
 def plot_slice_diagnostic(

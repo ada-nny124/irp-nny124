@@ -51,6 +51,10 @@ BASE_FEATURE_COLUMNS = [
     "timestep",
     "fof_linking_length",
 ]
+FEATURE_SET_COLUMNS = {
+    "with_fof_linking_length": BASE_FEATURE_COLUMNS,
+    "without_fof_linking_length": [column for column in BASE_FEATURE_COLUMNS if column != "fof_linking_length"],
+}
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
@@ -417,6 +421,68 @@ def evaluate_tuning_candidates(
             }
         )
     return pd.DataFrame(rows)
+
+
+def summarize_tuning_promotion(
+    baseline_metrics: pd.DataFrame,
+    tuning_results: pd.DataFrame,
+    feature_set_name: str,
+) -> pd.DataFrame:
+    baseline_row = baseline_metrics[
+        (baseline_metrics["target"] == PRIMARY_TARGET)
+        & (baseline_metrics["model"] == "random_forest")
+        & (baseline_metrics["feature_set"] == feature_set_name)
+    ].iloc[0]
+    best_row = tuning_results.sort_values(["r2", "mae"], ascending=[False, True]).iloc[0]
+    r2_gain = float(best_row["r2"] - baseline_row["r2"])
+    mae_gain = float(baseline_row["mae"] - best_row["mae"])
+    stability_worse = float(best_row["fold_r2_std"]) > float(baseline_row["fold_r2_std"]) + 0.01
+    promote = (r2_gain >= 0.02 or mae_gain > 0.001) and not stability_worse
+    promoted_label = f"tuned {'RF' if best_row['model'] == 'random_forest' else 'GB'}" if promote else "baseline RF"
+    reason = "simplicity preferred" if not promote else "tuning materially improved BMF without worse fold stability"
+    return pd.DataFrame(
+        [
+            {
+                "feature_set": feature_set_name,
+                "baseline_model": "baseline RF",
+                "candidate_model": best_row["model"],
+                "candidate_params_json": best_row["params_json"],
+                "baseline_r2": baseline_row["r2"],
+                "candidate_r2": best_row["r2"],
+                "r2_gain": r2_gain,
+                "baseline_mae": baseline_row["mae"],
+                "candidate_mae": best_row["mae"],
+                "mae_reduction": mae_gain,
+                "baseline_fold_r2_std": baseline_row["fold_r2_std"],
+                "candidate_fold_r2_std": best_row["fold_r2_std"],
+                "promoted_model": promoted_label,
+                "promotion_reason": reason,
+                "promote_tuned_model": promote,
+            }
+        ]
+    )
+
+
+def run_tuning_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
+    ensure_output_dirs()
+    frame = load_canonical_dataset(dataset_path)
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
+    baseline_metrics_path = TABLES_DIR / "baseline_metrics.csv"
+    baseline_metrics = pd.read_csv(baseline_metrics_path) if baseline_metrics_path.exists() else run_baseline_stage(dataset_path)["baseline_metrics"]
+    feature_set_name = "with_fof_linking_length"
+    search_results = pd.concat(
+        [
+            evaluate_tuning_candidates(frame, fold_assignments, FEATURE_SET_COLUMNS[feature_set_name], random_forest_search_space(), feature_set_name),
+            evaluate_tuning_candidates(frame, fold_assignments, FEATURE_SET_COLUMNS[feature_set_name], gradient_boosting_search_space(), feature_set_name),
+        ],
+        ignore_index=True,
+    )
+    tuned_metrics = search_results.sort_values(["r2", "mae"], ascending=[False, True]).groupby(["target", "feature_set", "model"], as_index=False).head(1)
+    promotion_summary = summarize_tuning_promotion(baseline_metrics, search_results, feature_set_name)
+    search_results.to_csv(TABLES_DIR / "tuning_search_results.csv", index=False)
+    tuned_metrics.to_csv(TABLES_DIR / "tuned_model_metrics.csv", index=False)
+    promotion_summary.to_csv(TABLES_DIR / "promotion_summary.csv", index=False)
+    return {"tuning_search_results": search_results, "tuned_model_metrics": tuned_metrics, "promotion_summary": promotion_summary}
 
 
 def main() -> None:

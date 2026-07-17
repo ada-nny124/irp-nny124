@@ -15,7 +15,15 @@ matplotlib.use("Agg")
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 RANDOM_STATE = 42
@@ -30,6 +38,18 @@ FOLD_ASSIGNMENTS_PATH = TABLES_DIR / "fold_assignments.csv"
 PROMOTED_MODEL_INFO_PATH = TABLES_DIR / "promoted_model_info.json"
 PRIMARY_TARGET = "bound_mass_fraction"
 SECONDARY_TARGETS = ["n_fragments", "largest_fragment_mass_kg", "largest_fragment_particle_count"]
+BASE_FEATURE_COLUMNS = [
+    "mass_log10_kg",
+    "particle_log10",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "spin_axis",
+    "has_explicit_spin",
+    "special_case_code",
+    "timestep",
+    "fof_linking_length",
+]
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)(?:_(?P<spin>s\d{3}[A-Za-z]*))?"
     r"_n(?P<resolution>\d+)_r(?P<periapsis>\d+)_v(?P<velocity>\d+)"
@@ -158,3 +178,100 @@ def build_canonical_frame(frame: pd.DataFrame) -> pd.DataFrame:
 def load_canonical_dataset(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path, low_memory=False)
     return build_canonical_frame(frame)
+
+
+def build_preprocessor(X: pd.DataFrame, scaled: bool) -> ColumnTransformer:
+    categorical_features = [column for column in ["spin_axis", "special_case_code"] if column in X.columns]
+    numeric_features = [column for column in X.columns if column not in categorical_features]
+    numeric_steps: list[tuple[str, object]] = [("imputer", SimpleImputer(strategy="median"))]
+    if scaled:
+        numeric_steps.append(("scaler", StandardScaler()))
+    return ColumnTransformer(
+        transformers=[
+            ("num", Pipeline(numeric_steps), numeric_features),
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
+                categorical_features,
+            ),
+        ]
+    )
+
+
+def baseline_regression_models(X: pd.DataFrame) -> dict[str, Pipeline]:
+    return {
+        "ridge": Pipeline([("preprocessor", build_preprocessor(X, scaled=True)), ("model", Ridge(alpha=1.0))]),
+        "random_forest": Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, scaled=False)),
+                ("model", RandomForestRegressor(n_estimators=300, min_samples_leaf=2, random_state=RANDOM_STATE, n_jobs=-1)),
+            ]
+        ),
+        "gradient_boosting": Pipeline(
+            [("preprocessor", build_preprocessor(X, scaled=False)), ("model", GradientBoostingRegressor(random_state=RANDOM_STATE))]
+        ),
+    }
+
+
+def evaluate_grouped_oof_models(
+    frame: pd.DataFrame,
+    target: str,
+    feature_columns: list[str],
+    fold_assignments: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    valid = frame[frame[target].notna()].copy()
+    valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
+    X = valid[feature_columns].copy()
+    y = pd.to_numeric(valid[target], errors="coerce")
+    models = baseline_regression_models(X)
+    metric_rows: list[dict[str, object]] = []
+    prediction_rows: list[pd.DataFrame] = []
+    for model_name, pipeline in models.items():
+        oof = np.full(len(valid), np.nan)
+        fold_metrics: list[dict[str, object]] = []
+        for fold_index in sorted(valid["fold_index"].dropna().unique()):
+            train_mask = valid["fold_index"] != fold_index
+            test_mask = valid["fold_index"] == fold_index
+            fitted = clone(pipeline)
+            fitted.fit(X.loc[train_mask], y.loc[train_mask])
+            preds = fitted.predict(X.loc[test_mask])
+            oof[test_mask.to_numpy()] = preds
+            fold_metrics.append(
+                {
+                    "fold_index": int(fold_index),
+                    "r2": r2_score(y.loc[test_mask], preds),
+                    "mae": mean_absolute_error(y.loc[test_mask], preds),
+                    "rmse": float(np.sqrt(mean_squared_error(y.loc[test_mask], preds))),
+                }
+            )
+        fold_frame = pd.DataFrame(fold_metrics)
+        metric_rows.append(
+            {
+                "target": target,
+                "model": model_name,
+                "feature_set": "with_fof_linking_length",
+                "rows": len(valid),
+                "r2": r2_score(y, oof),
+                "mae": mean_absolute_error(y, oof),
+                "rmse": float(np.sqrt(mean_squared_error(y, oof))),
+                "fold_r2_mean": fold_frame["r2"].mean(),
+                "fold_r2_std": fold_frame["r2"].std(ddof=0),
+                "fold_mae_mean": fold_frame["mae"].mean(),
+                "fold_mae_std": fold_frame["mae"].std(ddof=0),
+                "fold_rmse_mean": fold_frame["rmse"].mean(),
+                "fold_rmse_std": fold_frame["rmse"].std(ddof=0),
+            }
+        )
+        pred_frame = valid.copy()
+        pred_frame["target"] = target
+        pred_frame["model"] = model_name
+        pred_frame["feature_set"] = "with_fof_linking_length"
+        pred_frame["predicted"] = oof
+        pred_frame["residual"] = pred_frame[target] - pred_frame["predicted"]
+        prediction_rows.append(pred_frame)
+    return pd.DataFrame(metric_rows), pd.concat(prediction_rows, ignore_index=True)

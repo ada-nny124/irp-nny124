@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 from dataclasses import dataclass
@@ -293,6 +294,129 @@ def run_baseline_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     baseline_metrics.to_csv(TABLES_DIR / "baseline_metrics.csv", index=False)
     baseline_predictions.to_csv(TABLES_DIR / "baseline_oof_predictions.csv", index=False)
     return {"frame": frame, "fold_assignments": fold_assignments, "baseline_metrics": baseline_metrics, "baseline_predictions": baseline_predictions}
+
+
+def random_forest_search_space() -> list[dict[str, object]]:
+    return [
+        {
+            "model": "random_forest",
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "min_samples_leaf": min_samples_leaf,
+            "max_features": max_features,
+        }
+        for n_estimators, max_depth, min_samples_leaf, max_features in itertools.product(
+            [300, 500, 800],
+            [None, 6, 10, 16],
+            [1, 2, 4, 8],
+            ["sqrt", 0.5, 0.8, 1.0],
+        )
+    ]
+
+
+def gradient_boosting_search_space() -> list[dict[str, object]]:
+    return [
+        {
+            "model": "gradient_boosting",
+            "n_estimators": n_estimators,
+            "learning_rate": learning_rate,
+            "max_depth": max_depth,
+            "subsample": subsample,
+            "min_samples_leaf": min_samples_leaf,
+        }
+        for n_estimators, learning_rate, max_depth, subsample, min_samples_leaf in itertools.product(
+            [100, 200, 400],
+            [0.03, 0.05, 0.1],
+            [2, 3, 4],
+            [0.7, 0.9, 1.0],
+            [1, 2, 4],
+        )
+    ]
+
+
+def evaluate_tuning_candidates(
+    frame: pd.DataFrame,
+    fold_assignments: pd.DataFrame,
+    feature_columns: list[str],
+    candidates: list[dict[str, object]],
+    feature_set_name: str,
+) -> pd.DataFrame:
+    valid = frame[frame[PRIMARY_TARGET].notna()].copy()
+    valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
+    X = valid[feature_columns].copy()
+    y = pd.to_numeric(valid[PRIMARY_TARGET], errors="coerce")
+    rows: list[dict[str, object]] = []
+    for candidate in candidates:
+        model_name = str(candidate["model"])
+        if model_name == "random_forest":
+            pipeline = Pipeline(
+                [
+                    ("preprocessor", build_preprocessor(X, scaled=False)),
+                    (
+                        "model",
+                        RandomForestRegressor(
+                            n_estimators=int(candidate["n_estimators"]),
+                            max_depth=candidate["max_depth"],
+                            min_samples_leaf=int(candidate["min_samples_leaf"]),
+                            max_features=candidate["max_features"],
+                            random_state=RANDOM_STATE,
+                            n_jobs=-1,
+                        ),
+                    ),
+                ]
+            )
+        else:
+            pipeline = Pipeline(
+                [
+                    ("preprocessor", build_preprocessor(X, scaled=False)),
+                    (
+                        "model",
+                        GradientBoostingRegressor(
+                            n_estimators=int(candidate["n_estimators"]),
+                            learning_rate=float(candidate["learning_rate"]),
+                            max_depth=int(candidate["max_depth"]),
+                            subsample=float(candidate["subsample"]),
+                            min_samples_leaf=int(candidate["min_samples_leaf"]),
+                            random_state=RANDOM_STATE,
+                        ),
+                    ),
+                ]
+            )
+        oof = np.full(len(valid), np.nan)
+        fold_scores: list[dict[str, float]] = []
+        for fold_index in sorted(valid["fold_index"].dropna().unique()):
+            train_mask = valid["fold_index"] != fold_index
+            test_mask = valid["fold_index"] == fold_index
+            fitted = clone(pipeline)
+            fitted.fit(X.loc[train_mask], y.loc[train_mask])
+            preds = fitted.predict(X.loc[test_mask])
+            oof[test_mask.to_numpy()] = preds
+            fold_scores.append(
+                {
+                    "r2": r2_score(y.loc[test_mask], preds),
+                    "mae": mean_absolute_error(y.loc[test_mask], preds),
+                    "rmse": float(np.sqrt(mean_squared_error(y.loc[test_mask], preds))),
+                }
+            )
+        fold_frame = pd.DataFrame(fold_scores)
+        rows.append(
+            {
+                "target": PRIMARY_TARGET,
+                "feature_set": feature_set_name,
+                "model": model_name,
+                "params_json": json.dumps(candidate, sort_keys=True),
+                "r2": r2_score(y, oof),
+                "mae": mean_absolute_error(y, oof),
+                "rmse": float(np.sqrt(mean_squared_error(y, oof))),
+                "fold_r2_mean": fold_frame["r2"].mean(),
+                "fold_r2_std": fold_frame["r2"].std(ddof=0),
+                "fold_mae_mean": fold_frame["mae"].mean(),
+                "fold_mae_std": fold_frame["mae"].std(ddof=0),
+                "fold_rmse_mean": fold_frame["rmse"].mean(),
+                "fold_rmse_std": fold_frame["rmse"].std(ddof=0),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def main() -> None:

@@ -423,6 +423,106 @@ def evaluate_tuning_candidates(
     return pd.DataFrame(rows)
 
 
+def build_regression_pipeline(X: pd.DataFrame, model_name: str, params: dict[str, object] | None = None) -> Pipeline:
+    params = params or {}
+    if model_name == "ridge":
+        return Pipeline([("preprocessor", build_preprocessor(X, scaled=True)), ("model", Ridge(alpha=float(params.get("alpha", 1.0))))])
+    if model_name == "random_forest":
+        return Pipeline(
+            [
+                ("preprocessor", build_preprocessor(X, scaled=False)),
+                (
+                    "model",
+                    RandomForestRegressor(
+                        n_estimators=int(params.get("n_estimators", 300)),
+                        max_depth=params.get("max_depth"),
+                        min_samples_leaf=int(params.get("min_samples_leaf", 2)),
+                        max_features=params.get("max_features", "sqrt"),
+                        random_state=RANDOM_STATE,
+                        n_jobs=-1,
+                    ),
+                ),
+            ]
+        )
+    return Pipeline(
+        [
+            ("preprocessor", build_preprocessor(X, scaled=False)),
+            (
+                "model",
+                GradientBoostingRegressor(
+                    n_estimators=int(params.get("n_estimators", 100)),
+                    learning_rate=float(params.get("learning_rate", 0.1)),
+                    max_depth=int(params.get("max_depth", 3)),
+                    subsample=float(params.get("subsample", 1.0)),
+                    min_samples_leaf=int(params.get("min_samples_leaf", 1)),
+                    random_state=RANDOM_STATE,
+                ),
+            ),
+        ]
+    )
+
+
+def evaluate_model_config_oof(
+    frame: pd.DataFrame,
+    target: str,
+    feature_columns: list[str],
+    fold_assignments: pd.DataFrame,
+    model_name: str,
+    params: dict[str, object] | None,
+    transform_name: str = "raw",
+) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
+    valid = frame[frame[target].notna()].copy()
+    valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
+    X = valid[feature_columns].copy()
+    y = pd.to_numeric(valid[target], errors="coerce")
+    pipeline = build_regression_pipeline(X, model_name, params)
+    oof = np.full(len(valid), np.nan)
+    fold_metrics: list[dict[str, object]] = []
+    for fold_index in sorted(valid["fold_index"].dropna().unique()):
+        train_mask = valid["fold_index"] != fold_index
+        test_mask = valid["fold_index"] == fold_index
+        fitted = clone(pipeline)
+        fitted.fit(X.loc[train_mask], y.loc[train_mask])
+        preds = fitted.predict(X.loc[test_mask])
+        oof[test_mask.to_numpy()] = preds
+        fold_metrics.append(
+            {
+                "fold_index": int(fold_index),
+                "r2": r2_score(y.loc[test_mask], preds),
+                "mae": mean_absolute_error(y.loc[test_mask], preds),
+                "rmse": float(np.sqrt(mean_squared_error(y.loc[test_mask], preds))),
+            }
+        )
+    fitted_full = clone(pipeline).fit(X, y)
+    fold_frame = pd.DataFrame(fold_metrics)
+    metrics = pd.DataFrame(
+        [
+            {
+                "target": target,
+                "model": model_name,
+                "transform": transform_name,
+                "rows": len(valid),
+                "r2": r2_score(y, oof),
+                "mae": mean_absolute_error(y, oof),
+                "rmse": float(np.sqrt(mean_squared_error(y, oof))),
+                "fold_r2_mean": fold_frame["r2"].mean(),
+                "fold_r2_std": fold_frame["r2"].std(ddof=0),
+                "fold_mae_mean": fold_frame["mae"].mean(),
+                "fold_mae_std": fold_frame["mae"].std(ddof=0),
+                "fold_rmse_mean": fold_frame["rmse"].mean(),
+                "fold_rmse_std": fold_frame["rmse"].std(ddof=0),
+            }
+        ]
+    )
+    predictions = valid.copy()
+    predictions["target"] = target
+    predictions["model"] = model_name
+    predictions["transform"] = transform_name
+    predictions["predicted"] = oof
+    predictions["residual"] = predictions[target] - predictions["predicted"]
+    return metrics, predictions, fitted_full
+
+
 def summarize_tuning_promotion(
     baseline_metrics: pd.DataFrame,
     tuning_results: pd.DataFrame,

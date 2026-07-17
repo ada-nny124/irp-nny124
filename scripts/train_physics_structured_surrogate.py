@@ -509,11 +509,14 @@ def evaluate_model_config_oof(
     model_name: str,
     params: dict[str, object] | None,
     transform_name: str = "raw",
+    transform_pair: tuple[callable, callable] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
     valid = frame[frame[target].notna()].copy()
     valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
     X = valid[feature_columns].copy()
     y = pd.to_numeric(valid[target], errors="coerce")
+    forward_transform, inverse_transform = transform_pair if transform_pair is not None else (lambda s: s, lambda s: s)
+    y_train = forward_transform(y)
     pipeline = build_regression_pipeline(X, model_name, params)
     oof = np.full(len(valid), np.nan)
     fold_metrics: list[dict[str, object]] = []
@@ -521,8 +524,8 @@ def evaluate_model_config_oof(
         train_mask = valid["fold_index"] != fold_index
         test_mask = valid["fold_index"] == fold_index
         fitted = clone(pipeline)
-        fitted.fit(X.loc[train_mask], y.loc[train_mask])
-        preds = fitted.predict(X.loc[test_mask])
+        fitted.fit(X.loc[train_mask], y_train.loc[train_mask])
+        preds = inverse_transform(pd.Series(fitted.predict(X.loc[test_mask]), index=y.loc[test_mask].index)).to_numpy()
         oof[test_mask.to_numpy()] = preds
         fold_metrics.append(
             {
@@ -532,7 +535,7 @@ def evaluate_model_config_oof(
                 "rmse": float(np.sqrt(mean_squared_error(y.loc[test_mask], preds))),
             }
         )
-    fitted_full = clone(pipeline).fit(X, y)
+    fitted_full = clone(pipeline).fit(X, y_train)
     fold_frame = pd.DataFrame(fold_metrics)
     metrics = pd.DataFrame(
         [
@@ -560,6 +563,49 @@ def evaluate_model_config_oof(
     predictions["predicted"] = oof
     predictions["residual"] = predictions[target] - predictions["predicted"]
     return metrics, predictions, fitted_full
+
+
+def target_transform_registry() -> dict[str, tuple[callable, callable]]:
+    return {
+        "raw": (lambda s: s, lambda s: s),
+        "log1p": (lambda s: np.log1p(s.clip(lower=0.0)), lambda s: pd.Series(np.expm1(s), index=s.index)),
+    }
+
+
+def run_target_transform_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ensure_output_dirs()
+    frame = load_canonical_dataset(dataset_path)
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
+    transform_specs = {
+        "n_fragments": ["raw", "log1p"],
+        "largest_fragment_mass_kg": ["raw", "log1p"],
+        "largest_fragment_particle_count": ["raw", "log1p"] if "largest_fragment_particle_count" in frame.columns else [],
+        "largest_fragment_mass_fraction": ["raw", "log1p"],
+    }
+    registry = target_transform_registry()
+    metrics_frames: list[pd.DataFrame] = []
+    prediction_frames: list[pd.DataFrame] = []
+    for target, transforms in transform_specs.items():
+        if target not in frame.columns or not transforms:
+            continue
+        for transform_name in transforms:
+            metrics, predictions, _ = evaluate_model_config_oof(
+                frame,
+                target,
+                FEATURE_SET_COLUMNS["with_fof_linking_length"],
+                fold_assignments,
+                "random_forest",
+                None,
+                transform_name=transform_name,
+                transform_pair=registry[transform_name],
+            )
+            metrics_frames.append(metrics)
+            prediction_frames.append(predictions)
+    metrics_frame = pd.concat(metrics_frames, ignore_index=True)
+    predictions_frame = pd.concat(prediction_frames, ignore_index=True)
+    metrics_frame.to_csv(TABLES_DIR / "target_transform_metrics.csv", index=False)
+    predictions_frame.to_csv(TABLES_DIR / "target_transform_oof_predictions.csv", index=False)
+    return metrics_frame, predictions_frame
 
 
 def summarize_tuning_promotion(

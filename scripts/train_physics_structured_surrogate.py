@@ -608,6 +608,133 @@ def run_target_transform_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.Dat
     return metrics_frame, predictions_frame
 
 
+def determine_promoted_model(dataset_path: Path) -> dict[str, object]:
+    ensure_output_dirs()
+    baseline_metrics = pd.read_csv(TABLES_DIR / "baseline_metrics.csv") if (TABLES_DIR / "baseline_metrics.csv").exists() else run_baseline_stage(dataset_path)["baseline_metrics"]
+    ablation_metrics = pd.read_csv(TABLES_DIR / "physics_feature_ablation_metrics.csv") if (TABLES_DIR / "physics_feature_ablation_metrics.csv").exists() else run_feature_ablation_stage(dataset_path)[0]
+    tuning_promotion = pd.read_csv(TABLES_DIR / "promotion_summary.csv") if (TABLES_DIR / "promotion_summary.csv").exists() else run_tuning_stage(dataset_path)["promotion_summary"]
+    baseline_row = baseline_metrics[(baseline_metrics["target"] == PRIMARY_TARGET) & (baseline_metrics["model"] == "random_forest")].sort_values("r2", ascending=False).iloc[0]
+    best_ablation = ablation_metrics[ablation_metrics["target"] == PRIMARY_TARGET].sort_values(["r2", "mae"], ascending=[False, True]).iloc[0]
+    promoted = {
+        "promotion_label": "baseline RF",
+        "model_name": "random_forest",
+        "feature_set": str(baseline_row["feature_set"]),
+        "include_physics_features": False,
+        "params": None,
+        "r2": float(baseline_row["r2"]),
+        "mae": float(baseline_row["mae"]),
+        "reason": "simplicity preferred because gains were small",
+    }
+    if bool(tuning_promotion["promote_tuned_model"].any()):
+        tuned_choice = tuning_promotion[tuning_promotion["promote_tuned_model"]].sort_values("r2_gain", ascending=False).iloc[0]
+        promoted.update(
+            {
+                "promotion_label": "tuned RF" if tuned_choice["candidate_model"] == "random_forest" else "tuned GB",
+                "model_name": str(tuned_choice["candidate_model"]),
+                "feature_set": str(tuned_choice["feature_set"]),
+                "include_physics_features": False,
+                "params": json.loads(tuned_choice["candidate_params_json"]),
+                "r2": float(tuned_choice["candidate_r2"]),
+                "mae": float(tuned_choice["candidate_mae"]),
+                "reason": str(tuned_choice["promotion_reason"]),
+            }
+        )
+    if float(best_ablation["r2"]) >= promoted["r2"] + 0.02:
+        promoted.update(
+            {
+                "promotion_label": "physics-feature RF" if best_ablation["model"] == "random_forest" else "physics-feature GB",
+                "model_name": str(best_ablation["model"]),
+                "feature_set": str(best_ablation["feature_set"]),
+                "include_physics_features": bool(best_ablation["include_physics_features"]),
+                "params": None,
+                "r2": float(best_ablation["r2"]),
+                "mae": float(best_ablation["mae"]),
+                "reason": "physics-feature ablation materially improved BMF",
+            }
+        )
+    write_promoted_model_info(promoted)
+    return promoted
+
+
+def add_trust_flags(predictions: pd.DataFrame, training_frame: pd.DataFrame, spread_threshold: float) -> pd.DataFrame:
+    flagged = predictions.copy()
+    ranges = {
+        "mass_log10_kg": (training_frame["mass_log10_kg"].min(), training_frame["mass_log10_kg"].max()),
+        "periapsis_Rm": (training_frame["periapsis_Rm"].min(), training_frame["periapsis_Rm"].max()),
+        "v_inf_kms": (training_frame["v_inf_kms"].min(), training_frame["v_inf_kms"].max()),
+    }
+    coverage = training_frame.groupby(["mass_log10_kg", "periapsis_Rm"]).size().rename("bin_count").reset_index()
+    flagged = flagged.merge(coverage, on=["mass_log10_kg", "periapsis_Rm"], how="left")
+    flagged["bin_count"] = flagged["bin_count"].fillna(0)
+    flagged["in_training_range"] = True
+    for column, (lo, hi) in ranges.items():
+        flagged["in_training_range"] &= flagged[column].between(lo, hi, inclusive="both")
+    flagged["near_training_edge"] = (
+        (flagged["periapsis_Rm"] <= ranges["periapsis_Rm"][0] + 0.1)
+        | (flagged["periapsis_Rm"] >= ranges["periapsis_Rm"][1] - 0.1)
+        | (flagged["v_inf_kms"] <= ranges["v_inf_kms"][0] + 0.1)
+        | (flagged["v_inf_kms"] >= ranges["v_inf_kms"][1] - 0.1)
+    )
+    flagged["sparse_bin_flag"] = flagged["bin_count"] <= training_frame.groupby(["mass_log10_kg", "periapsis_Rm"]).size().median()
+    flagged["extrapolation_flag"] = ~flagged["in_training_range"]
+    flagged["borderline_bmf"] = flagged["predicted"].between(0.0771, 0.1229, inclusive="both")
+    flagged["high_confidence"] = (
+        flagged["in_training_range"]
+        & ~flagged["near_training_edge"]
+        & ~flagged["sparse_bin_flag"]
+        & (flagged["model_spread"] <= spread_threshold)
+        & ~flagged["borderline_bmf"]
+    )
+    flagged["recommendation"] = np.where(
+        flagged["high_confidence"],
+        "high_confidence_screening",
+        np.where(
+            flagged["extrapolation_flag"] | flagged["borderline_bmf"] | (flagged["model_spread"] > spread_threshold),
+            "low_confidence_sph_required",
+            "medium_confidence_screening",
+        ),
+    )
+    return flagged
+
+
+def run_trust_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ensure_output_dirs()
+    promoted = determine_promoted_model(dataset_path)
+    frame = add_physics_features(load_canonical_dataset(dataset_path))
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
+    feature_columns = feature_columns_for_set(str(promoted["feature_set"]), bool(promoted["include_physics_features"]))
+    promoted_metrics, promoted_predictions, promoted_model = evaluate_model_config_oof(
+        frame, PRIMARY_TARGET, feature_columns, fold_assignments, str(promoted["model_name"]), promoted["params"]
+    )
+    rf_metrics, rf_predictions, rf_model = evaluate_model_config_oof(frame, PRIMARY_TARGET, feature_columns, fold_assignments, "random_forest", None)
+    gb_metrics, gb_predictions, gb_model = evaluate_model_config_oof(frame, PRIMARY_TARGET, feature_columns, fold_assignments, "gradient_boosting", None)
+    X = frame.loc[frame[PRIMARY_TARGET].notna(), feature_columns]
+    promoted_predictions["predicted"] = promoted_predictions["predicted"].clip(0.0, 1.0)
+    promoted_predictions["rf_full_prediction"] = rf_model.predict(X)[: len(promoted_predictions)]
+    promoted_predictions["gb_full_prediction"] = gb_model.predict(X)[: len(promoted_predictions)]
+    promoted_predictions["model_spread"] = np.abs(promoted_predictions["rf_full_prediction"] - promoted_predictions["gb_full_prediction"])
+    fold_spread = promoted_predictions.groupby("fold_index")["residual"].transform("std").fillna(0.0)
+    promoted_predictions["fold_spread"] = fold_spread
+    spread_threshold = float(promoted_predictions["model_spread"].quantile(0.75))
+    flagged_predictions = add_trust_flags(promoted_predictions, frame.loc[frame[PRIMARY_TARGET].notna()].copy(), spread_threshold)
+    trust_summary = pd.DataFrame(
+        [
+            {
+                "promoted_model": promoted["promotion_label"],
+                "feature_set": promoted["feature_set"],
+                "include_physics_features": promoted["include_physics_features"],
+                "spread_threshold": spread_threshold,
+                "high_confidence_rows": int((flagged_predictions["recommendation"] == "high_confidence_screening").sum()),
+                "medium_confidence_rows": int((flagged_predictions["recommendation"] == "medium_confidence_screening").sum()),
+                "low_confidence_rows": int((flagged_predictions["recommendation"] == "low_confidence_sph_required").sum()),
+            }
+        ]
+    )
+    flagged_predictions.to_csv(TABLES_DIR / "predictions_with_trust_flags.csv", index=False)
+    trust_summary.to_csv(TABLES_DIR / "trust_summary.csv", index=False)
+    return trust_summary, flagged_predictions
+
+
 def summarize_tuning_promotion(
     baseline_metrics: pd.DataFrame,
     tuning_results: pd.DataFrame,

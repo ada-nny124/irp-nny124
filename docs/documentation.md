@@ -90,6 +90,137 @@ Interpretation:
 - coarse decision boundaries such as “any bound mass” and “BMF >= 10%” are strongly learnable from the available metadata
 - these are useful screening targets even when finer physical detail still requires SPH
 
+## Physics-structured surrogate upgrade
+
+The repository now includes a dedicated next-phase surrogate workflow under:
+
+- `scripts/train_physics_structured_surrogate.py`
+- `ml/physics_structured_surrogate/`
+- `physics_structured_surrogate.ipynb`
+
+This upgraded phase keeps the scientific framing unchanged:
+
+- the surrogate is a fast in-domain screening model trained on SPH-derived outcomes
+- it is not a replacement for SPH
+- `bound_mass_fraction` remains the primary research target
+- fragmentation targets remain secondary diagnostics
+
+### Baseline reproduction
+
+The upgraded pipeline first reproduces the grouped-validation baseline with `GroupKFold` grouped by `physical_file`.
+
+Confirmed baseline reference:
+
+- `bound_mass_fraction`, random forest, `with_fof_linking_length`: `R² = 0.8971`, `MAE = 0.0184`, `RMSE = 0.0298`
+
+The baseline stage now writes matched outputs for both:
+
+- `with_fof_linking_length`
+- `without_fof_linking_length`
+
+so that later FoF comparisons and tuning summaries use identical grouped folds.
+
+### Compact tuning result
+
+The first tuning pass uses a compact grouped-CV search on the primary target only, `bound_mass_fraction`.
+
+Result:
+
+- tuning did **not** justify promotion over the baseline random forest
+- best compact tuned RF with FoF reached `R² = 0.8983`, but the gain over baseline was too small to satisfy the conservative promotion rule
+- `promotion_summary.csv` therefore keeps `baseline RF` for the tuning-only decision
+
+This is intentional: the workflow does not promote a tuned model just because mean `R²` increases slightly.
+
+### With-FoF vs without-FoF
+
+The paired FoF comparison shows that FoF linking length still materially improves prediction for the current archive.
+
+Current result:
+
+- best predictive feature set: `with_fof_linking_length`
+- `without_fof_linking_length` is more physically clean, but it is materially less accurate on `bound_mass_fraction`
+
+This means the promoted predictive surrogate currently remains post-processing-aware.
+
+### Physics-derived feature ablation
+
+The new workflow adds deterministic, leakage-free physics-style features derived from setup-time quantities already present in the tracked tables.
+
+Implemented physics-style features include:
+
+- `encounter_eccentricity_proxy`
+- `v_inf_squared`
+- `periapsis_inverse`
+- `angular_momentum_proxy`
+- `spin_frequency_hr_inv`
+- `has_spin`
+- `particle_mass_proxy`
+- `mass_resolution_interaction`
+
+Current ablation result:
+
+- `physics-feature RF`, `with_fof_linking_length`, `bound_mass_fraction`: `R² = 0.9225`, `MAE = 0.0179`
+
+This is the current promoted surrogate because it materially improves BMF prediction over the reproduced baseline.
+
+### Current promoted model
+
+The current promoted model card is:
+
+- promoted model: `physics-feature RF`
+- target: `bound_mass_fraction`
+- feature set: `with_fof_linking_length`
+- grouped-CV BMF score: `R² = 0.9225`
+- grouped-CV BMF MAE: `0.0179`
+
+Supporting files:
+
+- `ml/physics_structured_surrogate/model_card.md`
+- `ml/physics_structured_surrogate/tables/promoted_model_info.json`
+- `ml/physics_structured_surrogate/tables/trust_summary.csv`
+
+### Trust rules and caution zones
+
+The upgraded surrogate now writes per-prediction trust flags and screening recommendations.
+
+Trust logic is based on:
+
+- whether the query lies inside the sampled training range
+- whether it is near the sampled edge
+- whether it falls in a sparse parameter bin
+- model spread between tree families
+- whether predicted `bound_mass_fraction` is borderline around the `0.10` threshold
+
+Current trust summary:
+
+- high-confidence screening rows: `40`
+- medium-confidence screening rows: `254`
+- low-confidence / SPH-required rows: `113`
+
+Low-confidence / SPH-required cases remain those that are:
+
+- extrapolative
+- near the sampled edge of parameter space
+- sparse
+- borderline in retained mass
+- dependent on detailed fragment, orbital, or debris evolution
+
+### Diagnostics and outputs
+
+The upgraded phase now produces:
+
+- baseline-vs-promoted periapsis slice plots
+- parameter coverage heatmaps
+- coverage-vs-error heatmaps
+- target-transform comparison tables for the secondary targets
+- a dedicated model card and notebook stub for the new surrogate phase
+
+Key outputs are under:
+
+- `ml/physics_structured_surrogate/tables/`
+- `ml/physics_structured_surrogate/plots/`
+
 ## What the notebook delivers
 
 `model_training.ipynb` is the compact demonstration notebook for the bound-retention and fragmentation modelling workflow. It now summarises:
@@ -116,3 +247,4 @@ That file is the index of plots and tables kept in Git and reused in slides.
 - FoF outcomes are proxy fragmentation descriptors, not a full physical debris-orbit solution.
 - Bound-retention outputs are post-processed and should not be over-interpreted as direct moon-formation proof.
 - ML outputs are best used for screening, ranking, and regime mapping, not as a replacement for SPH in new or edge-of-domain cases.
+- The physics-structured surrogate is still strongest as an in-domain screening model. SPH remains required for extrapolated, sparse, borderline, or detailed-physics cases.

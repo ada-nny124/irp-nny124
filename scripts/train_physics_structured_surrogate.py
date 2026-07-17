@@ -283,6 +283,7 @@ def evaluate_grouped_oof_models(
     target: str,
     feature_columns: list[str],
     fold_assignments: pd.DataFrame,
+    feature_set_name: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     valid = frame[frame[target].notna()].copy()
     valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
@@ -314,7 +315,7 @@ def evaluate_grouped_oof_models(
             {
                 "target": target,
                 "model": model_name,
-                "feature_set": "with_fof_linking_length",
+                "feature_set": feature_set_name,
                 "rows": len(valid),
                 "r2": r2_score(y, oof),
                 "mae": mean_absolute_error(y, oof),
@@ -330,7 +331,7 @@ def evaluate_grouped_oof_models(
         pred_frame = valid.copy()
         pred_frame["target"] = target
         pred_frame["model"] = model_name
-        pred_frame["feature_set"] = "with_fof_linking_length"
+        pred_frame["feature_set"] = feature_set_name
         pred_frame["predicted"] = oof
         pred_frame["residual"] = pred_frame[target] - pred_frame["predicted"]
         prediction_rows.append(pred_frame)
@@ -344,10 +345,11 @@ def run_baseline_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     metric_frames: list[pd.DataFrame] = []
     prediction_frames: list[pd.DataFrame] = []
     target_columns = [PRIMARY_TARGET] + [column for column in SECONDARY_TARGETS if column in frame.columns]
-    for target in target_columns:
-        metrics, predictions = evaluate_grouped_oof_models(frame, target, BASE_FEATURE_COLUMNS, fold_assignments)
-        metric_frames.append(metrics)
-        prediction_frames.append(predictions)
+    for feature_set_name, feature_columns in FEATURE_SET_COLUMNS.items():
+        for target in target_columns:
+            metrics, predictions = evaluate_grouped_oof_models(frame, target, feature_columns, fold_assignments, feature_set_name)
+            metric_frames.append(metrics)
+            prediction_frames.append(predictions)
     baseline_metrics = pd.concat(metric_frames, ignore_index=True).sort_values(["target", "model"]).reset_index(drop=True)
     baseline_predictions = pd.concat(prediction_frames, ignore_index=True)
     baseline_metrics.to_csv(TABLES_DIR / "baseline_metrics.csv", index=False)

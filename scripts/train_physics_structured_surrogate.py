@@ -20,6 +20,7 @@ from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
@@ -626,6 +627,85 @@ def run_tuning_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     tuned_metrics.to_csv(TABLES_DIR / "tuned_model_metrics.csv", index=False)
     promotion_summary.to_csv(TABLES_DIR / "promotion_summary.csv", index=False)
     return {"tuning_search_results": search_results, "tuned_model_metrics": tuned_metrics, "promotion_summary": promotion_summary}
+
+
+def load_best_candidate_params(feature_set_name: str) -> tuple[str, dict[str, object]]:
+    tuning_results = pd.read_csv(TABLES_DIR / "tuning_search_results.csv")
+    subset = tuning_results[tuning_results["feature_set"] == feature_set_name].sort_values(["r2", "mae"], ascending=[False, True]).iloc[0]
+    return str(subset["model"]), json.loads(subset["params_json"])
+
+
+def run_fof_compare_stage(dataset_path: Path) -> pd.DataFrame:
+    ensure_output_dirs()
+    frame = load_canonical_dataset(dataset_path)
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
+    if not (TABLES_DIR / "tuning_search_results.csv").exists():
+        run_tuning_stage(dataset_path)
+    rows: list[pd.DataFrame] = []
+    promotion_rows: list[dict[str, object]] = []
+    for feature_set_name in FEATURE_SET_COLUMNS:
+        model_name, params = load_best_candidate_params(feature_set_name)
+        metrics, _, _ = evaluate_model_config_oof(frame, PRIMARY_TARGET, FEATURE_SET_COLUMNS[feature_set_name], fold_assignments, model_name, params)
+        metrics["feature_set"] = feature_set_name
+        metrics["selection_basis"] = "best_tuned_candidate"
+        rows.append(metrics)
+    metrics_frame = pd.concat(rows, ignore_index=True)
+    predictive_row = metrics_frame.sort_values(["r2", "mae"], ascending=[False, True]).iloc[0]
+    no_fof_row = metrics_frame[metrics_frame["feature_set"] == "without_fof_linking_length"].iloc[0]
+    with_fof_row = metrics_frame[metrics_frame["feature_set"] == "with_fof_linking_length"].iloc[0]
+    prefer_without = float(with_fof_row["r2"] - no_fof_row["r2"]) < 0.02
+    promotion_rows.append(
+        {
+            "best_predictive_feature_set": predictive_row["feature_set"],
+            "best_predictive_model": predictive_row["model"],
+            "best_more_physical_feature_set": "without_fof_linking_length" if prefer_without else with_fof_row["feature_set"],
+            "best_more_physical_model": no_fof_row["model"] if prefer_without else with_fof_row["model"],
+            "decision_reason": "prefer without FoF when performance is close" if prefer_without else "with FoF materially improves prediction",
+        }
+    )
+    metrics_frame.to_csv(TABLES_DIR / "with_vs_without_fof_metrics.csv", index=False)
+    pd.DataFrame(promotion_rows).to_csv(TABLES_DIR / "with_vs_without_fof_promotion.csv", index=False)
+    return metrics_frame
+
+
+def run_feature_ablation_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ensure_output_dirs()
+    frame = add_physics_features(load_canonical_dataset(dataset_path))
+    fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
+    ablation_specs = [
+        ("original_with_fof", "with_fof_linking_length", False),
+        ("physics_with_fof", "with_fof_linking_length", True),
+        ("original_without_fof", "without_fof_linking_length", False),
+        ("physics_without_fof", "without_fof_linking_length", True),
+    ]
+    metric_frames: list[pd.DataFrame] = []
+    importance_rows: list[dict[str, object]] = []
+    for ablation_name, feature_set_name, include_physics in ablation_specs:
+        feature_columns = feature_columns_for_set(feature_set_name, include_physics)
+        for model_name in ["random_forest", "gradient_boosting"]:
+            metrics, _, fitted = evaluate_model_config_oof(frame, PRIMARY_TARGET, feature_columns, fold_assignments, model_name, None)
+            metrics["ablation_name"] = ablation_name
+            metrics["feature_set"] = feature_set_name
+            metrics["include_physics_features"] = include_physics
+            metric_frames.append(metrics)
+            if model_name == "random_forest":
+                X = frame.loc[frame[PRIMARY_TARGET].notna(), feature_columns]
+                y = pd.to_numeric(frame.loc[frame[PRIMARY_TARGET].notna(), PRIMARY_TARGET], errors="coerce")
+                result = permutation_importance(fitted, X, y, scoring="r2", n_repeats=5, random_state=RANDOM_STATE)
+                for feature_name, importance_mean in zip(feature_columns, result.importances_mean):
+                    importance_rows.append(
+                        {
+                            "ablation_name": ablation_name,
+                            "feature_set": feature_set_name,
+                            "feature": feature_name,
+                            "importance_mean": importance_mean,
+                        }
+                    )
+    metrics_frame = pd.concat(metric_frames, ignore_index=True)
+    importance_frame = pd.DataFrame(importance_rows).sort_values(["ablation_name", "importance_mean"], ascending=[True, False])
+    metrics_frame.to_csv(TABLES_DIR / "physics_feature_ablation_metrics.csv", index=False)
+    importance_frame.to_csv(TABLES_DIR / "physics_feature_importance.csv", index=False)
+    return metrics_frame, importance_frame
 
 
 def main() -> None:

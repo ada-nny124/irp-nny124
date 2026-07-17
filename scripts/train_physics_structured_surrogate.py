@@ -864,6 +864,63 @@ def run_diagnostics_stage(dataset_path: Path) -> pd.DataFrame:
     return plot_coverage_and_error_heatmaps(frame.loc[frame[PRIMARY_TARGET].notna()].copy(), trust_predictions)
 
 
+def write_model_card(dataset_path: Path) -> Path:
+    promoted = determine_promoted_model(dataset_path)
+    trust_summary = pd.read_csv(TABLES_DIR / "trust_summary.csv") if (TABLES_DIR / "trust_summary.csv").exists() else run_trust_stage(dataset_path)[0]
+    coverage_summary = pd.read_csv(TABLES_DIR / "coverage_error_summary.csv") if (TABLES_DIR / "coverage_error_summary.csv").exists() else run_diagnostics_stage(dataset_path)
+    path = OUTPUT_ROOT / "model_card.md"
+    text = "\n".join(
+        [
+            "# Physics-Structured Surrogate Model Card",
+            "",
+            "The surrogate is not a replacement for SPH. It is a fast in-domain screening model trained on SPH-derived outcomes.",
+            "",
+            f"- Promoted model name: `{promoted['promotion_label']}`",
+            f"- Primary target: `{PRIMARY_TARGET}`",
+            f"- Feature set: `{promoted['feature_set']}`",
+            f"- Physics-derived features included: `{promoted['include_physics_features']}`",
+            f"- Promotion reason: {promoted['reason']}",
+            f"- Grouped-CV BMF R^2: {promoted['r2']:.4f}",
+            f"- Grouped-CV BMF MAE: {promoted['mae']:.4f}",
+            f"- Trust spread threshold: {trust_summary['spread_threshold'].iloc[0]:.4f}",
+            f"- High-confidence predictions: {int(trust_summary['high_confidence_rows'].iloc[0])}",
+            f"- Medium-confidence predictions: {int(trust_summary['medium_confidence_rows'].iloc[0])}",
+            f"- Low-confidence / SPH required: {int(trust_summary['low_confidence_rows'].iloc[0])}",
+            f"- Coverage summary file: `{(TABLES_DIR / 'coverage_error_summary.csv').as_posix()}`",
+            "",
+            "## Caution zones",
+            "- outside the training range",
+            "- near the sampled edge of parameter space",
+            "- sparse coverage bins",
+            "- borderline BMF around 0.10",
+            "- cases needing detailed debris, orbit, or eccentricity evolution",
+            "",
+            "## Future work",
+            "- expand the SPH archive in sparse regions",
+            "- validate promoted predictions against newly run SPH cases",
+            "- test stronger physics-aware proxies before considering neural methods",
+        ]
+    )
+    path.write_text(text + "\n", encoding="utf-8")
+    return path
+
+
+def write_notebook_stub() -> Path:
+    path = Path("physics_structured_surrogate.ipynb")
+    notebook = {
+        "cells": [
+            {"cell_type": "markdown", "metadata": {}, "source": ["# Physics-Structured Surrogate\n", "Fast in-domain SPH screening surrogate.\n"]},
+            {"cell_type": "markdown", "metadata": {}, "source": ["## Sections\n", "0. Config\n1. Load data and reproduce baseline\n2. Feature sets\n3. Target definitions and transforms\n4. Grouped CV tuning\n5. Baseline vs tuned results\n6. With-FoF vs without-FoF comparison\n7. Physics feature ablation\n8. Promoted model selection\n9. Trust flags and decision rules\n10. Slice diagnostics\n11. Coverage and error diagnostics\n12. Model card summary\n13. Conclusions and next steps\n"]},
+            {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": ["from pathlib import Path\n", "import pandas as pd\n", "root = Path('ml/physics_structured_surrogate')\n", "baseline = pd.read_csv(root / 'tables' / 'baseline_metrics.csv')\n", "baseline.head()\n"]},
+        ],
+        "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}, "language_info": {"name": "python", "version": "3.13"}},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    path.write_text(json.dumps(notebook, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def summarize_tuning_promotion(
     baseline_metrics: pd.DataFrame,
     tuning_results: pd.DataFrame,
@@ -1012,9 +1069,23 @@ def run_feature_ablation_stage(dataset_path: Path) -> tuple[pd.DataFrame, pd.Dat
 
 def main() -> None:
     args = parse_args()
-    if args.stage not in {"baseline", "all"}:
-        raise NotImplementedError(f"Stage not implemented yet: {args.stage}")
-    run_baseline_stage(args.dataset)
+    if args.stage in {"baseline", "all"}:
+        run_baseline_stage(args.dataset)
+    if args.stage in {"tuning", "all"}:
+        run_tuning_stage(args.dataset)
+    if args.stage in {"fof_compare", "all"}:
+        run_fof_compare_stage(args.dataset)
+    if args.stage in {"feature_ablation", "all"}:
+        run_feature_ablation_stage(args.dataset)
+    if args.stage in {"target_transforms", "all"}:
+        run_target_transform_stage(args.dataset)
+    if args.stage in {"trust", "all"}:
+        run_trust_stage(args.dataset)
+    if args.stage in {"diagnostics", "all"}:
+        run_diagnostics_stage(args.dataset)
+    if args.stage == "all":
+        write_model_card(args.dataset)
+        write_notebook_stub()
 
 
 if __name__ == "__main__":

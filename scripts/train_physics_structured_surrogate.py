@@ -275,3 +275,32 @@ def evaluate_grouped_oof_models(
         pred_frame["residual"] = pred_frame[target] - pred_frame["predicted"]
         prediction_rows.append(pred_frame)
     return pd.DataFrame(metric_rows), pd.concat(prediction_rows, ignore_index=True)
+
+
+def run_baseline_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
+    ensure_output_dirs()
+    frame = load_canonical_dataset(dataset_path)
+    fold_assignments = build_group_folds(frame, frame["physical_file"].astype(str))
+    metric_frames: list[pd.DataFrame] = []
+    prediction_frames: list[pd.DataFrame] = []
+    target_columns = [PRIMARY_TARGET] + [column for column in SECONDARY_TARGETS if column in frame.columns]
+    for target in target_columns:
+        metrics, predictions = evaluate_grouped_oof_models(frame, target, BASE_FEATURE_COLUMNS, fold_assignments)
+        metric_frames.append(metrics)
+        prediction_frames.append(predictions)
+    baseline_metrics = pd.concat(metric_frames, ignore_index=True).sort_values(["target", "model"]).reset_index(drop=True)
+    baseline_predictions = pd.concat(prediction_frames, ignore_index=True)
+    baseline_metrics.to_csv(TABLES_DIR / "baseline_metrics.csv", index=False)
+    baseline_predictions.to_csv(TABLES_DIR / "baseline_oof_predictions.csv", index=False)
+    return {"frame": frame, "fold_assignments": fold_assignments, "baseline_metrics": baseline_metrics, "baseline_predictions": baseline_predictions}
+
+
+def main() -> None:
+    args = parse_args()
+    if args.stage not in {"baseline", "all"}:
+        raise NotImplementedError(f"Stage not implemented yet: {args.stage}")
+    run_baseline_stage(args.dataset)
+
+
+if __name__ == "__main__":
+    main()

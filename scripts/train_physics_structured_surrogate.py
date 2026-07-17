@@ -607,16 +607,21 @@ def run_tuning_stage(dataset_path: Path) -> dict[str, pd.DataFrame]:
     fold_assignments = pd.read_csv(FOLD_ASSIGNMENTS_PATH) if FOLD_ASSIGNMENTS_PATH.exists() else build_group_folds(frame, frame["physical_file"].astype(str))
     baseline_metrics_path = TABLES_DIR / "baseline_metrics.csv"
     baseline_metrics = pd.read_csv(baseline_metrics_path) if baseline_metrics_path.exists() else run_baseline_stage(dataset_path)["baseline_metrics"]
-    feature_set_name = "with_fof_linking_length"
-    search_results = pd.concat(
-        [
-            evaluate_tuning_candidates(frame, fold_assignments, FEATURE_SET_COLUMNS[feature_set_name], random_forest_search_space(), feature_set_name),
-            evaluate_tuning_candidates(frame, fold_assignments, FEATURE_SET_COLUMNS[feature_set_name], gradient_boosting_search_space(), feature_set_name),
-        ],
-        ignore_index=True,
-    )
+    search_frames: list[pd.DataFrame] = []
+    promotion_frames: list[pd.DataFrame] = []
+    for feature_set_name, feature_columns in FEATURE_SET_COLUMNS.items():
+        feature_search_results = pd.concat(
+            [
+                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, random_forest_search_space(), feature_set_name),
+                evaluate_tuning_candidates(frame, fold_assignments, feature_columns, gradient_boosting_search_space(), feature_set_name),
+            ],
+            ignore_index=True,
+        )
+        search_frames.append(feature_search_results)
+        promotion_frames.append(summarize_tuning_promotion(baseline_metrics, feature_search_results, feature_set_name))
+    search_results = pd.concat(search_frames, ignore_index=True)
     tuned_metrics = search_results.sort_values(["r2", "mae"], ascending=[False, True]).groupby(["target", "feature_set", "model"], as_index=False).head(1)
-    promotion_summary = summarize_tuning_promotion(baseline_metrics, search_results, feature_set_name)
+    promotion_summary = pd.concat(promotion_frames, ignore_index=True)
     search_results.to_csv(TABLES_DIR / "tuning_search_results.csv", index=False)
     tuned_metrics.to_csv(TABLES_DIR / "tuned_model_metrics.csv", index=False)
     promotion_summary.to_csv(TABLES_DIR / "promotion_summary.csv", index=False)

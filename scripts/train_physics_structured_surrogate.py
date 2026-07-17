@@ -51,6 +51,17 @@ BASE_FEATURE_COLUMNS = [
     "timestep",
     "fof_linking_length",
 ]
+PHYSICS_FEATURE_COLUMNS = [
+    "encounter_eccentricity_proxy",
+    "v_inf_squared",
+    "periapsis_inverse",
+    "angular_momentum_proxy",
+    "spin_frequency_hr_inv",
+    "has_spin",
+    "particle_mass_proxy",
+    "mass_resolution_interaction",
+    "largest_fragment_mass_fraction",
+]
 FEATURE_SET_COLUMNS = {
     "with_fof_linking_length": BASE_FEATURE_COLUMNS,
     "without_fof_linking_length": [column for column in BASE_FEATURE_COLUMNS if column != "fof_linking_length"],
@@ -183,6 +194,33 @@ def build_canonical_frame(frame: pd.DataFrame) -> pd.DataFrame:
 def load_canonical_dataset(path: Path) -> pd.DataFrame:
     frame = pd.read_csv(path, low_memory=False)
     return build_canonical_frame(frame)
+
+
+def eccentricity_proxy(periapsis_rm_values: pd.Series, velocity_kms_values: pd.Series) -> pd.Series:
+    periapsis_km = periapsis_rm_values * MARS_RADIUS_KM
+    with np.errstate(divide="ignore", invalid="ignore"):
+        proxy = 1.0 + (periapsis_km * np.square(velocity_kms_values)) / MARS_MU_KM3_S2
+    return pd.Series(proxy, index=periapsis_rm_values.index).replace([np.inf, -np.inf], np.nan)
+
+
+def add_physics_features(frame: pd.DataFrame) -> pd.DataFrame:
+    enriched = frame.copy()
+    enriched["encounter_eccentricity_proxy"] = eccentricity_proxy(enriched["periapsis_Rm"], enriched["v_inf_kms"])
+    enriched["v_inf_squared"] = np.square(enriched["v_inf_kms"])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        enriched["periapsis_inverse"] = 1.0 / enriched["periapsis_Rm"]
+        enriched["spin_frequency_hr_inv"] = 1.0 / enriched["spin_period_hr"]
+    enriched["angular_momentum_proxy"] = enriched["periapsis_Rm"] * enriched["v_inf_kms"]
+    enriched["particle_mass_proxy"] = enriched["target_mass_kg"] / pd.to_numeric(enriched["resolution_value"], errors="coerce")
+    enriched["mass_resolution_interaction"] = enriched["mass_log10_kg"] - enriched["particle_log10"]
+    return enriched
+
+
+def feature_columns_for_set(feature_set_name: str, include_physics: bool) -> list[str]:
+    columns = FEATURE_SET_COLUMNS[feature_set_name].copy()
+    if include_physics:
+        columns.extend([column for column in PHYSICS_FEATURE_COLUMNS if column not in columns])
+    return columns
 
 
 def build_preprocessor(X: pd.DataFrame, scaled: bool) -> ColumnTransformer:

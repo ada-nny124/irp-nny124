@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import pickle
 import sys
+from datetime import UTC, datetime
 from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,7 +21,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from triage import add_derived_features, check_training_domain, load_artifacts, predict_cases
+from triage import add_derived_features, check_training_domain, get_artifact_status, load_artifacts, predict_cases
 
 MODEL_DIR = ROOT / "ml" / "triage"
 BOUND_MODELS_DIR = ROOT / "ml" / "bound_outcomes" / "models"
@@ -29,6 +32,60 @@ HTML_PATH = ROOT / "src" / "triage" / "templates" / "sph_triage_dashboard.html"
 
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
+BMF_THRESHOLD = 0.10
+BORDERLINE_BMF_MIN = 0.0771
+BORDERLINE_BMF_MAX = 0.1229
+HIGH_SUPPORT_MIN = 80.0
+MODERATE_SUPPORT_MIN = 60.0
+SCIENTIFIC_SEMANTICS_NOTE = (
+    "Debris refers to all material outside the largest remnant. Current deployed BMF is trained on total fragment mass, "
+    "so BMF and unbound values are shown as model outputs on that denominator, not as a strict additive parent-mass budget."
+)
+EXPORT_COLUMNS = [
+    "prediction_timestamp",
+    "model_bundle_id",
+    "case_name",
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "has_explicit_spin",
+    "spin_axis",
+    "spin_period_hr",
+    "resolution_value",
+    "timestep",
+    "fof_linking_length",
+    "parent_mass_kg",
+    "largest_remnant_fraction",
+    "largest_remnant_mass_kg",
+    "fragmentation_label",
+    "fragmentation_classifier_score",
+    "predicted_bmf",
+    "predicted_bound_mass_kg",
+    "predicted_unbound_mass_fraction",
+    "predicted_unbound_mass_kg",
+    "support_score",
+    "support_category",
+    "training_range_status",
+    "edge_status",
+    "nearby_run_count",
+    "model_spread_fraction",
+    "model_spread_percentage_points",
+    "recommendation",
+    "recommendation_reason",
+    "scientific_semantics_note",
+]
+INPUT_FIELD_ORDER = [
+    "case_name",
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "has_explicit_spin",
+    "spin_axis",
+    "spin_period_hr",
+    "resolution_value",
+    "timestep",
+    "fof_linking_length",
+]
 
 
 @lru_cache(maxsize=1)
@@ -55,20 +112,8 @@ def load_bound_metrics_tables() -> tuple[pd.DataFrame | None, pd.DataFrame | Non
 
 @lru_cache(maxsize=1)
 def select_best_bound_model_paths() -> dict[str, Path]:
-    classification_df, regression_df = load_bound_metrics_tables()
+    _, regression_df = load_bound_metrics_tables()
     selected: dict[str, Path] = {}
-    if classification_df is not None and not classification_df.empty:
-        for target in ["has_any_bound_mass", "bound_mass_fraction_ge_0_1"]:
-            subset = classification_df[classification_df["target"] == target].sort_values(
-                ["balanced_accuracy", "f1", "roc_auc"],
-                ascending=[False, False, False],
-            )
-            if subset.empty:
-                continue
-            row = subset.iloc[0]
-            selected[target] = BOUND_MODELS_DIR / (
-                f"{row['dataset']}__{row['feature_set']}__{row['target']}__{row['model']}.pkl"
-            )
     if regression_df is not None and not regression_df.empty:
         for target in [
             "bound_mass_fraction",
@@ -98,6 +143,35 @@ def load_bound_models() -> dict[str, object]:
         with path.open("rb") as handle:
             models[target] = pickle.load(handle)
     return models
+
+
+@lru_cache(maxsize=1)
+def select_best_bound_classifiers() -> dict[str, dict[str, object]]:
+    classification_df, _ = load_bound_metrics_tables()
+    selected: dict[str, dict[str, object]] = {}
+    if classification_df is None or classification_df.empty:
+        return selected
+
+    for target in ["has_any_bound_mass", "bound_mass_fraction_ge_0_1"]:
+        subset = classification_df[classification_df["target"] == target].sort_values(
+            ["balanced_accuracy", "f1", "roc_auc"],
+            ascending=[False, False, False],
+        )
+        if subset.empty:
+            continue
+        row = subset.iloc[0]
+        path = BOUND_MODELS_DIR / f"{row['dataset']}__{row['feature_set']}__{row['target']}__{row['model']}.pkl"
+        selected[target] = {
+            "target": str(row["target"]),
+            "dataset": str(row["dataset"]),
+            "feature_set": str(row["feature_set"]),
+            "model_name": str(row["model"]),
+            "balanced_accuracy": float(row["balanced_accuracy"]),
+            "roc_auc": float(row["roc_auc"]),
+            "path": str(path),
+            "available": path.exists(),
+        }
+    return selected
 
 
 @lru_cache(maxsize=1)
@@ -170,13 +244,166 @@ def make_bound_feature_frame(input_df: pd.DataFrame) -> pd.DataFrame:
     return add_physics_features(frame)
 
 
+def range_payload(series: pd.Series) -> dict[str, float]:
+    numeric = pd.to_numeric(series, errors="coerce").dropna()
+    return {"min": float(numeric.min()), "max": float(numeric.max())}
+
+
+def format_range(name: str, payload: dict[str, float]) -> str:
+    if name in {"timestep", "resolution_value"}:
+        return f"{payload['min']:.0f} to {payload['max']:.0f}"
+    return f"{payload['min']:.4g} to {payload['max']:.4g}"
+
+
+def get_input_specs() -> list[dict[str, object]]:
+    return [
+        {"name": "case_name", "label": "Case name", "unit": "", "type": "string"},
+        {"name": "mass_log10_kg", "label": "log10 parent mass", "unit": "kg", "type": "number"},
+        {"name": "periapsis_Rm", "label": "Periapsis", "unit": "Mars radii", "type": "number"},
+        {"name": "v_inf_kms", "label": "Velocity", "unit": "km/s", "type": "number"},
+        {"name": "has_explicit_spin", "label": "Spin on", "unit": "boolean", "type": "boolean"},
+        {"name": "spin_axis", "label": "Spin axis", "unit": "axis", "type": "string"},
+        {"name": "spin_period_hr", "label": "Spin period", "unit": "hr", "type": "number"},
+        {"name": "resolution_value", "label": "Resolution setting", "unit": "archive code", "type": "number"},
+        {"name": "timestep", "label": "Analysis time", "unit": "s", "type": "number"},
+        {"name": "fof_linking_length", "label": "FoF length", "unit": "dimensionless", "type": "number"},
+    ]
+
+
+def get_support_thresholds() -> dict[str, float]:
+    trust_summary = pd.read_csv(SURROGATE_TABLES_DIR / "trust_summary.csv").iloc[0].to_dict()
+    return {
+        "high_support_min": HIGH_SUPPORT_MIN,
+        "moderate_support_min": MODERATE_SUPPORT_MIN,
+        "spread_threshold": float(trust_summary["spread_threshold"]),
+        "borderline_bmf_min": BORDERLINE_BMF_MIN,
+        "borderline_bmf_max": BORDERLINE_BMF_MAX,
+        "bmf_threshold": BMF_THRESHOLD,
+    }
+
+
+def get_selected_bound_model_metadata() -> dict[str, object]:
+    selected_path = select_best_bound_model_paths().get("bound_mass_fraction")
+    if selected_path is None:
+        return {}
+    regression_df = load_bound_metrics_tables()[1]
+    if regression_df is None or regression_df.empty:
+        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
+
+    parts = selected_path.stem.split("__")
+    if len(parts) < 4:
+        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
+    dataset, feature_set, target, model_name = parts[0], parts[1], parts[2], "__".join(parts[3:])
+    subset = regression_df[
+        (regression_df["dataset"] == dataset)
+        & (regression_df["feature_set"] == feature_set)
+        & (regression_df["target"] == target)
+        & (regression_df["model"] == model_name)
+    ]
+    if subset.empty:
+        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
+    row = subset.iloc[0]
+    return {
+        "bundle_id": selected_path.stem,
+        "path": str(selected_path),
+        "dataset": str(row["dataset"]),
+        "feature_set": str(row["feature_set"]),
+        "target": str(row["target"]),
+        "model_name": str(row["model"]),
+        "grouped_cv_r2": float(row["r2"]),
+        "grouped_cv_mae_fraction": float(row["mae"]),
+        "grouped_cv_mae_percentage_points": float(row["mae"]) * 100.0,
+        "rows": int(row["rows"]),
+        "unique_physical_files": int(row["unique_physical_files"]),
+        "validation_grouping": "Group by physical SPH setup",
+    }
+
+
+@lru_cache(maxsize=1)
+def get_fragmentation_model_metadata() -> dict[str, object]:
+    return {
+        "probability_screen": {
+            "artifact": "fragmentation_classifier.pkl",
+            "target": "qualitative fragmentation screen",
+            "available": (MODEL_DIR / "fragmentation_classifier.pkl").exists(),
+        },
+        "largest_remnant_regression": {
+            "artifact": "fragmentation_regressor.pkl",
+            "target": "largest-remnant fraction / mass",
+            "available": (MODEL_DIR / "fragmentation_regressor.pkl").exists(),
+        },
+    }
+
+
+def build_validation_metadata() -> dict[str, object]:
+    promoted_info = json.loads((SURROGATE_TABLES_DIR / "promoted_model_info.json").read_text(encoding="utf-8"))
+    thresholds = get_support_thresholds()
+    selected_bmf = get_selected_bound_model_metadata()
+    return {
+        "fragmentation_models": get_fragmentation_model_metadata(),
+        "bmf_model": selected_bmf,
+        "target_map": [
+            {
+                "target": "Largest-remnant fraction",
+                "model_type": "regression",
+                "source": "fragmentation_regressor.pkl",
+                "used_in_dashboard": True,
+            },
+            {
+                "target": "Fragmentation label",
+                "model_type": "classification",
+                "source": "fragmentation_classifier.pkl",
+                "used_in_dashboard": True,
+            },
+            {
+                "target": "Predicted BMF",
+                "model_type": "regression",
+                "source": selected_bmf.get("model_name", "bound_mass_fraction regressor"),
+                "used_in_dashboard": True,
+            },
+            {
+                "target": "Retention screen (BMF >= 10%)",
+                "model_type": "threshold rule",
+                "source": "Derived directly from predicted BMF; no separate deployed classifier used",
+                "used_in_dashboard": True,
+            },
+        ],
+        "hidden_classifiers": select_best_bound_classifiers(),
+        "thresholds": {
+            "support_score": {
+                "high": f">= {HIGH_SUPPORT_MIN:.0f}",
+                "moderate": f">= {MODERATE_SUPPORT_MIN:.0f} and < {HIGH_SUPPORT_MIN:.0f}",
+                "low": f"< {MODERATE_SUPPORT_MIN:.0f}",
+            },
+            "model_spread_percentage_points": round(thresholds["spread_threshold"] * 100.0, 2),
+            "borderline_bmf_percentage": [
+                round(BORDERLINE_BMF_MIN * 100.0, 2),
+                round(BORDERLINE_BMF_MAX * 100.0, 2),
+            ],
+            "bmf_threshold_percentage": round(BMF_THRESHOLD * 100.0, 1),
+        },
+        "limitations_note": (
+            "The experimental physics-feature surrogate improved grouped-CV BMF performance, but it is not the deployed "
+            "inference path for this dashboard because its promoted ablation bundle includes a post-outcome feature."
+        ),
+        "consistency_note": (
+            "The dashboard uses regression for the continuous BMF output, then applies a visible 10% threshold rule for the "
+            "retention screen. Archive classifiers for `has_any_bound_mass` and `bound_mass_fraction_ge_0_1` exist, but they are "
+            "not used for the current dashboard recommendation or visible outputs."
+        ),
+        "experimental_reference": {
+            "promotion_label": promoted_info.get("promotion_label"),
+            "model_name": promoted_info.get("model_name"),
+            "grouped_cv_r2": promoted_info.get("r2"),
+            "grouped_cv_mae_fraction": promoted_info.get("mae"),
+        },
+    }
+
+
 @lru_cache(maxsize=1)
 def load_demo_metadata() -> dict[str, object]:
     support = load_support_frame()
-    trust_summary = pd.read_csv(SURROGATE_TABLES_DIR / "trust_summary.csv").iloc[0].to_dict()
-    promoted_info = json.loads((SURROGATE_TABLES_DIR / "promoted_model_info.json").read_text(encoding="utf-8"))
     coverage_summary = pd.read_csv(SURROGATE_TABLES_DIR / "coverage_error_summary.csv").iloc[0].to_dict()
-
     ranges = {
         "mass_log10_kg": range_payload(support["mass_log10_kg"]),
         "periapsis_Rm": range_payload(support["periapsis_Rm"]),
@@ -186,49 +413,46 @@ def load_demo_metadata() -> dict[str, object]:
         "fof_linking_length": range_payload(pd.to_numeric(support["fof_linking_length"], errors="coerce")),
         "timestep": range_payload(pd.to_numeric(support["timestep"], errors="coerce")),
     }
+    defaults = {
+        "case_name": "demo_case_001",
+        "mass_log10_kg": 20.0,
+        "periapsis_Rm": 2.0,
+        "v_inf_kms": 0.0,
+        "has_explicit_spin": True,
+        "spin_axis": "z",
+        "spin_period_hr": 3.0,
+        "resolution_value": 65.0,
+        "timestep": 90000.0,
+        "fof_linking_length": 0.004,
+    }
     return {
-        "defaults": {
-            "case_name": "demo_case_001",
-            "mass_log10_kg": 20.0,
-            "periapsis_Rm": 2.0,
-            "v_inf_kms": 0.0,
-            "has_explicit_spin": True,
-            "spin_axis": "z",
-            "spin_period_hr": 3.0,
-            "resolution_value": 65.0,
-            "timestep": 90000.0,
-            "fof_linking_length": 0.004,
-            "special_case_code": "none",
-        },
+        "defaults": defaults,
         "ranges": ranges,
         "choices": {
             "spin_axis": ["x", "y", "z"],
-            "special_case_code": ["none", "c30"],
-            "common_mass_log10_kg": sorted(support["mass_log10_kg"].dropna().unique().tolist()),
-            "common_resolution_value": sorted(support["resolution_value"].dropna().unique().tolist()),
         },
+        "range_labels": {key: format_range(key, payload) for key, payload in ranges.items()},
         "dataset_summary": {
             "bound_rows": int(len(support)),
-            "mass_peri_bins": int(
-                support.groupby(["mass_log10_kg", "periapsis_Rm"]).size().reset_index().shape[0]
-            ),
             "occupied_mass_peri_bins": int(coverage_summary["occupied_mass_peri_bins"]),
             "occupied_peri_vel_bins": int(coverage_summary["occupied_peri_vel_bins"]),
         },
-        "promoted_model": promoted_info,
-        "trust_summary": trust_summary,
-        "coverage_summary": coverage_summary,
-        "deployability_note": (
-            "The promoted physics-feature surrogate improved grouped-CV BMF performance, but its current ablation "
-            "bundle includes a post-outcome feature. This demo therefore uses deployable direct-input models for "
-            "screening, while still surfacing the physics-derived feature upgrade and trust rules."
-        ),
+        "scientific_semantics_note": SCIENTIFIC_SEMANTICS_NOTE,
+        "input_specs": get_input_specs(),
+        "support_thresholds": get_support_thresholds(),
+        "model_validation": build_validation_metadata(),
+        "batch_template_columns": INPUT_FIELD_ORDER,
+        "batch_template_sample": defaults,
     }
 
 
-def range_payload(series: pd.Series) -> dict[str, float]:
-    numeric = pd.to_numeric(series, errors="coerce").dropna()
-    return {"min": float(numeric.min()), "max": float(numeric.max())}
+def parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    return text in {"1", "true", "yes", "y", "on"}
 
 
 def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
@@ -242,10 +466,7 @@ def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
     spin_axis = str(payload.get("spin_axis", "none")) if has_explicit_spin else "none"
     spin_period_hr = payload.get("spin_period_hr")
     spin_period_hr = float(spin_period_hr) if has_explicit_spin and spin_period_hr not in (None, "") else np.nan
-    special_case_code = str(payload.get("special_case_code", "none"))
     mass_code = f"A{int(round(mass_log10_kg * 100)):04d}"
-    if special_case_code == "c30":
-        mass_code = f"{mass_code}c30"
     resolution_code = f"n{int(round(resolution_value))}"
 
     row = {
@@ -265,9 +486,46 @@ def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
         "timestep": timestep,
         "fof_linking_length": fof_linking_length,
         "has_explicit_spin": has_explicit_spin,
-        "special_case_code": special_case_code,
+        "special_case_code": "none",
     }
     return pd.DataFrame([row])
+
+
+def normalize_payload(payload: dict[str, object]) -> dict[str, object]:
+    normalized = dict(payload)
+    normalized["case_name"] = str(normalized.get("case_name", "custom_case") or "custom_case")
+    normalized["mass_log10_kg"] = float(normalized["mass_log10_kg"])
+    normalized["periapsis_Rm"] = float(normalized["periapsis_Rm"])
+    normalized["v_inf_kms"] = float(normalized["v_inf_kms"])
+    normalized["has_explicit_spin"] = parse_bool(normalized.get("has_explicit_spin", True))
+    normalized["spin_axis"] = str(normalized.get("spin_axis", "z") or "z")
+    normalized["resolution_value"] = float(normalized["resolution_value"])
+    normalized["timestep"] = float(normalized["timestep"])
+    normalized["fof_linking_length"] = float(normalized["fof_linking_length"])
+    if normalized["has_explicit_spin"]:
+        normalized["spin_period_hr"] = float(normalized["spin_period_hr"])
+    else:
+        normalized["spin_period_hr"] = None
+        normalized["spin_axis"] = "none"
+    return normalized
+
+
+def validate_payload(payload: dict[str, object]) -> dict[str, object]:
+    required = [
+        "case_name",
+        "mass_log10_kg",
+        "periapsis_Rm",
+        "v_inf_kms",
+        "resolution_value",
+        "timestep",
+        "fof_linking_length",
+    ]
+    missing = [key for key in required if key not in payload or payload[key] in ("", None)]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+    if parse_bool(payload.get("has_explicit_spin", True)) and payload.get("spin_period_hr") in ("", None):
+        raise ValueError("spin_period_hr is required when has_explicit_spin is true")
+    return normalize_payload(payload)
 
 
 def apply_bound_predictions(result: pd.Series, input_df: pd.DataFrame) -> pd.Series:
@@ -281,16 +539,10 @@ def apply_bound_predictions(result: pd.Series, input_df: pd.DataFrame) -> pd.Ser
         if not expected_columns:
             continue
         X = features[expected_columns].copy()
-        if target in {"has_any_bound_mass", "bound_mass_fraction_ge_0_1"}:
-            probability = float(model.predict_proba(X)[:, 1][0])
-            result[f"{target}_classifier_probability"] = probability
-        else:
-            result[target] = float(model.predict(X)[0])
+        result[target] = float(model.predict(X)[0])
 
     bound_mass_fraction = float(np.clip(float(result.get("bound_mass_fraction", 0.0)), 0.0, 1.0))
     result["bound_mass_fraction"] = bound_mass_fraction
-    result["has_any_bound_mass"] = bool(bound_mass_fraction > 0.0)
-    result["bound_mass_fraction_ge_0p1"] = bool(bound_mass_fraction >= 0.1)
     return result
 
 
@@ -320,13 +572,18 @@ def classify_outcome(result: pd.Series) -> tuple[str, str]:
     return "Mostly intact", "The largest remnant remains dominant under the current surrogate estimate."
 
 
-def classify_bound_retention(result: pd.Series) -> tuple[str, str]:
-    probability = float(result.get("has_any_bound_mass_classifier_probability", 0.0))
-    if probability >= 0.75:
-        return "Likely bound retention", "Classifier signal strongly favours retained bound material."
-    if probability >= 0.4:
-        return "Possible limited retention", "Signal is mixed, so retained bound material is plausible but not secure."
-    return "Low retention likelihood", "Classifier signal is weak for any substantial retained bound component."
+def classify_bmf_threshold(bound_mass_fraction: float) -> tuple[str, str]:
+    if bound_mass_fraction >= BMF_THRESHOLD:
+        return "Substantial bound-mass retention", "Predicted BMF exceeds the 10% retention threshold."
+    return "Limited bound-mass retention", "Predicted BMF stays below the 10% retention threshold."
+
+
+def describe_support_level(trust_score_pct: float) -> str:
+    if trust_score_pct >= HIGH_SUPPORT_MIN:
+        return "High"
+    if trust_score_pct >= MODERATE_SUPPORT_MIN:
+        return "Moderate"
+    return "Low"
 
 
 def build_support_flags(result: pd.Series, input_df: pd.DataFrame) -> dict[str, object]:
@@ -352,147 +609,289 @@ def build_support_flags(result: pd.Series, input_df: pd.DataFrame) -> dict[str, 
     bin_count = int(bin_counts.get(key, 0))
     sparse_threshold = float(bin_counts.median()) if not bin_counts.empty else 0.0
     sparse_bin_flag = bin_count <= sparse_threshold
-    borderline_bmf = 0.0771 <= float(result.get("bound_mass_fraction", 0.0)) <= 0.1229
+    borderline_bmf = BORDERLINE_BMF_MIN <= float(result.get("bound_mass_fraction", 0.0)) <= BORDERLINE_BMF_MAX
     model_spread = float(result.get("bmf_model_spread", 0.0))
-    spread_threshold = float(metadata["trust_summary"]["spread_threshold"])
-    high_confidence = (
-        in_training_range
-        and not near_training_edge
-        and not sparse_bin_flag
-        and not borderline_bmf
-        and model_spread <= spread_threshold
-    )
-
+    spread_threshold = float(metadata["support_thresholds"]["spread_threshold"])
     return {
         "in_training_range": in_training_range,
         "near_training_edge": near_training_edge,
         "sparse_bin_flag": sparse_bin_flag,
         "bin_count": bin_count,
-        "sparse_threshold": sparse_threshold,
         "borderline_bmf": borderline_bmf,
         "model_spread": model_spread,
         "spread_threshold": spread_threshold,
-        "high_confidence": high_confidence,
     }
 
 
-def make_demo_recommendation(result: pd.Series, support_flags: dict[str, object]) -> tuple[str, str, str]:
+def make_demo_recommendation(
+    predicted_outcome: str,
+    bound_mass_fraction: float,
+    support_flags: dict[str, object],
+) -> tuple[str, str, str]:
     if not support_flags["in_training_range"]:
         return (
             "Full SPH required",
             "bad",
             "One or more core inputs sit outside the sampled training range, so this case should be treated as an extrapolation.",
         )
-    if support_flags["near_training_edge"] or support_flags["sparse_bin_flag"]:
+    if (
+        support_flags["near_training_edge"]
+        or support_flags["sparse_bin_flag"]
+        or support_flags["model_spread"] > support_flags["spread_threshold"]
+        or support_flags["borderline_bmf"]
+    ):
         return (
             "SPH recommended",
             "warn",
-            "The case is near the sampled edge or in a sparsely supported bin, so the surrogate is better used as a prioritisation aid than as a stopping rule.",
+            "The case is near the sampled edge, sparsely supported, borderline in BMF, or unstable across model families, so the surrogate is better used for prioritisation than as a stopping rule.",
         )
-    if support_flags["borderline_bmf"] or support_flags["model_spread"] > support_flags["spread_threshold"]:
+    if predicted_outcome == "Strong fragmentation" or bound_mass_fraction >= BMF_THRESHOLD:
         return (
             "SPH recommended",
             "warn",
-            "The retained-mass estimate is borderline or unstable across model families, which is exactly where a direct SPH run adds value.",
-        )
-    if float(result.get("bound_mass_fraction_ge_0_1_classifier_probability", 0.0)) >= 0.75:
-        return (
-            "SPH recommended",
-            "warn",
-            "The screening model indicates a strong bound-mass signal. That is scientifically interesting enough to justify a direct SPH follow-up.",
+            "The visible screening outputs indicate a scientifically interesting fragmentation or retained-mass signal that warrants direct SPH follow-up.",
         )
     return (
         "ML screening sufficient",
         "ok",
-        "This query is in-domain, not near a sparse edge bin, and does not trigger the current retained-mass caution flags.",
+        "This query is in range, well supported, and does not trigger the current visible screening cautions.",
     )
 
 
-def format_range(name: str, payload: dict[str, float]) -> str:
-    if name == "timestep":
-        return f"{payload['min']:.0f} to {payload['max']:.0f}"
-    if name in {"resolution_value"}:
-        return f"{payload['min']:.0f} to {payload['max']:.0f}"
-    return f"{payload['min']:.4g} to {payload['max']:.4g}"
+def compute_support_score(support_flags: dict[str, object]) -> float:
+    score = 100.0
+    if not support_flags["in_training_range"]:
+        score -= 45.0
+    if support_flags["near_training_edge"]:
+        score -= 18.0
+    if support_flags["sparse_bin_flag"]:
+        score -= 15.0
+    if support_flags["borderline_bmf"]:
+        score -= 12.0
+    threshold = float(support_flags["spread_threshold"])
+    if threshold > 0:
+        spread_ratio = min(float(support_flags["model_spread"]) / threshold, 2.0)
+        score -= spread_ratio * 10.0
+    return float(np.clip(score, 5.0, 99.0))
 
 
-def build_physics_feature_cards(frame: pd.DataFrame) -> list[dict[str, str]]:
-    row = frame.iloc[0]
-    specs = [
-        ("Encounter eccentricity proxy", row["encounter_eccentricity_proxy"], "{:.3f}"),
-        ("v_inf squared", row["v_inf_squared"], "{:.3f}"),
-        ("1 / periapsis", row["periapsis_inverse"], "{:.3f}"),
-        ("Angular momentum proxy", row["angular_momentum_proxy"], "{:.3f}"),
-        ("Particle mass proxy", row["particle_mass_proxy"], "{:.3e}"),
-        ("Mass-resolution interaction", row["mass_resolution_interaction"], "{:.3f}"),
+def build_support_reason(support_flags: dict[str, object], support_level: str) -> str:
+    if not support_flags["in_training_range"]:
+        return "Outside the sampled training range, so this should be treated as extrapolative screening only."
+    if support_flags["near_training_edge"]:
+        return "In range but near the sampled edge, so the surrogate is suitable for prioritisation rather than as a stopping rule."
+    if support_flags["sparse_bin_flag"]:
+        return "In range but locally sparsely supported, so nearby archive evidence is limited."
+    if support_flags["model_spread"] > support_flags["spread_threshold"]:
+        return "In range, but model families disagree more than usual on BMF."
+    if support_flags["borderline_bmf"]:
+        return "In range, but the case sits near the 10% BMF decision boundary."
+    return f"{support_level} support because the query is in range, not near edge, and model spread is low."
+
+
+def build_support_rows(support_flags: dict[str, object], support_score: float) -> list[dict[str, str]]:
+    return [
+        {
+            "label": "Support score",
+            "value": f"{support_score:.0f}/100",
+        },
+        {
+            "label": "Training range",
+            "value": "In range" if support_flags["in_training_range"] else "Outside range",
+        },
+        {
+            "label": "Edge status",
+            "value": "Near edge" if support_flags["near_training_edge"] else "Interior",
+        },
+        {
+            "label": "Nearby runs",
+            "value": f"{support_flags['bin_count']}",
+        },
+        {
+            "label": "Model spread",
+            "value": f"{support_flags['model_spread'] * 100.0:.1f} percentage points",
+        },
     ]
-    cards = []
-    for label, value, fmt in specs:
-        if pd.isna(value):
-            text = "n/a"
-        else:
-            text = fmt.format(float(value))
-        cards.append({"label": label, "value": text})
-    return cards
 
 
-def build_response_payload(result: pd.Series, input_df: pd.DataFrame) -> dict[str, object]:
-    metadata = load_demo_metadata()
+def build_decision_summary(
+    predicted_outcome: str,
+    largest_remnant_fraction: float,
+    bound_mass_fraction: float,
+    support_level: str,
+    explanation: str,
+) -> str:
+    return (
+        f"{predicted_outcome} predicted with a largest remnant of {largest_remnant_fraction * 100.0:.1f}%. "
+        f"Predicted BMF is {bound_mass_fraction * 100.0:.1f}%. Model support is {support_level.lower()}. {explanation}"
+    )
+
+
+def build_export_row(
+    normalized_payload: dict[str, object],
+    response_payload: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "prediction_timestamp": response_payload["prediction_timestamp"],
+        "model_bundle_id": response_payload["model_bundle_id"],
+        "case_name": normalized_payload["case_name"],
+        "mass_log10_kg": normalized_payload["mass_log10_kg"],
+        "periapsis_Rm": normalized_payload["periapsis_Rm"],
+        "v_inf_kms": normalized_payload["v_inf_kms"],
+        "has_explicit_spin": normalized_payload["has_explicit_spin"],
+        "spin_axis": normalized_payload["spin_axis"],
+        "spin_period_hr": normalized_payload["spin_period_hr"],
+        "resolution_value": normalized_payload["resolution_value"],
+        "timestep": normalized_payload["timestep"],
+        "fof_linking_length": normalized_payload["fof_linking_length"],
+        "parent_mass_kg": response_payload["parent_mass_kg"],
+        "largest_remnant_fraction": response_payload["largest_remnant_fraction"],
+        "largest_remnant_mass_kg": response_payload["largest_remnant_mass_kg"],
+        "fragmentation_label": response_payload["predicted_outcome"],
+        "fragmentation_classifier_score": response_payload["fragmentation_probability"],
+        "predicted_bmf": response_payload["predicted_bmf"],
+        "predicted_bound_mass_kg": response_payload["predicted_bound_mass_kg"],
+        "predicted_unbound_mass_fraction": response_payload["predicted_unbound_mass_fraction"],
+        "predicted_unbound_mass_kg": response_payload["predicted_unbound_mass_kg"],
+        "support_score": response_payload["support_score"],
+        "support_category": response_payload["support_level"],
+        "training_range_status": response_payload["training_range_status"],
+        "edge_status": response_payload["edge_status"],
+        "nearby_run_count": response_payload["nearby_run_count"],
+        "model_spread_fraction": response_payload["model_spread_fraction"],
+        "model_spread_percentage_points": response_payload["model_spread_percentage_points"],
+        "recommendation": response_payload["recommendation"],
+        "recommendation_reason": response_payload["recommendation_reason"],
+        "scientific_semantics_note": response_payload["scientific_semantics_note"],
+    }
+
+
+def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized_payload: dict[str, object]) -> dict[str, object]:
+    selected_model = get_selected_bound_model_metadata()
     support_flags = build_support_flags(result, input_df)
     predicted_outcome, outcome_detail = classify_outcome(result)
-    retention_label, retention_detail = classify_bound_retention(result)
-    recommendation, recommendation_style, explanation = make_demo_recommendation(result, support_flags)
+    bound_mass_fraction = float(np.clip(float(result.get("bound_mass_fraction", 0.0)), 0.0, 1.0))
+    threshold_label, threshold_detail = classify_bmf_threshold(bound_mass_fraction)
+    recommendation, recommendation_style, recommendation_reason = make_demo_recommendation(
+        predicted_outcome,
+        bound_mass_fraction,
+        support_flags,
+    )
+    support_score = compute_support_score(support_flags)
+    support_level = describe_support_level(support_score)
+    support_reason = build_support_reason(support_flags, support_level)
+    parent_mass_kg = float(result.get("parent_mass_kg", np.power(10.0, float(result["mass_log10_kg"]))))
+    largest_remnant_fraction = float(np.clip(float(result.get("predicted_largest_fragment_mass_fraction", 0.0)), 0.0, 1.0))
+    largest_remnant_mass_kg = max(0.0, parent_mass_kg * largest_remnant_fraction)
+    predicted_bound_mass_kg = max(0.0, parent_mass_kg * bound_mass_fraction)
+    predicted_unbound_mass_fraction = float(np.clip(1.0 - bound_mass_fraction, 0.0, 1.0))
+    predicted_unbound_mass_kg = max(0.0, parent_mass_kg * predicted_unbound_mass_fraction)
     support_frame = make_bound_feature_frame(input_df)
     domain = check_training_domain(support_frame.iloc[0].to_dict(), load_triage_bundle()[2])
+    mass_semantics_warning = (
+        "The dashboard does not show a stacked parent-mass decomposition because the deployed BMF target is defined on total fragment mass, "
+        "not strictly on debris outside the largest remnant."
+    )
+    prediction_timestamp = datetime.now(UTC).replace(microsecond=0).isoformat()
 
-    return {
+    response_payload = {
+        "prediction_timestamp": prediction_timestamp,
+        "case_name": normalized_payload["case_name"],
+        "input_payload": normalized_payload,
+        "model_bundle_id": selected_model.get("bundle_id", "unknown_bundle"),
+        "parent_mass_kg": parent_mass_kg,
+        "largest_remnant_fraction": largest_remnant_fraction,
+        "largest_remnant_percent": round(largest_remnant_fraction * 100.0, 1),
+        "largest_remnant_mass_kg": largest_remnant_mass_kg,
         "predicted_outcome": predicted_outcome,
         "predicted_outcome_detail": outcome_detail,
-        "fragmentation_probability_pct": round(float(result["fragmentation_probability"]) * 100.0, 1),
-        "largest_fragment_percent": round(float(result["predicted_largest_fragment_mass_fraction"]) * 100.0, 1),
-        "bound_retention_label": retention_label,
-        "bound_retention_detail": retention_detail,
-        "bound_retention_probability_pct": round(
-            float(result.get("has_any_bound_mass_classifier_probability", 0.0)) * 100.0,
-            1,
-        ),
-        "bound_mass_fraction": round(float(result.get("bound_mass_fraction", 0.0)), 3),
-        "bound_mass_percent": round(float(result.get("bound_mass_fraction", 0.0)) * 100.0, 1),
-        "bound_mass_threshold_probability_pct": round(
-            float(result.get("bound_mass_fraction_ge_0_1_classifier_probability", 0.0)) * 100.0,
-            1,
-        ),
+        "fragmentation_probability": float(result.get("fragmentation_probability", 0.0)),
+        "fragmentation_probability_pct": round(float(result.get("fragmentation_probability", 0.0)) * 100.0, 1),
+        "predicted_bmf": bound_mass_fraction,
+        "predicted_bmf_percent": round(bound_mass_fraction * 100.0, 1),
+        "predicted_bound_mass_kg": predicted_bound_mass_kg,
+        "predicted_unbound_mass_fraction": predicted_unbound_mass_fraction,
+        "predicted_unbound_mass_percent": round(predicted_unbound_mass_fraction * 100.0, 1),
+        "predicted_unbound_mass_kg": predicted_unbound_mass_kg,
+        "bmf_threshold_label": threshold_label,
+        "bmf_threshold_detail": threshold_detail,
+        "support_score": round(support_score, 1),
+        "support_level": support_level,
+        "support_reason": support_reason,
+        "support_rows": build_support_rows(support_flags, support_score),
         "recommendation": recommendation,
         "recommendation_style": recommendation_style,
-        "explanation": explanation,
+        "recommendation_reason": recommendation_reason,
+        "decision_summary": build_decision_summary(
+            predicted_outcome,
+            largest_remnant_fraction,
+            bound_mass_fraction,
+            support_level,
+            recommendation_reason,
+        ),
+        "scientific_semantics_note": SCIENTIFIC_SEMANTICS_NOTE,
+        "mass_semantics_warning": mass_semantics_warning,
+        "training_range_status": "In range" if support_flags["in_training_range"] else "Outside range",
+        "edge_status": "Near edge" if support_flags["near_training_edge"] else "Interior",
+        "nearby_run_count": int(support_flags["bin_count"]),
+        "model_spread_fraction": float(support_flags["model_spread"]),
+        "model_spread_percentage_points": round(float(support_flags["model_spread"]) * 100.0, 2),
         "domain_status": domain["status"],
         "domain_near_edge_features": domain["near_edge_features"],
         "domain_out_of_domain_features": domain["out_of_domain_features"],
-        "support_flags": [
-            {
-                "label": "Training range",
-                "value": "In range" if support_flags["in_training_range"] else "Outside range",
-            },
-            {
-                "label": "Edge status",
-                "value": "Near edge" if support_flags["near_training_edge"] else "Interior",
-            },
-            {
-                "label": "Coverage bin",
-                "value": f"{support_flags['bin_count']} runs",
-            },
-            {
-                "label": "Model spread",
-                "value": f"{support_flags['model_spread']:.4f}",
-            },
-        ],
-        "physics_features": build_physics_feature_cards(support_frame),
-        "screening_note": metadata["deployability_note"],
+        "validation": load_demo_metadata()["model_validation"],
+        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible screening targets in this dashboard.",
+    }
+    response_payload["export_row"] = build_export_row(normalized_payload, response_payload)
+    return response_payload
+
+
+def predict_single_payload(payload: dict[str, object]) -> dict[str, object]:
+    normalized_payload = validate_payload(payload)
+    input_df = build_input_frame(normalized_payload)
+    classifier, regressor, training_domain = load_triage_bundle()
+    result = predict_cases(input_df, classifier, regressor, training_domain).iloc[0].copy()
+    result = apply_bound_predictions(result, input_df)
+    result = add_spread_diagnostic(result, input_df)
+    return build_response_payload(result, input_df, normalized_payload)
+
+
+def parse_batch_csv(csv_text: str) -> list[dict[str, str]]:
+    reader = csv.DictReader(io.StringIO(csv_text))
+    fieldnames = reader.fieldnames or []
+    missing = [name for name in INPUT_FIELD_ORDER if name not in fieldnames]
+    if missing:
+        raise ValueError(f"CSV is missing required columns: {', '.join(missing)}")
+    return [dict(row) for row in reader]
+
+
+def predict_batch_csv(csv_text: str) -> dict[str, object]:
+    rows = parse_batch_csv(csv_text)
+    successes = []
+    errors = []
+    for index, row in enumerate(rows, start=2):
+        try:
+            result = predict_single_payload(row)
+            successes.append({"row_number": index, "result": result})
+        except Exception as exc:
+            errors.append(
+                {
+                    "row_number": index,
+                    "case_name": str(row.get("case_name", "")).strip(),
+                    "error": str(exc),
+                }
+            )
+    return {
+        "total_rows": len(rows),
+        "success_count": len(successes),
+        "error_count": len(errors),
+        "results": successes,
+        "errors": errors,
     }
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    server_version = "SPHScreeningHTTP/2.0"
+    server_version = "SPHScreeningHTTP/3.0"
 
     def _send_bytes(self, body: bytes, content_type: str, status: HTTPStatus = HTTPStatus.OK) -> None:
         self.send_response(status)
@@ -504,6 +903,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _send_json(self, payload: dict[str, object], status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")
         self._send_bytes(body, "application/json; charset=utf-8", status)
+
+    def _read_json_body(self) -> dict[str, object]:
+        content_length = int(self.headers.get("Content-Length", "0"))
+        raw_body = self.rfile.read(content_length)
+        return json.loads(raw_body.decode("utf-8"))
 
     def do_GET(self) -> None:
         if self.path in {"/", "/index.html"}:
@@ -518,19 +922,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
-        if self.path != "/api/predict":
-            self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
-            return
-        content_length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(content_length)
         try:
-            payload = json.loads(raw_body.decode("utf-8"))
-            input_df = build_input_frame(payload)
-            classifier, regressor, training_domain = load_triage_bundle()
-            result = predict_cases(input_df, classifier, regressor, training_domain).iloc[0].copy()
-            result = apply_bound_predictions(result, input_df)
-            result = add_spread_diagnostic(result, input_df)
-            self._send_json(build_response_payload(result, input_df))
+            if self.path == "/api/predict":
+                payload = self._read_json_body()
+                self._send_json(predict_single_payload(payload))
+                return
+            if self.path == "/api/predict-batch":
+                payload = self._read_json_body()
+                csv_text = str(payload.get("csv_text", ""))
+                self._send_json(predict_batch_csv(csv_text))
+                return
+            self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
         except Exception as exc:  # pragma: no cover
             self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 

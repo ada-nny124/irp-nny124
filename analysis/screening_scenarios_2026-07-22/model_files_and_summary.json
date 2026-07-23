@@ -1,0 +1,26 @@
+{
+  "generated_on": "2026-07-22",
+  "c30_included": false,
+  "fixed_resolution_value": 65,
+  "fixed_timestep": 90000,
+  "fixed_fof_linking_length": 0.004,
+  "triage_model_files": {
+    "fragmentation_classifier": "ml/triage/fragmentation_classifier.pkl",
+    "fragmentation_regressor": "ml/triage/fragmentation_regressor.pkl"
+  },
+  "bound_model_files": {
+    "has_any_bound_mass": "ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__has_any_bound_mass__gradient_boosting_classifier.pkl",
+    "bound_mass_fraction_ge_0_1": "ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction_ge_0_1__gradient_boosting_classifier.pkl",
+    "bound_mass_fraction": "ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl",
+    "bound_fragment_count": "ml/bound_outcomes/models/positive_bound_runs__with_fof_linking_length__bound_fragment_count__random_forest_regressor.pkl",
+    "largest_bound_fragment_mass_kg": "ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__largest_bound_fragment_mass_kg__random_forest_regressor.pkl",
+    "average_bound_fragment_mass_kg": "ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__average_bound_fragment_mass_kg__random_forest_regressor.pkl"
+  },
+  "row_counts": {
+    "all_runs": 2730,
+    "sph_recommended": 2688,
+    "ml_screening_sufficient": 42,
+    "high_trust": 53,
+    "low_fragmentation": 350
+  }
+}

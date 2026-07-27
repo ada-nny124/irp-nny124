@@ -374,6 +374,59 @@ def add_domain_background(ax: plt.Axes, observed: np.ndarray) -> None:
     ax.axvspan(hi, ax.get_xlim()[1], color="#f3d3d3", alpha=0.45, zorder=0)
 
 
+def add_domain_explainer(ax: plt.Axes, observed: np.ndarray) -> None:
+    observed = np.sort(np.unique(observed))
+    if len(observed) == 0:
+        return
+    lo = float(observed.min())
+    hi = float(observed.max())
+    x_min, x_max = ax.get_xlim()
+    y_min, y_max = ax.get_ylim()
+    y_text = y_max - 0.06 * (y_max - y_min)
+    if lo > x_min:
+        ax.text(
+            (x_min + lo) / 2.0,
+            y_text,
+            "Extrapolation:\noutside sampled\nperiapsis",
+            ha="center",
+            va="top",
+            fontsize=8,
+            color="#6b2d2d",
+            zorder=10,
+        )
+    ax.text(
+        (lo + hi) / 2.0,
+        y_text,
+        "Interpolation:\ninside sampled\nperiapsis",
+        ha="center",
+        va="top",
+        fontsize=8,
+        color="#204a87",
+        zorder=10,
+    )
+    if hi < x_max:
+        ax.text(
+            (hi + x_max) / 2.0,
+            y_text,
+            "Extrapolation:\noutside sampled\nperiapsis",
+            ha="center",
+            va="top",
+            fontsize=8,
+            color="#6b2d2d",
+            zorder=10,
+        )
+
+
+def display_model_name(model_name: str) -> str:
+    names = {
+        "ridge": "Linear ridge baseline",
+        "random_forest": "Random forest",
+        "gradient_boosting": "Gradient boosting",
+        "logistic_regression": "Logistic regression",
+    }
+    return names.get(model_name, model_name.replace("_", " "))
+
+
 def plot_regression_slice(
     target: str,
     y_label: str,
@@ -389,11 +442,11 @@ def plot_regression_slice(
     add_domain_background(ax, observed)
     ax.scatter(slice_df["periapsis_Rm"], slice_df[target], color="black", s=34, label="SPH simulation", zorder=5)
 
-    colors = {"ridge": "#7f7f7f", "random_forest": "#1f77b4", "gradient_boosting": "#d62728"}
-    markers = {"ridge": "s", "random_forest": "^", "gradient_boosting": "D"}
+    colors = {"random_forest": "#1f77b4", "gradient_boosting": "#d62728"}
+    markers = {"random_forest": "^", "gradient_boosting": "D"}
     grid_rows: list[pd.DataFrame] = []
 
-    for model_name in ["ridge", "random_forest", "gradient_boosting"]:
+    for model_name in ["random_forest", "gradient_boosting"]:
         model = fitted_models[model_name]
         domain_grid[f"pred_{model_name}"] = model.predict(domain_grid[FEATURE_COLUMNS])
         ax.plot(
@@ -401,7 +454,7 @@ def plot_regression_slice(
             domain_grid[f"pred_{model_name}"],
             color=colors[model_name],
             linewidth=2.0,
-            label=f"{model_name} curve",
+            label=f"{display_model_name(model_name)} curve",
         )
         slice_preds = predictions[(predictions["target"] == target) & (predictions["model"] == model_name)].copy()
         slice_preds = slice_preds.loc[slice_mask(slice_preds, choose_slice(slice_df))] if "mass_code" in slice_preds else slice_preds
@@ -420,7 +473,7 @@ def plot_regression_slice(
             marker=markers[model_name],
             s=50,
             alpha=0.9,
-            label=f"{model_name} OOF",
+            label=f"{display_model_name(model_name)} OOF",
             zorder=6,
         )
         model_grid = domain_grid[["periapsis_Rm", "domain_type", f"pred_{model_name}"]].rename(
@@ -435,6 +488,7 @@ def plot_regression_slice(
     ax.set_ylabel(y_label)
     ax.set_title(f"{target} on a fixed-parameter periapsis slice")
     add_domain_background(ax, observed)
+    add_domain_explainer(ax, observed)
     ax.legend(ncol=2, fontsize=8)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
@@ -462,7 +516,13 @@ def plot_logistic_slice(
     for model_name in ["logistic_regression", "random_forest", "gradient_boosting"]:
         model = fitted_models[model_name]
         prob = model.predict_proba(grid[FEATURE_COLUMNS])[:, 1]
-        ax.plot(grid["periapsis_Rm"], prob, color=colors[model_name], linewidth=2.0, label=f"{model_name} probability")
+        ax.plot(
+            grid["periapsis_Rm"],
+            prob,
+            color=colors[model_name],
+            linewidth=2.0,
+            label=f"{display_model_name(model_name)} probability",
+        )
         slice_preds = predictions[predictions["model"] == model_name]
         slice_preds = slice_preds[
             (slice_preds["mass_code"] == slice_df["mass_code"].iloc[0])
@@ -479,7 +539,7 @@ def plot_logistic_slice(
             marker=markers[model_name],
             s=50,
             alpha=0.9,
-            label=f"{model_name} OOF",
+            label=f"{display_model_name(model_name)} OOF",
             zorder=6,
         )
         model_grid = grid[["periapsis_Rm", "domain_type"]].copy()
@@ -495,6 +555,7 @@ def plot_logistic_slice(
     ax.set_ylabel("Predicted probability")
     ax.set_title("Bound-retention threshold classification on the same periapsis slice")
     add_domain_background(ax, observed)
+    add_domain_explainer(ax, observed)
     ax.legend(ncol=2, fontsize=8)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
@@ -635,7 +696,7 @@ def write_report(
             f"{slice_summary['periapsis_min_Rm'].iloc[0]:.1f} to {slice_summary['periapsis_max_Rm'].iloc[0]:.1f} R_Mars."
         ),
         "The bound-mass-fraction plot overlays black SPH points, out-of-fold model predictions at those same simulations, and full-model slice curves.",
-        "Interpretation: random forest tracks the sharp drop in retained mass at low periapsis best; gradient boosting is similar but slightly smoother; ridge underfits the transition.",
+        "Interpretation: random forest tracks the sharp drop in retained mass at low periapsis best; gradient boosting is similar but slightly smoother.",
         f"Generated plot: {output_files['bmf_slice']}",
         "",
         "2. Fragment Count and Largest Fragment Mass slice plots",
@@ -647,9 +708,13 @@ def write_report(
         "",
         "3. Interpolation vs extrapolation",
         "Answer:",
-        "Each slice plot shades the in-slice training span in blue and the regions beyond the smallest and largest observed periapsis in red.",
-        "Inside the observed periapsis span the dense model curves are interpolation. Outside that span they are extrapolation and should be treated cautiously even when the curves look smooth.",
-        "The observed SPH periapsis values themselves are marked explicitly, so gaps between them are interpolation between simulations rather than direct training points.",
+        "Each slice fixes mass, resolution, velocity, spin, timestep, and FoF linking length, then varies only periapsis.",
+        "The black points are the SPH simulations that actually exist for that exact fixed-parameter slice.",
+        "Blue shading means the periapsis value lies inside the sampled SPH periapsis range for that slice. That is interpolation.",
+        "Interpolation means the model is estimating between known examples. It has nearby SPH cases on both sides, so this is the safer use case.",
+        "Red shading means the periapsis value lies below the smallest sampled periapsis or above the largest sampled periapsis. That is extrapolation.",
+        "Extrapolation means the model is extending the trend beyond the data it actually saw on that slice. The curve can still look smooth there, but no SPH point anchors the behaviour beyond the edge.",
+        "A point does not need to sit exactly on a black marker to count as interpolation. If it lies inside the sampled periapsis span, it is still interpolation between neighbouring SPH cases.",
         f"Grid and domain labels table: {output_files['slice_grid']}",
         "",
         "4. Parameter-space coverage and relation to model performance",
@@ -666,7 +731,8 @@ def write_report(
         "",
         "5. Model-by-model discussion",
         "Answer:",
-        "Logistic Regression is only appropriate for the thresholded classification task BMF >= 0.1, not for the continuous fragment targets.",
+        "Logistic Regression is only appropriate for the thresholded classification task BMF >= 0.1, not for the continuous bound-mass-fraction regression slice.",
+        "That is why logistic regression is shown on the separate threshold-probability slice rather than on the continuous BMF plot.",
         f"Threshold classifier metrics: {format_classification_line(metrics, 'bound_mass_fraction_ge_0_1', 'logistic_regression')}",
         "It captures the broad monotonic decision boundary well and is useful as a transparent screening baseline, but it cannot represent multi-regime nonlinear structure or predict continuous fragment properties.",
         f"Random Forest metrics for the main continuous targets: {format_regression_line(metrics, 'bound_mass_fraction', 'random_forest')}; {format_regression_line(metrics, 'n_fragments', 'random_forest')}; {format_regression_line(metrics, 'largest_fragment_mass_kg', 'random_forest')}.",
@@ -755,11 +821,13 @@ def write_image_report(
             f"{slice_summary['periapsis_min_Rm'].iloc[0]:.1f} to {slice_summary['periapsis_max_Rm'].iloc[0]:.1f} R_Mars."
         ),
         "",
-        "Blue shading marks the observed periapsis span used for interpolation. Red shading marks regions beyond the smallest and largest observed periapsis values, where the models are extrapolating.",
+        "Blue shading marks interpolation: periapsis values inside the sampled SPH range for this exact slice.",
+        "Red shading marks extrapolation: periapsis values outside the sampled SPH range, where the model is extending the trend beyond its SPH support.",
+        "Interpolation is safer because nearby SPH runs exist on both sides. Extrapolation is weaker because the curve may look smooth even though no SPH point anchors it beyond the edge.",
         "",
         "![Bound mass fraction slice](plots/bound_mass_fraction_slice_periapsis.png)",
         "",
-        "The bound-mass-fraction slice shows that tree-based models follow the sharp retention decline much better than the linear ridge baseline. This is one reason bound mass fraction is a defensible primary surrogate target.",
+        "The bound-mass-fraction slice shows that the tree-based models follow the sharp retention decline well, with random forest usually tracking the drop most closely. This is one reason bound mass fraction is a defensible primary surrogate target.",
         "",
         "![Fragment count slice](plots/fragment_count_slice_periapsis.png)",
         "",
@@ -771,7 +839,9 @@ def write_image_report(
         "",
         "## 5. How the different models behave",
         f"Logistic regression threshold metrics: {format_classification_line(metrics, 'bound_mass_fraction_ge_0_1', 'logistic_regression')}",
-        "Logistic regression is useful because it gives an interpretable baseline for a yes/no screening decision such as whether `bound_mass_fraction >= 0.1`. It captures the broad monotonic decision boundary but cannot represent more complex nonlinear fragmentation structure.",
+        "Logistic regression is useful because it gives an interpretable baseline for a yes/no screening decision such as whether `bound_mass_fraction >= 0.1`.",
+        "It belongs on the threshold-classification plot, not on the continuous bound-mass-fraction regression plot. Logistic regression predicts a probability of crossing the threshold, whereas the BMF regression slice predicts the continuous retained-mass value itself.",
+        "That is why logistic regression is shown on the separate threshold-probability slice below.",
         "",
         f"Random forest regression metrics: {format_regression_line(metrics, 'bound_mass_fraction', 'random_forest')}; {format_regression_line(metrics, 'n_fragments', 'random_forest')}; {format_regression_line(metrics, 'largest_fragment_mass_kg', 'random_forest')}.",
         "Random forest works well when the response surface has nonlinear structure and regime changes. In this dataset it is especially strong for bound mass fraction and remains a practical default for in-domain screening.",
@@ -782,6 +852,7 @@ def write_image_report(
         "![Threshold classification slice](plots/bound_mass_fraction_threshold_probability_slice.png)",
         "",
         "The threshold-classification slice shows the same fixed-parameter scenario through a binary screening lens. This is useful when the practical question is whether a run is likely to retain at least a modest amount of bound material.",
+        "Here logistic regression is appropriate because the target is binary: above or below the 10 percent BMF threshold.",
         "",
         "## 6. Why we can trust some predictions",
         "Trust in the surrogate is conditional rather than absolute.",

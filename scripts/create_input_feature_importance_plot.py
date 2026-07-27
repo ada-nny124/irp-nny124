@@ -48,6 +48,7 @@ ENGINEERED_FEATURES = {
 EXCLUDED_FEATURES = {
     "largest_fragment_mass_fraction",  # outcome-derived
     "fof_linking_length",              # post-processing sensitivity
+    "particle_mass_proxy",             # mass-derived proxy duplicates the base mass signal
     "special_case_code",               # not a main physical parameter
     "timestep",                        # constant / unimportant here
     "has_explicit_spin",               # low-information helper flag
@@ -99,6 +100,7 @@ def main() -> None:
             "- Excluded:",
             "  - `largest_fragment_mass_fraction` because it is outcome-derived",
             "  - `fof_linking_length` because it is post-processing sensitivity rather than a physical encounter input",
+            "  - `particle_mass_proxy` because it is a mass-derived proxy rather than an independent encounter parameter",
             "  - helper or negligible features below the display threshold",
             f"- Display threshold: `importance_mean >= {MIN_IMPORTANCE}`",
         ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 import pickle
 import sys
 from datetime import UTC, datetime
@@ -32,6 +33,10 @@ HTML_PATH = ROOT / "src" / "triage" / "templates" / "sph_triage_dashboard.html"
 
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
+MARS_DENSITY_KG_M3 = 3933.5
+ASTEROID_BULK_DENSITY_KG_M3 = 2700.0
+PROXIMITY_DISTANCE_RM = 2.0
+FLUID_ROCHE_FACTOR = 2.44
 BMF_THRESHOLD = 0.10
 BORDERLINE_BMF_MIN = 0.0771
 BORDERLINE_BMF_MAX = 0.1229
@@ -228,7 +233,57 @@ def add_physics_features(frame: pd.DataFrame) -> pd.DataFrame:
         enriched["resolution_value"], errors="coerce"
     )
     enriched["mass_resolution_interaction"] = enriched["mass_log10_kg"] - enriched["particle_log10"]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        enriched["asteroid_radius_km"] = np.cbrt(
+            (3.0 * enriched["target_mass_kg"]) / (4.0 * np.pi * ASTEROID_BULK_DENSITY_KG_M3)
+        ) / 1000.0
+    tidal_threshold_rm = FLUID_ROCHE_FACTOR * (MARS_DENSITY_KG_M3 / ASTEROID_BULK_DENSITY_KG_M3) ** (1.0 / 3.0)
+    enriched["time_within_2_mars_radii_hr"] = [
+        time_inside_radius_hours(float(periapsis_rm), float(velocity_kms), PROXIMITY_DISTANCE_RM)
+        for periapsis_rm, velocity_kms in zip(enriched["periapsis_Rm"], enriched["v_inf_kms"])
+    ]
+    enriched["time_within_tidal_disruption_hr"] = [
+        time_inside_radius_hours(float(periapsis_rm), float(velocity_kms), tidal_threshold_rm)
+        for periapsis_rm, velocity_kms in zip(enriched["periapsis_Rm"], enriched["v_inf_kms"])
+    ]
     return enriched.replace([np.inf, -np.inf], np.nan)
+
+
+def time_inside_radius_hours(periapsis_rm: float, velocity_kms: float, threshold_rm: float) -> float:
+    if not math.isfinite(periapsis_rm) or not math.isfinite(velocity_kms) or not math.isfinite(threshold_rm):
+        return math.nan
+    if periapsis_rm <= 0.0 or velocity_kms < 0.0 or threshold_rm <= periapsis_rm:
+        return 0.0
+
+    periapsis_km = periapsis_rm * MARS_RADIUS_KM
+    threshold_km = threshold_rm * MARS_RADIUS_KM
+
+    if math.isclose(velocity_kms, 0.0, abs_tol=1e-12):
+        cos_theta = max(-1.0, min(1.0, (2.0 * periapsis_km / threshold_km) - 1.0))
+        theta = math.acos(cos_theta)
+        d_value = math.tan(theta / 2.0)
+        time_seconds = math.sqrt((2.0 * periapsis_km**3) / MARS_MU_KM3_S2) * (d_value + (d_value**3) / 3.0)
+        return (2.0 * time_seconds) / 3600.0
+
+    eccentricity = 1.0 + (periapsis_km * (velocity_kms**2)) / MARS_MU_KM3_S2
+    if eccentricity <= 1.0:
+        return math.nan
+
+    semi_latus_rectum_km = periapsis_km * (1.0 + eccentricity)
+    cos_theta = (semi_latus_rectum_km / threshold_km - 1.0) / eccentricity
+    if cos_theta >= 1.0:
+        return 0.0
+    theta = math.acos(max(-1.0, min(1.0, cos_theta)))
+    tan_half_theta = math.tan(theta / 2.0)
+    hyperbolic_arg = math.sqrt((eccentricity - 1.0) / (eccentricity + 1.0)) * tan_half_theta
+    if abs(hyperbolic_arg) >= 1.0:
+        return math.nan
+    hyperbolic_anomaly = 2.0 * math.atanh(hyperbolic_arg)
+    semi_major_axis_abs_km = MARS_MU_KM3_S2 / (velocity_kms**2)
+    time_seconds = math.sqrt((semi_major_axis_abs_km**3) / MARS_MU_KM3_S2) * (
+        eccentricity * math.sinh(hyperbolic_anomaly) - hyperbolic_anomaly
+    )
+    return (2.0 * time_seconds) / 3600.0
 
 
 def make_bound_feature_frame(input_df: pd.DataFrame) -> pd.DataFrame:

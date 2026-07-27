@@ -3,7 +3,7 @@
 This note explains three questions raised by the promoted bound-mass-fraction surrogate:
 
 1. Why does velocity look relatively unimportant?
-2. Why can `v_inf_kms^2` rank above `v_inf_kms`, and why can `periapsis_inverse` rank near `periapsis_Rm`?
+2. Why can `v_inf_kms` and `v_inf_kms^2` swap order, and why can `periapsis_inverse` rank near `periapsis_Rm`?
 3. Does that pattern suggest overfitting?
 
 ## Short answer
@@ -35,15 +35,15 @@ The dataset itself is also uneven in velocity coverage. Out of 407 rows:
 
 So the model sees a strong low-velocity concentration and several derived columns that already summarize the speed regime. Under that setup, shuffling `v_inf_kms` alone does not destroy as much information as you might expect from the physics alone.
 
-## Why `v_inf_squared` can beat `v_inf_kms`
+## Why `v_inf_kms` can be slightly above `v_inf_squared`
 
-That is physically plausible rather than suspicious.
+That is also physically plausible rather than suspicious.
 
-- Kinetic-energy-like scaling depends on velocity squared.
+- The raw velocity and squared velocity columns are highly redundant.
 - The eccentricity proxy already depends on `r_p * v_inf^2 / mu`.
-- Tree models split on thresholds, so a squared term can sometimes separate the low-speed and fast-flyby regimes more cleanly than the raw linear term.
+- Tree models split on thresholds, so either encoding can end up being the slightly cleaner splitter on a finite sample.
 
-In the current importance table, `v_inf_squared` is only slightly above `v_inf_kms`, which is consistent with both columns encoding nearly the same information.
+In the current importance table, `v_inf_kms` is only slightly above `v_inf_squared`, which is consistent with both columns encoding nearly the same information. The ordering inside that correlated velocity family should not be over-interpreted.
 
 ## Why `periapsis_Rm` and `periapsis_inverse` both matter
 
@@ -82,7 +82,7 @@ The current ranking is best read as:
 
 - periapsis is structurally important
 - velocity is still important physically, but its importance is spread across several correlated features
-- `v_inf_kms` versus `v_inf_squared` and `periapsis_Rm` versus `periapsis_inverse` reflects alternate encodings of the same physics
+- `v_inf_kms` versus `v_inf_squared` and `periapsis_Rm` versus `periapsis_inverse` reflects alternate encodings of the same physics, so small ordering changes within each pair are expected
 - the ranking alone does not justify calling this overfitting
 
 The more careful criticism is not "overfitting" but "importance dilution under correlated engineered features".

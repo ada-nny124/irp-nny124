@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,6 +34,10 @@ RANDOM_STATE = 42
 N_SPLITS = 5
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
+MARS_DENSITY_KG_M3 = 3933.5
+ASTEROID_BULK_DENSITY_KG_M3 = 2700.0
+PROXIMITY_DISTANCE_RM = 2.0
+FLUID_ROCHE_FACTOR = 2.44
 OUTPUT_ROOT = Path("ml/physics_structured_surrogate")
 TABLES_DIR = OUTPUT_ROOT / "tables"
 PLOTS_DIR = OUTPUT_ROOT / "plots"
@@ -66,6 +71,9 @@ PHYSICS_FEATURE_COLUMNS = [
     "v_inf_squared",
     "periapsis_inverse",
     "angular_momentum_proxy",
+    "asteroid_radius_km",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
     "spin_frequency_hr_inv",
     "has_spin",
     "particle_mass_proxy",
@@ -220,6 +228,56 @@ def eccentricity_proxy(periapsis_rm_values: pd.Series, velocity_kms_values: pd.S
     return pd.Series(proxy, index=periapsis_rm_values.index).replace([np.inf, -np.inf], np.nan)
 
 
+def asteroid_radius_km(target_mass_kg_values: pd.Series, density_kg_m3: float = ASTEROID_BULK_DENSITY_KG_M3) -> pd.Series:
+    with np.errstate(divide="ignore", invalid="ignore"):
+        radius_m = np.cbrt((3.0 * target_mass_kg_values) / (4.0 * np.pi * density_kg_m3))
+    return pd.Series(radius_m / 1000.0, index=target_mass_kg_values.index).replace([np.inf, -np.inf], np.nan)
+
+
+def tidal_disruption_radius_rm(
+    asteroid_density_kg_m3: float = ASTEROID_BULK_DENSITY_KG_M3,
+    mars_density_kg_m3: float = MARS_DENSITY_KG_M3,
+) -> float:
+    return FLUID_ROCHE_FACTOR * (mars_density_kg_m3 / asteroid_density_kg_m3) ** (1.0 / 3.0)
+
+
+def time_inside_radius_hours(periapsis_rm: float, velocity_kms: float, threshold_rm: float) -> float:
+    if not math.isfinite(periapsis_rm) or not math.isfinite(velocity_kms) or not math.isfinite(threshold_rm):
+        return math.nan
+    if periapsis_rm <= 0.0 or velocity_kms < 0.0 or threshold_rm <= periapsis_rm:
+        return 0.0
+
+    periapsis_km = periapsis_rm * MARS_RADIUS_KM
+    threshold_km = threshold_rm * MARS_RADIUS_KM
+
+    if math.isclose(velocity_kms, 0.0, abs_tol=1e-12):
+        cos_theta = max(-1.0, min(1.0, (2.0 * periapsis_km / threshold_km) - 1.0))
+        theta = math.acos(cos_theta)
+        d_value = math.tan(theta / 2.0)
+        time_seconds = math.sqrt((2.0 * periapsis_km**3) / MARS_MU_KM3_S2) * (d_value + (d_value**3) / 3.0)
+        return (2.0 * time_seconds) / 3600.0
+
+    eccentricity = 1.0 + (periapsis_km * (velocity_kms**2)) / MARS_MU_KM3_S2
+    if eccentricity <= 1.0:
+        return math.nan
+
+    semi_latus_rectum_km = periapsis_km * (1.0 + eccentricity)
+    cos_theta = (semi_latus_rectum_km / threshold_km - 1.0) / eccentricity
+    if cos_theta >= 1.0:
+        return 0.0
+    theta = math.acos(max(-1.0, min(1.0, cos_theta)))
+    tan_half_theta = math.tan(theta / 2.0)
+    hyperbolic_arg = math.sqrt((eccentricity - 1.0) / (eccentricity + 1.0)) * tan_half_theta
+    if abs(hyperbolic_arg) >= 1.0:
+        return math.nan
+    hyperbolic_anomaly = 2.0 * math.atanh(hyperbolic_arg)
+    semi_major_axis_abs_km = MARS_MU_KM3_S2 / (velocity_kms**2)
+    time_seconds = math.sqrt((semi_major_axis_abs_km**3) / MARS_MU_KM3_S2) * (
+        eccentricity * math.sinh(hyperbolic_anomaly) - hyperbolic_anomaly
+    )
+    return (2.0 * time_seconds) / 3600.0
+
+
 def add_physics_features(frame: pd.DataFrame) -> pd.DataFrame:
     enriched = frame.copy()
     enriched["encounter_eccentricity_proxy"] = eccentricity_proxy(enriched["periapsis_Rm"], enriched["v_inf_kms"])
@@ -228,9 +286,19 @@ def add_physics_features(frame: pd.DataFrame) -> pd.DataFrame:
         enriched["periapsis_inverse"] = 1.0 / enriched["periapsis_Rm"]
         enriched["spin_frequency_hr_inv"] = 1.0 / enriched["spin_period_hr"]
     enriched["angular_momentum_proxy"] = enriched["periapsis_Rm"] * enriched["v_inf_kms"]
+    enriched["asteroid_radius_km"] = asteroid_radius_km(enriched["target_mass_kg"])
+    tidal_threshold_rm = tidal_disruption_radius_rm()
+    enriched["time_within_2_mars_radii_hr"] = [
+        time_inside_radius_hours(float(periapsis_rm), float(velocity_kms), PROXIMITY_DISTANCE_RM)
+        for periapsis_rm, velocity_kms in zip(enriched["periapsis_Rm"], enriched["v_inf_kms"])
+    ]
+    enriched["time_within_tidal_disruption_hr"] = [
+        time_inside_radius_hours(float(periapsis_rm), float(velocity_kms), tidal_threshold_rm)
+        for periapsis_rm, velocity_kms in zip(enriched["periapsis_Rm"], enriched["v_inf_kms"])
+    ]
     enriched["particle_mass_proxy"] = enriched["target_mass_kg"] / pd.to_numeric(enriched["resolution_value"], errors="coerce")
     enriched["mass_resolution_interaction"] = enriched["mass_log10_kg"] - enriched["particle_log10"]
-    return enriched
+    return enriched.replace([np.inf, -np.inf], np.nan)
 
 
 def feature_columns_for_set(feature_set_name: str, include_physics: bool) -> list[str]:

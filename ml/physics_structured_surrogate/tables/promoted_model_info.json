@@ -1,10 +1,10 @@
 {
   "feature_set": "with_fof_linking_length",
   "include_physics_features": true,
-  "mae": 0.0179005329016041,
-  "model_name": "random_forest",
+  "mae": 0.015445907019653,
+  "model_name": "gradient_boosting",
   "params": null,
-  "promotion_label": "physics-feature RF",
-  "r2": 0.9225285941091428,
+  "promotion_label": "physics-feature GB",
+  "r2": 0.9376975129356768,
   "reason": "physics-feature ablation materially improved BMF"
 }

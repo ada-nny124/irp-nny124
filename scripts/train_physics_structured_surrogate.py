@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -942,8 +943,24 @@ def run_slice_diagnostics_stage(dataset_path: Path) -> None:
             plot_slice_diagnostic(frame, baseline_predictions, target_predictions, target, feature_columns, fitted_target, PLOTS_DIR / path_name)
 
 
-def draw_heatmap(ax: plt.Axes, table: pd.DataFrame, title: str, cmap: str, cbar_label: str) -> None:
-    image = ax.imshow(table.to_numpy(dtype=float), aspect="auto", origin="lower", cmap=cmap)
+def draw_heatmap(
+    ax: plt.Axes,
+    table: pd.DataFrame,
+    title: str,
+    cmap: str,
+    cbar_label: str,
+    *,
+    distinguish_zero_and_missing: bool = False,
+) -> None:
+    values = table.to_numpy(dtype=float)
+    cmap_obj = colormaps.get_cmap(cmap).copy()
+    image_kwargs: dict[str, object] = {"aspect": "auto", "origin": "lower", "cmap": cmap_obj}
+    if distinguish_zero_and_missing:
+        cmap_obj.set_bad("#cfecc7")
+        cmap_obj.set_under("#e8f1fb")
+        image_kwargs["vmin"] = 0.5
+        values = np.ma.masked_invalid(values)
+    image = ax.imshow(values, **image_kwargs)
     ax.set_title(title)
     ax.set_xticks(range(len(table.columns)))
     ax.set_xticklabels([str(value) for value in table.columns], rotation=45, ha="right")
@@ -956,8 +973,22 @@ def plot_coverage_and_error_heatmaps(frame: pd.DataFrame, trust_predictions: pd.
     coverage_mass_peri = frame.pivot_table(index="mass_log10_kg", columns="periapsis_Rm", values="physical_file", aggfunc="count", fill_value=0)
     coverage_peri_vel = frame.pivot_table(index="periapsis_Rm", columns="v_inf_kms", values="physical_file", aggfunc="count", fill_value=0)
     fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
-    draw_heatmap(axes[0], coverage_mass_peri, "Coverage: mass vs periapsis", "Blues", "Runs")
-    draw_heatmap(axes[1], coverage_peri_vel, "Coverage: periapsis vs velocity", "Blues", "Runs")
+    draw_heatmap(
+        axes[0],
+        coverage_mass_peri,
+        "Coverage: mass vs periapsis",
+        "Blues",
+        "Runs",
+        distinguish_zero_and_missing=True,
+    )
+    draw_heatmap(
+        axes[1],
+        coverage_peri_vel,
+        "Coverage: periapsis vs velocity",
+        "Blues",
+        "Runs",
+        distinguish_zero_and_missing=True,
+    )
     fig.tight_layout()
     fig.savefig(PLOTS_DIR / "parameter_coverage_heatmaps.png", dpi=180)
     plt.close(fig)
@@ -990,11 +1021,71 @@ def plot_coverage_and_error_heatmaps(frame: pd.DataFrame, trust_predictions: pd.
     return summary
 
 
+def pairwise_heatmap_table(df: pd.DataFrame, row: str, col: str, value: str | None = None, agg: str = "count") -> pd.DataFrame:
+    if value is None:
+        table = df.pivot_table(index=row, columns=col, values="physical_file", aggfunc="count", fill_value=0)
+    else:
+        table = df.pivot_table(index=row, columns=col, values=value, aggfunc=agg)
+    return table.sort_index().sort_index(axis=1)
+
+
+def plot_extended_pairwise_diagnostics(frame: pd.DataFrame, trust_predictions: pd.DataFrame) -> pd.DataFrame:
+    pair_specs = [
+        ("mass_log10_kg", "v_inf_kms", "Mass vs velocity"),
+        ("mass_log10_kg", "fof_linking_length", "Mass vs FoF linking length"),
+        ("periapsis_Rm", "v_inf_kms", "Periapsis vs velocity"),
+        ("mass_log10_kg", "spin_axis", "Mass vs spin axis"),
+    ]
+    trust_predictions = trust_predictions.copy()
+    trust_predictions["abs_error"] = trust_predictions["residual"].abs()
+    fig, axes = plt.subplots(len(pair_specs), 2, figsize=(12.5, 4.2 * len(pair_specs)))
+    summary_rows: list[dict[str, object]] = []
+    for row_idx, (row_col, col_col, label) in enumerate(pair_specs):
+        coverage = pairwise_heatmap_table(frame, row_col, col_col)
+        error = pairwise_heatmap_table(trust_predictions, row_col, col_col, value="abs_error", agg="mean")
+        draw_heatmap(
+            axes[row_idx, 0],
+            coverage,
+            f"{label}: coverage",
+            "Blues",
+            "Runs",
+            distinguish_zero_and_missing=True,
+        )
+        draw_heatmap(
+            axes[row_idx, 1],
+            error,
+            f"{label}: mean |error|",
+            "OrRd",
+            "|error|",
+            distinguish_zero_and_missing=True,
+        )
+        aligned_error = error.reindex(index=coverage.index, columns=coverage.columns)
+        summary_rows.append(
+            {
+                "row_parameter": row_col,
+                "column_parameter": col_col,
+                "occupied_bins": int((coverage > 0).sum().sum()),
+                "total_bins": int(coverage.size),
+                "missing_error_bins": int(aligned_error.isna().sum().sum()),
+                "worst_error_bin": str(error.stack().idxmax()) if error.notna().any().any() else "",
+                "worst_error_value": float(error.stack().max()) if error.notna().any().any() else np.nan,
+            }
+        )
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / "extended_pairwise_coverage_error_heatmaps.png", dpi=180)
+    plt.close(fig)
+    summary = pd.DataFrame(summary_rows)
+    summary.to_csv(TABLES_DIR / "extended_pairwise_coverage_error_summary.csv", index=False)
+    return summary
+
+
 def run_diagnostics_stage(dataset_path: Path) -> pd.DataFrame:
     trust_predictions = pd.read_csv(TABLES_DIR / "predictions_with_trust_flags.csv") if (TABLES_DIR / "predictions_with_trust_flags.csv").exists() else run_trust_stage(dataset_path)[1]
     frame = add_physics_features(load_canonical_dataset(dataset_path))
     run_slice_diagnostics_stage(dataset_path)
-    return plot_coverage_and_error_heatmaps(frame.loc[frame[PRIMARY_TARGET].notna()].copy(), trust_predictions)
+    frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
+    plot_extended_pairwise_diagnostics(frame, trust_predictions)
+    return plot_coverage_and_error_heatmaps(frame, trust_predictions)
 
 
 def write_model_card(dataset_path: Path) -> Path:

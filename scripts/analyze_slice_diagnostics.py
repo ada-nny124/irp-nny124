@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -571,9 +572,24 @@ def heatmap_table(df: pd.DataFrame, row: str, col: str, value: str | None = None
     return table.sort_index().sort_index(axis=1)
 
 
-def draw_heatmap(ax: plt.Axes, table: pd.DataFrame, title: str, cbar_label: str, cmap: str) -> None:
+def draw_heatmap(
+    ax: plt.Axes,
+    table: pd.DataFrame,
+    title: str,
+    cbar_label: str,
+    cmap: str,
+    *,
+    distinguish_zero_and_missing: bool = False,
+) -> None:
     data = table.to_numpy(dtype=float)
-    im = ax.imshow(data, aspect="auto", origin="lower", cmap=cmap)
+    cmap_obj = colormaps.get_cmap(cmap).copy()
+    image_kwargs: dict[str, object] = {"aspect": "auto", "origin": "lower", "cmap": cmap_obj}
+    if distinguish_zero_and_missing:
+        cmap_obj.set_bad("#cfecc7")
+        cmap_obj.set_under("#e8f1fb")
+        image_kwargs["vmin"] = 0.5
+        data = np.ma.masked_invalid(data)
+    im = ax.imshow(data, **image_kwargs)
     ax.set_title(title)
     ax.set_xticks(range(len(table.columns)))
     ax.set_xticklabels([str(value) for value in table.columns], rotation=45, ha="right")
@@ -589,8 +605,8 @@ def plot_coverage_heatmaps(df: pd.DataFrame, output_path: Path) -> tuple[pd.Data
     mass_peri = heatmap_table(df, "mass_log10_kg", "periapsis_Rm")
     peri_vel = heatmap_table(df, "periapsis_Rm", "v_inf_kms")
     fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
-    draw_heatmap(axes[0], mass_peri, "Coverage count: mass vs periapsis", "Runs", "Blues")
-    draw_heatmap(axes[1], peri_vel, "Coverage count: periapsis vs velocity", "Runs", "Blues")
+    draw_heatmap(axes[0], mass_peri, "Coverage count: mass vs periapsis", "Runs", "Blues", distinguish_zero_and_missing=True)
+    draw_heatmap(axes[1], peri_vel, "Coverage count: periapsis vs velocity", "Runs", "Blues", distinguish_zero_and_missing=True)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
@@ -609,7 +625,7 @@ def plot_coverage_vs_error(predictions: pd.DataFrame, output_path: Path) -> None
         subset["abs_error"] = subset["residual"].abs()
         coverage = heatmap_table(subset, "mass_log10_kg", "periapsis_Rm")
         error = heatmap_table(subset, "mass_log10_kg", "periapsis_Rm", value="abs_error", agg="mean")
-        draw_heatmap(axes[row_idx, 0], coverage, f"{target}: coverage", "Runs", "Blues")
+        draw_heatmap(axes[row_idx, 0], coverage, f"{target}: coverage", "Runs", "Blues", distinguish_zero_and_missing=True)
         draw_heatmap(axes[row_idx, 1], error, f"{target}: mean |error| ({model_name})", "|error|", "OrRd")
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)

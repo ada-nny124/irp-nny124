@@ -1,4 +1,4 @@
-"""Local web app for the SPH screening demo UI."""
+"""Local web app for the Mars flyby outcome explorer UI."""
 
 from __future__ import annotations
 
@@ -46,19 +46,20 @@ SCIENTIFIC_SEMANTICS_NOTE = (
     "Debris refers to all material outside the largest remnant. Current deployed BMF is trained on total fragment mass, "
     "so BMF and unbound values are shown as model outputs on that denominator, not as a strict additive parent-mass budget."
 )
+PUBLIC_TITLE = "Mars Flyby Outcome Explorer"
+PUBLIC_SUBTITLE = (
+    "Explore how an asteroid's mass, closest approach, orbit shape, and spin can affect disruption and retained material around Mars."
+)
 EXPORT_COLUMNS = [
     "prediction_timestamp",
     "model_bundle_id",
     "case_name",
     "mass_log10_kg",
     "periapsis_Rm",
-    "v_inf_kms",
+    "encounter_eccentricity",
     "has_explicit_spin",
     "spin_axis",
     "spin_period_hr",
-    "resolution_value",
-    "timestep",
-    "fof_linking_length",
     "parent_mass_kg",
     "largest_remnant_fraction",
     "largest_remnant_mass_kg",
@@ -83,13 +84,10 @@ INPUT_FIELD_ORDER = [
     "case_name",
     "mass_log10_kg",
     "periapsis_Rm",
-    "v_inf_kms",
+    "encounter_eccentricity",
     "has_explicit_spin",
     "spin_axis",
     "spin_period_hr",
-    "resolution_value",
-    "timestep",
-    "fof_linking_length",
 ]
 
 
@@ -113,6 +111,18 @@ def load_bound_metrics_tables() -> tuple[pd.DataFrame | None, pd.DataFrame | Non
     classification_df = pd.read_csv(classification_path) if classification_path.exists() else None
     regression_df = pd.read_csv(regression_path) if regression_path.exists() else None
     return classification_df, regression_df
+
+
+@lru_cache(maxsize=1)
+def load_fragmentation_metrics() -> dict[str, object]:
+    metrics_path = MODEL_DIR / "metrics.json"
+    largest_mass_metrics_path = MODEL_DIR / "largest_fragment_mass_kg_metrics.json"
+    payload: dict[str, object] = {}
+    if metrics_path.exists():
+        payload["summary"] = json.loads(metrics_path.read_text(encoding="utf-8"))
+    if largest_mass_metrics_path.exists():
+        payload["largest_fragment_mass_kg"] = json.loads(largest_mass_metrics_path.read_text(encoding="utf-8"))
+    return payload
 
 
 @lru_cache(maxsize=1)
@@ -286,6 +296,18 @@ def time_inside_radius_hours(periapsis_rm: float, velocity_kms: float, threshold
     return (2.0 * time_seconds) / 3600.0
 
 
+def eccentricity_from_periapsis_and_vinf(periapsis_rm: float, velocity_kms: float) -> float:
+    periapsis_km = periapsis_rm * MARS_RADIUS_KM
+    return 1.0 + (periapsis_km * (velocity_kms**2)) / MARS_MU_KM3_S2
+
+
+def vinf_from_periapsis_and_eccentricity(periapsis_rm: float, eccentricity: float) -> float:
+    periapsis_km = periapsis_rm * MARS_RADIUS_KM
+    if periapsis_km <= 0.0 or eccentricity < 1.0:
+        raise ValueError("Encounter eccentricity must be at least 1.0 for this flyby parameterisation.")
+    return float(math.sqrt(max(0.0, (eccentricity - 1.0) * MARS_MU_KM3_S2 / periapsis_km)))
+
+
 def make_bound_feature_frame(input_df: pd.DataFrame) -> pd.DataFrame:
     frame = add_derived_features(input_df)
     frame["particle_log10"] = pd.to_numeric(frame["resolution_value"], errors="coerce").map(
@@ -314,14 +336,11 @@ def get_input_specs() -> list[dict[str, object]]:
     return [
         {"name": "case_name", "label": "Case name", "unit": "", "type": "string"},
         {"name": "mass_log10_kg", "label": "log10 parent mass", "unit": "kg", "type": "number"},
-        {"name": "periapsis_Rm", "label": "Periapsis", "unit": "Mars radii", "type": "number"},
-        {"name": "v_inf_kms", "label": "Velocity", "unit": "km/s", "type": "number"},
+        {"name": "periapsis_Rm", "label": "Closest approach", "unit": "Mars radii", "type": "number"},
+        {"name": "encounter_eccentricity", "label": "Encounter eccentricity", "unit": "", "type": "number"},
         {"name": "has_explicit_spin", "label": "Spin on", "unit": "boolean", "type": "boolean"},
         {"name": "spin_axis", "label": "Spin axis", "unit": "axis", "type": "string"},
         {"name": "spin_period_hr", "label": "Spin period", "unit": "hr", "type": "number"},
-        {"name": "resolution_value", "label": "Resolution setting", "unit": "archive code", "type": "number"},
-        {"name": "timestep", "label": "Analysis time", "unit": "s", "type": "number"},
-        {"name": "fof_linking_length", "label": "FoF length", "unit": "dimensionless", "type": "number"},
     ]
 
 
@@ -370,7 +389,7 @@ def get_selected_bound_model_metadata() -> dict[str, object]:
         "grouped_cv_mae_percentage_points": float(row["mae"]) * 100.0,
         "rows": int(row["rows"]),
         "unique_physical_files": int(row["unique_physical_files"]),
-        "validation_grouping": "Group by physical SPH setup",
+        "validation_grouping": "Grouped by physical flyby setup",
     }
 
 
@@ -459,20 +478,19 @@ def build_validation_metadata() -> dict[str, object]:
 def load_demo_metadata() -> dict[str, object]:
     support = load_support_frame()
     coverage_summary = pd.read_csv(SURROGATE_TABLES_DIR / "coverage_error_summary.csv").iloc[0].to_dict()
+    support["encounter_eccentricity"] = support["encounter_eccentricity_proxy"]
     ranges = {
         "mass_log10_kg": range_payload(support["mass_log10_kg"]),
         "periapsis_Rm": range_payload(support["periapsis_Rm"]),
+        "encounter_eccentricity": range_payload(support["encounter_eccentricity"]),
         "v_inf_kms": range_payload(support["v_inf_kms"]),
         "spin_period_hr": range_payload(support["spin_period_hr"]),
-        "resolution_value": range_payload(support["resolution_value"]),
-        "fof_linking_length": range_payload(pd.to_numeric(support["fof_linking_length"], errors="coerce")),
-        "timestep": range_payload(pd.to_numeric(support["timestep"], errors="coerce")),
     }
     defaults = {
         "case_name": "demo_case_001",
         "mass_log10_kg": 20.0,
         "periapsis_Rm": 2.0,
-        "v_inf_kms": 0.0,
+        "encounter_eccentricity": round(eccentricity_from_periapsis_and_vinf(2.0, 0.0), 3),
         "has_explicit_spin": True,
         "spin_axis": "z",
         "spin_period_hr": 3.0,
@@ -481,6 +499,8 @@ def load_demo_metadata() -> dict[str, object]:
         "fof_linking_length": 0.004,
     }
     return {
+        "title": PUBLIC_TITLE,
+        "subtitle": PUBLIC_SUBTITLE,
         "defaults": defaults,
         "ranges": ranges,
         "choices": {
@@ -513,10 +533,12 @@ def parse_bool(value: object) -> bool:
 def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
     mass_log10_kg = float(payload["mass_log10_kg"])
     periapsis_rm = float(payload["periapsis_Rm"])
-    v_inf_kms = float(payload["v_inf_kms"])
-    resolution_value = float(payload["resolution_value"])
-    timestep = float(payload["timestep"])
-    fof_linking_length = float(payload["fof_linking_length"])
+    encounter_eccentricity = float(payload["encounter_eccentricity"])
+    v_inf_kms = vinf_from_periapsis_and_eccentricity(periapsis_rm, encounter_eccentricity)
+    defaults = load_demo_metadata()["defaults"]
+    resolution_value = float(payload.get("resolution_value", defaults["resolution_value"]))
+    timestep = float(payload.get("timestep", defaults["timestep"]))
+    fof_linking_length = float(payload.get("fof_linking_length", defaults["fof_linking_length"]))
     has_explicit_spin = bool(payload.get("has_explicit_spin", True))
     spin_axis = str(payload.get("spin_axis", "none")) if has_explicit_spin else "none"
     spin_period_hr = payload.get("spin_period_hr")
@@ -531,6 +553,7 @@ def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
         "mass_value": int(round(mass_log10_kg * 100)),
         "periapsis_Rm": periapsis_rm,
         "periapsis_value": int(round(periapsis_rm * 10)),
+        "encounter_eccentricity": encounter_eccentricity,
         "v_inf_kms": v_inf_kms,
         "velocity_value": int(round(v_inf_kms * 10)),
         "spin_period_hr": spin_period_hr,
@@ -548,15 +571,16 @@ def build_input_frame(payload: dict[str, object]) -> pd.DataFrame:
 
 def normalize_payload(payload: dict[str, object]) -> dict[str, object]:
     normalized = dict(payload)
+    defaults = load_demo_metadata()["defaults"]
     normalized["case_name"] = str(normalized.get("case_name", "custom_case") or "custom_case")
     normalized["mass_log10_kg"] = float(normalized["mass_log10_kg"])
     normalized["periapsis_Rm"] = float(normalized["periapsis_Rm"])
-    normalized["v_inf_kms"] = float(normalized["v_inf_kms"])
+    normalized["encounter_eccentricity"] = float(normalized["encounter_eccentricity"])
     normalized["has_explicit_spin"] = parse_bool(normalized.get("has_explicit_spin", True))
     normalized["spin_axis"] = str(normalized.get("spin_axis", "z") or "z")
-    normalized["resolution_value"] = float(normalized["resolution_value"])
-    normalized["timestep"] = float(normalized["timestep"])
-    normalized["fof_linking_length"] = float(normalized["fof_linking_length"])
+    normalized["resolution_value"] = float(normalized.get("resolution_value", defaults["resolution_value"]))
+    normalized["timestep"] = float(normalized.get("timestep", defaults["timestep"]))
+    normalized["fof_linking_length"] = float(normalized.get("fof_linking_length", defaults["fof_linking_length"]))
     if normalized["has_explicit_spin"]:
         normalized["spin_period_hr"] = float(normalized["spin_period_hr"])
     else:
@@ -570,16 +594,15 @@ def validate_payload(payload: dict[str, object]) -> dict[str, object]:
         "case_name",
         "mass_log10_kg",
         "periapsis_Rm",
-        "v_inf_kms",
-        "resolution_value",
-        "timestep",
-        "fof_linking_length",
+        "encounter_eccentricity",
     ]
     missing = [key for key in required if key not in payload or payload[key] in ("", None)]
     if missing:
         raise ValueError(f"Missing required fields: {', '.join(missing)}")
     if parse_bool(payload.get("has_explicit_spin", True)) and payload.get("spin_period_hr") in ("", None):
         raise ValueError("spin_period_hr is required when has_explicit_spin is true")
+    if float(payload["encounter_eccentricity"]) < 1.0:
+        raise ValueError("Encounter eccentricity must be at least 1.0 for a Mars flyby.")
     return normalize_payload(payload)
 
 
@@ -732,15 +755,15 @@ def compute_support_score(support_flags: dict[str, object]) -> float:
 
 def build_support_reason(support_flags: dict[str, object], support_level: str) -> str:
     if not support_flags["in_training_range"]:
-        return "Outside the sampled training range, so this should be treated as extrapolative screening only."
+        return "Outside the sampled training range, so this estimate should be treated cautiously as an extrapolation."
     if support_flags["near_training_edge"]:
-        return "In range but near the sampled edge, so the surrogate is suitable for prioritisation rather than as a stopping rule."
+        return "Inside the sampled range but near its edge, so this estimate is less secure than a well-supported interior case."
     if support_flags["sparse_bin_flag"]:
-        return "In range but locally sparsely supported, so nearby archive evidence is limited."
+        return "Inside the sampled range but locally sparse, so there are fewer similar archive cases nearby."
     if support_flags["model_spread"] > support_flags["spread_threshold"]:
-        return "In range, but model families disagree more than usual on BMF."
+        return "The scenario is in range, but the model families disagree more than usual on bound material."
     if support_flags["borderline_bmf"]:
-        return "In range, but the case sits near the 10% BMF decision boundary."
+        return "The scenario lies near the 10% bound-material threshold, so small changes could alter the interpretation."
     return f"{support_level} support because the query is in range, not near edge, and model spread is low."
 
 
@@ -792,13 +815,10 @@ def build_export_row(
         "case_name": normalized_payload["case_name"],
         "mass_log10_kg": normalized_payload["mass_log10_kg"],
         "periapsis_Rm": normalized_payload["periapsis_Rm"],
-        "v_inf_kms": normalized_payload["v_inf_kms"],
+        "encounter_eccentricity": normalized_payload["encounter_eccentricity"],
         "has_explicit_spin": normalized_payload["has_explicit_spin"],
         "spin_axis": normalized_payload["spin_axis"],
         "spin_period_hr": normalized_payload["spin_period_hr"],
-        "resolution_value": normalized_payload["resolution_value"],
-        "timestep": normalized_payload["timestep"],
-        "fof_linking_length": normalized_payload["fof_linking_length"],
         "parent_mass_kg": response_payload["parent_mass_kg"],
         "largest_remnant_fraction": response_payload["largest_remnant_fraction"],
         "largest_remnant_mass_kg": response_payload["largest_remnant_mass_kg"],
@@ -819,6 +839,22 @@ def build_export_row(
         "recommendation_reason": response_payload["recommendation_reason"],
         "scientific_semantics_note": response_payload["scientific_semantics_note"],
     }
+
+
+def build_public_summary(
+    predicted_outcome: str,
+    largest_remnant_fraction: float,
+    bound_mass_fraction: float,
+    periapsis_rm: float,
+    encounter_eccentricity: float,
+) -> str:
+    return (
+        f"This scenario is most consistent with {predicted_outcome.lower()}. "
+        f"The asteroid passes Mars at {periapsis_rm:.1f} Mars radii on an encounter with eccentricity "
+        f"{encounter_eccentricity:.2f}. The model estimates a largest surviving remnant of "
+        f"{largest_remnant_fraction * 100.0:.1f}% of the parent body and bound retained material of "
+        f"{bound_mass_fraction * 100.0:.1f}% on the deployed BMF definition."
+    )
 
 
 def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized_payload: dict[str, object]) -> dict[str, object]:
@@ -843,6 +879,20 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
     predicted_unbound_mass_kg = max(0.0, parent_mass_kg * predicted_unbound_mass_fraction)
     support_frame = make_bound_feature_frame(input_df)
     domain = check_training_domain(support_frame.iloc[0].to_dict(), load_triage_bundle()[2])
+    fragmentation_metrics = load_fragmentation_metrics()
+    bmf_mae_fraction = float(selected_model.get("grouped_cv_mae_fraction", 0.0))
+    largest_mae_kg = float(
+        fragmentation_metrics.get("largest_fragment_mass_kg", {}).get(
+            "median_absolute_error",
+            fragmentation_metrics.get("summary", {}).get("regressor", {}).get("mae", 0.0),
+        )
+    )
+    largest_mae_fraction = float(np.clip(largest_mae_kg / parent_mass_kg, 0.0, 1.0)) if parent_mass_kg > 0.0 else 0.0
+    encounter_eccentricity = float(normalized_payload["encounter_eccentricity"])
+    asteroid_radius_km = float(input_df.iloc[0].get("asteroid_radius_km", support_frame.iloc[0].get("asteroid_radius_km", np.nan)))
+    tidal_radius_rm = FLUID_ROCHE_FACTOR * (MARS_DENSITY_KG_M3 / ASTEROID_BULK_DENSITY_KG_M3) ** (1.0 / 3.0)
+    time_within_tidal_hr = float(support_frame.iloc[0].get("time_within_tidal_disruption_hr", 0.0))
+    time_within_proximity_hr = float(support_frame.iloc[0].get("time_within_2_mars_radii_hr", 0.0))
     mass_semantics_warning = (
         "The dashboard does not show a stacked parent-mass decomposition because the deployed BMF target is defined on total fragment mass, "
         "not strictly on debris outside the largest remnant."
@@ -864,10 +914,14 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "fragmentation_probability_pct": round(float(result.get("fragmentation_probability", 0.0)) * 100.0, 1),
         "predicted_bmf": bound_mass_fraction,
         "predicted_bmf_percent": round(bound_mass_fraction * 100.0, 1),
+        "predicted_bmf_uncertainty_fraction": bmf_mae_fraction,
+        "predicted_bmf_uncertainty_percentage_points": round(bmf_mae_fraction * 100.0, 2),
         "predicted_bound_mass_kg": predicted_bound_mass_kg,
         "predicted_unbound_mass_fraction": predicted_unbound_mass_fraction,
         "predicted_unbound_mass_percent": round(predicted_unbound_mass_fraction * 100.0, 1),
         "predicted_unbound_mass_kg": predicted_unbound_mass_kg,
+        "largest_remnant_uncertainty_fraction": largest_mae_fraction,
+        "largest_remnant_uncertainty_percentage_points": round(largest_mae_fraction * 100.0, 2),
         "bmf_threshold_label": threshold_label,
         "bmf_threshold_detail": threshold_detail,
         "support_score": round(support_score, 1),
@@ -886,6 +940,19 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         ),
         "scientific_semantics_note": SCIENTIFIC_SEMANTICS_NOTE,
         "mass_semantics_warning": mass_semantics_warning,
+        "public_summary": build_public_summary(
+            predicted_outcome,
+            largest_remnant_fraction,
+            bound_mass_fraction,
+            float(normalized_payload["periapsis_Rm"]),
+            encounter_eccentricity,
+        ),
+        "encounter_eccentricity": encounter_eccentricity,
+        "encounter_velocity_kms_internal": round(float(input_df.iloc[0]["v_inf_kms"]), 3),
+        "asteroid_radius_km": round(asteroid_radius_km, 2) if np.isfinite(asteroid_radius_km) else None,
+        "time_within_tidal_disruption_hr": round(time_within_tidal_hr, 3),
+        "time_within_2_mars_radii_hr": round(time_within_proximity_hr, 3),
+        "tidal_disruption_radius_rm": round(tidal_radius_rm, 3),
         "training_range_status": "In range" if support_flags["in_training_range"] else "Outside range",
         "edge_status": "Near edge" if support_flags["near_training_edge"] else "Interior",
         "nearby_run_count": int(support_flags["bin_count"]),
@@ -895,7 +962,17 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "domain_near_edge_features": domain["near_edge_features"],
         "domain_out_of_domain_features": domain["out_of_domain_features"],
         "validation": load_demo_metadata()["model_validation"],
-        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible screening targets in this dashboard.",
+        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible public-facing outcomes in this dashboard.",
+        "visualization": {
+            "periapsis_rm": float(normalized_payload["periapsis_Rm"]),
+            "encounter_eccentricity": encounter_eccentricity,
+            "tidal_disruption_radius_rm": round(tidal_radius_rm, 3),
+            "time_within_tidal_disruption_hr": round(time_within_tidal_hr, 3),
+            "time_within_2_mars_radii_hr": round(time_within_proximity_hr, 3),
+            "predicted_bmf": bound_mass_fraction,
+            "largest_remnant_fraction": largest_remnant_fraction,
+            "predicted_outcome": predicted_outcome,
+        },
     }
     response_payload["export_row"] = build_export_row(normalized_payload, response_payload)
     return response_payload
@@ -946,7 +1023,7 @@ def predict_batch_csv(csv_text: str) -> dict[str, object]:
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    server_version = "SPHScreeningHTTP/3.0"
+    server_version = "MarsFlybyExplorerHTTP/1.0"
 
     def _send_bytes(self, body: bytes, content_type: str, status: HTTPStatus = HTTPStatus.OK) -> None:
         self.send_response(status)
@@ -997,7 +1074,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", 8000), DashboardHandler)
-    print("Serving SPH screening demo at http://127.0.0.1:8000")
+    print("Serving Mars flyby outcome explorer at http://127.0.0.1:8000")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

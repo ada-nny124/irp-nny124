@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
 import numpy as np
 import pandas as pd
 
@@ -68,10 +69,32 @@ def load_summary_text() -> tuple[str, str]:
     return subtitle, footer
 
 
-def draw_heatmap(ax: plt.Axes, table: pd.DataFrame, title: str, cmap: str, cbar_label: str, vmin: float | None = None, vmax: float | None = None) -> None:
+def draw_heatmap(
+    ax: plt.Axes,
+    table: pd.DataFrame,
+    title: str,
+    cmap: str,
+    cbar_label: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    *,
+    distinguish_zero_and_missing: bool = False,
+) -> None:
     values = table.to_numpy(dtype=float)
-    masked = np.ma.masked_invalid(values)
-    image = ax.imshow(masked, aspect="auto", origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+    cmap_obj = colormaps.get_cmap(cmap).copy()
+    image_kwargs: dict[str, object] = {
+        "aspect": "auto",
+        "origin": "lower",
+        "cmap": cmap_obj,
+        "vmin": vmin,
+        "vmax": vmax,
+    }
+    if distinguish_zero_and_missing:
+        cmap_obj.set_bad("#cfecc7")
+        cmap_obj.set_under("#e8f1fb")
+        image_kwargs["vmin"] = 0.5 if vmin is None else max(vmin, 0.5)
+    values = np.ma.masked_invalid(values)
+    image = ax.imshow(values, **image_kwargs)
     ax.set_title(title, fontsize=13, fontweight="semibold")
     ax.set_xlabel("Periapsis ($R_{Mars}$)")
     ax.set_ylabel("Mass log10(kg)")
@@ -126,7 +149,14 @@ def main() -> None:
     ax_footer = fig.add_subplot(gs[1, :])
     ax_footer.axis("off")
 
-    draw_heatmap(ax_left, coverage, "SPH support: coverage by mass and periapsis", "Blues", "Runs")
+    draw_heatmap(
+        ax_left,
+        coverage,
+        "SPH support: coverage by mass and periapsis",
+        "Blues",
+        "Runs",
+        distinguish_zero_and_missing=True,
+    )
     draw_heatmap(ax_right, error_table, "Held-out reliability: mean |error| on same grid", "OrRd", "|actual - predicted|")
 
     fig.suptitle("Model Trust Depends on Parameter-Space Support", fontsize=20, fontweight="bold", y=0.98)

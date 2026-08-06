@@ -64,3 +64,5 @@ src/triage/
 model_training_annotated.ipynb
 scripts/eda/
 docs/updates/
+ml/model_optimization_candidates/
+ml/physics_structured_surrogate/

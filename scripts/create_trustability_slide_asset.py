@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a slide-ready trustability figure from existing diagnostics outputs."""
+"""Build a slide-ready multi-row trustability figure from current surrogate outputs."""
 
 from __future__ import annotations
 
@@ -11,126 +11,210 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from matplotlib.colors import BoundaryNorm, Normalize
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
+
+from train_physics_structured_surrogate import add_physics_features, load_canonical_dataset
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_ROOT = ROOT / "report"
-SLICE_ROOT = REPORT_ROOT / "slice_diagnostics_20260716"
-TABLES_DIR = SLICE_ROOT / "tables"
-PLOTS_DIR = SLICE_ROOT / "plots"
 OUTPUT_DIR = REPORT_ROOT / "figures"
-
-COVERAGE_TABLE = TABLES_DIR / "coverage_mass_vs_periapsis.csv"
-REGRESSION_PREDICTIONS = TABLES_DIR / "regression_oof_predictions.csv"
-METRICS_TABLE = TABLES_DIR / "model_metrics_summary.csv"
 OUTPUT_PNG = OUTPUT_DIR / "model_trust_parameter_support.png"
 OUTPUT_MD = REPORT_ROOT / "trustability_slide_notes.md"
 
+SURROGATE_ROOT = ROOT / "ml" / "physics_structured_surrogate"
+SURROGATE_TABLES = SURROGATE_ROOT / "tables"
+DATASET_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
+PREDICTIONS_PATH = SURROGATE_TABLES / "predictions_with_trust_flags.csv"
+
 PRIMARY_TARGET = "bound_mass_fraction"
-PRIMARY_MODEL = "random_forest"
+NO_DATA_COLOR = "#BDBDBD"
+SUPPORT_BOUNDS = [0, 1, 5, 10, 25, 50, 100, 201]
+SUPPORT_TICK_POSITIONS = [0.5, 3, 7.5, 17, 37, 74.5, 150]
+SUPPORT_TICK_LABELS = ["0", "1–4", "5–9", "10–24", "25–49", "50–99", "100–200"]
+
+ROW_SPECS = [
+    {
+        "row_col": "mass_log10_kg",
+        "col_col": "periapsis_Rm",
+        "row_label": "Mass log10(kg)",
+        "col_label": "Periapsis ($R_{Mars}$)",
+        "title": "Mass × periapsis",
+    },
+    {
+        "row_col": "asteroid_radius_km",
+        "col_col": "v_inf_kms",
+        "row_label": "Asteroid radius (km)",
+        "col_label": "$v_{\\infty}$ (km/s)",
+        "title": "Radius × velocity",
+    },
+    {
+        "row_col": "spin_period_hr",
+        "col_col": "periapsis_Rm",
+        "row_label": "Spin period (hr)",
+        "col_label": "Periapsis ($R_{Mars}$)",
+        "title": "Spin × periapsis",
+    },
+]
 
 
-def load_coverage() -> pd.DataFrame:
-    coverage = pd.read_csv(COVERAGE_TABLE)
-    coverage = coverage.set_index("mass_log10_kg")
-    coverage.columns = [float(column) for column in coverage.columns]
-    coverage.index = [float(index) for index in coverage.index]
-    return coverage.sort_index().sort_index(axis=1)
+def load_frame() -> pd.DataFrame:
+    return add_physics_features(load_canonical_dataset(DATASET_PATH))
 
 
-def load_error_table() -> pd.DataFrame:
-    predictions = pd.read_csv(REGRESSION_PREDICTIONS)
-    subset = predictions[(predictions["target"] == PRIMARY_TARGET) & (predictions["model"] == PRIMARY_MODEL)].copy()
-    subset["abs_error"] = pd.to_numeric(subset["residual"], errors="coerce").abs()
-    table = subset.pivot_table(index="mass_log10_kg", columns="periapsis_Rm", values="abs_error", aggfunc="mean")
-    table.columns = [float(column) for column in table.columns]
-    table.index = [float(index) for index in table.index]
-    return table.sort_index().sort_index(axis=1)
+def load_predictions() -> pd.DataFrame:
+    predictions = pd.read_csv(PREDICTIONS_PATH)
+    predictions["abs_error"] = pd.to_numeric(predictions["residual"], errors="coerce").abs()
+    return predictions
 
 
-def load_summary_text() -> tuple[str, str]:
-    metrics = pd.read_csv(METRICS_TABLE)
-    row = metrics[(metrics["task"] == "regression") & (metrics["target"] == PRIMARY_TARGET) & (metrics["model"] == PRIMARY_MODEL)].iloc[0]
-    coverage = load_coverage()
-    occupied = int((coverage > 0).sum().sum())
-    total = int(coverage.size)
-    subtitle = (
-        f"Grouped held-out trust view for {PRIMARY_TARGET.replace('_', ' ')} "
-        f"using {PRIMARY_MODEL.replace('_', ' ')} "
-        f"(R²={row['r2']:.3f}, MAE={row['mae']:.4f}, occupied bins={occupied}/{total})"
-    )
-    footer = (
-        "Left: SPH support count by mass and periapsis. "
-        "Right: mean out-of-fold absolute error on the same grid. "
-        "Dense interior bins support interpolation; sparse or edge bins are weaker."
-    )
-    return subtitle, footer
+def merged_predictions(frame: pd.DataFrame, predictions: pd.DataFrame) -> pd.DataFrame:
+    extra_cols = [
+        "fof_file",
+        "physical_file",
+        "asteroid_radius_km",
+        "mass_log10_kg",
+        "periapsis_Rm",
+        "v_inf_kms",
+        "spin_period_hr",
+    ]
+    keep = frame.loc[:, [column for column in extra_cols if column in frame.columns]].drop_duplicates(subset=["fof_file"])
+    merged = predictions.merge(keep, on=["fof_file", "physical_file", "mass_log10_kg", "periapsis_Rm", "v_inf_kms", "spin_period_hr"], how="left")
+    return merged
 
 
-def draw_heatmap(
+def _format_numeric_label(value: float, decimals: int) -> str:
+    if abs(value - round(value)) < 1e-9:
+        return f"{int(round(value))}"
+    return f"{value:.{decimals}f}".rstrip("0").rstrip(".")
+
+
+def bin_labels(values: list[float]) -> list[str]:
+    if not values:
+        return []
+
+    for decimals in range(0, 5):
+        labels = [_format_numeric_label(float(value), decimals) for value in values]
+        if len(set(labels)) == len(labels):
+            return labels
+    return [f"{float(value):.4f}".rstrip("0").rstrip(".") for value in values]
+
+
+def pairwise_tables(
+    frame: pd.DataFrame,
+    predictions: pd.DataFrame,
+    row_col: str,
+    col_col: str,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    support_frame = frame.dropna(subset=[row_col, col_col]).copy()
+    error_frame = predictions[predictions["target"] == PRIMARY_TARGET].dropna(subset=[row_col, col_col]).copy()
+
+    row_bins = sorted(pd.to_numeric(support_frame[row_col], errors="coerce").dropna().unique())
+    col_bins = sorted(pd.to_numeric(support_frame[col_col], errors="coerce").dropna().unique())
+
+    coverage = support_frame.pivot_table(index=row_col, columns=col_col, values="physical_file", aggfunc="count")
+    coverage = coverage.reindex(index=row_bins, columns=col_bins)
+    coverage = coverage.fillna(0)
+
+    error = error_frame.pivot_table(index=row_col, columns=col_col, values="abs_error", aggfunc="mean")
+    error = error.reindex(index=row_bins, columns=col_bins)
+
+    coverage.index = pd.Index([float(value) for value in coverage.index], name=row_col)
+    coverage.columns = pd.Index([float(value) for value in coverage.columns], name=col_col)
+    error.index = pd.Index([float(value) for value in error.index], name=row_col)
+    error.columns = pd.Index([float(value) for value in error.columns], name=col_col)
+    return coverage, error
+
+
+def finite_min_max(arrays: list[np.ndarray], *, default_min: float = 0.0, default_max: float = 1.0) -> tuple[float, float]:
+    finite_values = []
+    for arr in arrays:
+        values = np.asarray(arr, dtype=float)
+        finite = values[np.isfinite(values)]
+        if finite.size:
+            finite_values.append(finite)
+    if not finite_values:
+        return default_min, default_max
+    stacked = np.concatenate(finite_values)
+    return float(np.min(stacked)), float(np.max(stacked))
+
+
+def should_annotate_na(masked_values: np.ma.MaskedArray) -> bool:
+    if masked_values.mask is np.ma.nomask:
+        return False
+    missing_count = int(np.sum(masked_values.mask))
+    total_cells = masked_values.shape[0] * masked_values.shape[1]
+    return 0 < missing_count <= 8 and total_cells <= 120
+
+
+def draw_panel(
     ax: plt.Axes,
     table: pd.DataFrame,
+    cmap_name: str,
+    norm: Normalize,
     title: str,
-    cmap: str,
-    cbar_label: str,
-    vmin: float | None = None,
-    vmax: float | None = None,
+    x_label: str,
+    y_label: str,
     *,
-    distinguish_zero_and_missing: bool = False,
+    annotate_na: bool,
+    missing_mask: np.ndarray | None = None,
 ) -> None:
+    if cmap_name == "Blues":
+        cmap = colormaps["Blues"].copy()
+    else:
+        cmap = colormaps["Reds"].copy()
+    cmap.set_bad(NO_DATA_COLOR)
     values = table.to_numpy(dtype=float)
-    cmap_obj = colormaps.get_cmap(cmap).copy()
-    image_kwargs: dict[str, object] = {
-        "aspect": "auto",
-        "origin": "lower",
-        "cmap": cmap_obj,
-        "vmin": vmin,
-        "vmax": vmax,
-    }
-    if distinguish_zero_and_missing:
-        cmap_obj.set_bad("#cfecc7")
-        cmap_obj.set_under("#e8f1fb")
-        image_kwargs["vmin"] = 0.5 if vmin is None else max(vmin, 0.5)
-    values = np.ma.masked_invalid(values)
-    image = ax.imshow(values, **image_kwargs)
-    ax.set_title(title, fontsize=13, fontweight="semibold")
-    ax.set_xlabel("Periapsis ($R_{Mars}$)")
-    ax.set_ylabel("Mass log10(kg)")
+    masked = np.ma.masked_invalid(values)
+    if missing_mask is not None:
+        mask = np.asarray(missing_mask, dtype=bool)
+        if masked.mask is np.ma.nomask:
+            masked.mask = mask
+        else:
+            masked.mask = np.logical_or(masked.mask, mask)
+    image = ax.imshow(masked, cmap=cmap, norm=norm, origin="lower", aspect="equal")
+    ax.set_title(title, fontsize=11.5, fontweight="semibold", pad=2)
     ax.set_xticks(range(len(table.columns)))
-    ax.set_xticklabels([f"{value:.1f}" for value in table.columns], rotation=45, ha="right", fontsize=9)
+    ax.set_xticklabels(bin_labels(list(table.columns)), rotation=45, ha="right", fontsize=9)
     ax.set_yticks(range(len(table.index)))
-    ax.set_yticklabels([f"{value:.1f}" for value in table.index], fontsize=9)
-    cbar = plt.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label(cbar_label)
+    ax.set_yticklabels(bin_labels(list(table.index)), fontsize=9.5)
+    ax.set_xlabel(x_label, fontsize=10, labelpad=1)
+    ax.set_ylabel(y_label, fontsize=10, labelpad=2)
+    ax.set_xticks(np.arange(-0.5, len(table.columns), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(table.index), 1), minor=True)
+    ax.grid(which="minor", color="white", linewidth=0.6)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    for spine in ax.spines.values():
+        spine.set_linewidth(0.9)
+        spine.set_color("#555555")
+    if annotate_na and masked.mask is not np.ma.nomask:
+        for row_idx in range(masked.shape[0]):
+            for col_idx in range(masked.shape[1]):
+                if bool(masked.mask[row_idx, col_idx]):
+                    ax.text(col_idx, row_idx, "N/A", ha="center", va="center", fontsize=8.5, color="#424242")
+    return image
 
 
-def write_notes(subtitle: str, footer: str) -> None:
+def write_notes() -> None:
     text = "\n".join(
         [
             "# Trustability Slide Notes",
             "",
             "## Title",
-            "Model Trust Depends on Parameter-Space Support",
-            "",
-            "## Subtitle",
-            "Coverage and held-out error show where predictions are supported by the SPH archive",
+            "Model Trust Across Parameter-Space Support",
             "",
             "## Main interpretation",
-            "- The model is most trustworthy where the SPH archive densely covers the parameter space and out-of-fold error stays low.",
-            "- It is less trustworthy near sparse or edge regions, even if a prediction can still be produced.",
-            "- Trust comes from grouped held-out performance plus local data support, not from curve smoothness alone.",
-            "",
-            "## Speaker version",
-            "> This slide is the real trust argument. The left panel shows where the model actually has SPH support. The right panel shows held-out error in those same regions. Where coverage is dense and error remains low, the model is suitable for screening and interpolation. Where coverage is sparse or near the domain edge, the prediction becomes weaker and should be treated cautiously or deferred to SPH.",
+            "- Blue shows how many SPH samples support each parameter-space cell.",
+            "- Red shows grouped held-out mean absolute error on exactly the same cell grid.",
+            "- Grey marks cells where no finite estimate is available.",
+            "- The surrogate is most trustworthy where support is dense and held-out error remains low.",
             "",
             "## Asset summary",
             f"- Figure: `{OUTPUT_PNG}`",
-            f"- Supporting source figure 1: `{PLOTS_DIR / 'parameter_coverage_heatmaps.png'}`",
-            f"- Supporting source figure 2: `{PLOTS_DIR / 'coverage_vs_error_heatmaps.png'}`",
-            f"- Plot subtitle used in asset: {subtitle}",
-            f"- Footer used in asset: {footer}",
+            "- Caption: Blue shows SPH sample coverage. Red shows grouped held-out mean absolute error. Grey indicates that the corresponding quantity cannot be estimated; it does not represent zero.",
         ]
     )
     OUTPUT_MD.write_text(text + "\n", encoding="utf-8")
@@ -138,45 +222,109 @@ def write_notes(subtitle: str, footer: str) -> None:
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    coverage = load_coverage()
-    error_table = load_error_table().reindex(index=coverage.index, columns=coverage.columns)
-    subtitle, footer = load_summary_text()
 
-    fig = plt.figure(figsize=(15, 7.8))
-    gs = fig.add_gridspec(2, 2, height_ratios=[12, 1.2], hspace=0.28, wspace=0.20)
-    ax_left = fig.add_subplot(gs[0, 0])
-    ax_right = fig.add_subplot(gs[0, 1])
-    ax_footer = fig.add_subplot(gs[1, :])
-    ax_footer.axis("off")
+    frame = load_frame()
+    predictions = merged_predictions(frame, load_predictions())
 
-    draw_heatmap(
-        ax_left,
-        coverage,
-        "SPH support: coverage by mass and periapsis",
-        "Blues",
-        "Runs",
-        distinguish_zero_and_missing=True,
+    pair_data: list[dict[str, object]] = []
+    coverage_arrays: list[np.ndarray] = []
+    error_arrays: list[np.ndarray] = []
+    for spec in ROW_SPECS:
+        coverage, error = pairwise_tables(frame, predictions, str(spec["row_col"]), str(spec["col_col"]))
+        pair_data.append({"spec": spec, "coverage": coverage, "error": error})
+        coverage_arrays.append(coverage.to_numpy(dtype=float))
+        error_arrays.append(error.to_numpy(dtype=float))
+
+    error_min, error_max = finite_min_max(error_arrays, default_min=0.0, default_max=1.0)
+    coverage_cmap = colormaps["Blues"].copy()
+    coverage_cmap.set_bad(NO_DATA_COLOR)
+    coverage_norm = BoundaryNorm(SUPPORT_BOUNDS, ncolors=coverage_cmap.N, clip=True)
+    error_norm = Normalize(vmin=min(0.0, error_min), vmax=error_max)
+
+    fig = plt.figure(figsize=(16.2, 11.9))
+    gs = fig.add_gridspec(
+        nrows=len(ROW_SPECS) + 2,
+        ncols=4,
+        width_ratios=[1, 1, 0.045, 0.045],
+        height_ratios=[0.035] + [1] * len(ROW_SPECS) + [0.16],
+        hspace=0.52,
+        wspace=0.18,
     )
-    draw_heatmap(ax_right, error_table, "Held-out reliability: mean |error| on same grid", "OrRd", "|actual - predicted|")
 
-    fig.suptitle("Model Trust Depends on Parameter-Space Support", fontsize=20, fontweight="bold", y=0.98)
-    fig.text(0.5, 0.935, subtitle, ha="center", va="center", fontsize=11)
-    ax_footer.text(0.0, 0.75, footer, fontsize=11, ha="left", va="center")
-    ax_footer.text(
+    heading_axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[0, 2]), fig.add_subplot(gs[0, 3])]
+    for ax in heading_axes:
+        ax.axis("off")
+    heading_axes[0].text(0.5, 0.18, "SPH coverage", ha="center", va="center", fontsize=16, fontweight="bold")
+    heading_axes[1].text(0.5, 0.18, "Held-out prediction error", ha="center", va="center", fontsize=16, fontweight="bold")
+
+    last_cov_image = None
+    last_err_image = None
+    for row_idx, row_data in enumerate(pair_data, start=1):
+        spec = row_data["spec"]
+        coverage = row_data["coverage"]
+        error = row_data["error"]
+        ax_cov = fig.add_subplot(gs[row_idx, 0])
+        ax_err = fig.add_subplot(gs[row_idx, 1])
+
+        shared_title = str(spec["title"])
+        annotate_cov = should_annotate_na(np.ma.masked_invalid(coverage.to_numpy(dtype=float)))
+        annotate_err = should_annotate_na(np.ma.masked_invalid(error.to_numpy(dtype=float)))
+
+        last_cov_image = draw_panel(
+            ax_cov,
+            coverage,
+            "Blues",
+            coverage_norm,
+            shared_title,
+            str(spec["col_label"]),
+            str(spec["row_label"]),
+            annotate_na=annotate_cov,
+            missing_mask=None,
+        )
+        last_err_image = draw_panel(
+            ax_err,
+            error,
+            "Reds",
+            error_norm,
+            "",
+            str(spec["col_label"]),
+            str(spec["row_label"]),
+            annotate_na=annotate_err,
+        )
+
+    cax_blue = fig.add_subplot(gs[1:1 + len(ROW_SPECS), 2])
+    cax_red = fig.add_subplot(gs[1:1 + len(ROW_SPECS), 3])
+    blue_cbar = fig.colorbar(last_cov_image, cax=cax_blue)
+    blue_cbar.set_label("SPH support count", fontsize=12, labelpad=10)
+    blue_cbar.set_ticks(SUPPORT_TICK_POSITIONS)
+    blue_cbar.set_ticklabels(SUPPORT_TICK_LABELS)
+    red_cbar = fig.colorbar(last_err_image, cax=cax_red)
+    red_cbar.set_label("Mean absolute error", fontsize=12, labelpad=10)
+
+    caption_ax = fig.add_subplot(gs[-1, :2])
+    caption_ax.axis("off")
+    caption_ax.legend(
+        handles=[Patch(facecolor=NO_DATA_COLOR, edgecolor="#666666", label="No data")],
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.97),
+        frameon=False,
+        fontsize=11,
+    )
+    caption_ax.text(
         0.0,
-        0.20,
-        "Grouped validation by physical_file reduces leakage across related simulations.",
-        fontsize=10,
+        0.08,
+        "Blue shows SPH sample coverage. Red shows grouped held-out mean absolute error. Grey indicates that the corresponding quantity cannot be estimated; it does not represent zero.",
         ha="left",
         va="center",
+        fontsize=11,
         color="#333333",
     )
 
-    fig.tight_layout(rect=[0, 0, 1, 0.91])
-    fig.savefig(OUTPUT_PNG, dpi=180, bbox_inches="tight")
+    fig.suptitle("Model Trust Across Parameter-Space Support", fontsize=22, fontweight="bold", y=0.94)
+    fig.savefig(OUTPUT_PNG, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
-    write_notes(subtitle, footer)
+    write_notes()
 
 
 if __name__ == "__main__":

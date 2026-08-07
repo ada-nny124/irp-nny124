@@ -29,7 +29,7 @@ temp/
 scratch/
 
 # Local model training byproducts
-catboost_info/
+ml/training_artifacts/catboost_info/
 
 # Generated analysis outputs
 archived/

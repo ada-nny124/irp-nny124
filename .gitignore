@@ -1,56 +1,49 @@
 # Local environment and secrets
 .env
 .env.*
+.venv/
+venv/
 configs/paths.yaml
 configs/ssh.yaml
 
-# Python / notebook / editor noise
+# Python caches and test tooling
 __pycache__/
 *.py[cod]
-*.so
-.ipynb_checkpoints/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.DS_Store
+.ipynb_checkpoints/
 
-# Temporary and local-only files
+# OS / editor noise
+.DS_Store
+*.swp
+*.tmp
+*.bak
+
+# Local logs and scratch space
+logs/*.out
+logs/*.err
 tmp/
 temp/
 .scratch/
-*.tmp
-*.swp
-*.bak
-*.log
-logs/*.out
-logs/*.err
-
-# Large data and binary artifacts
-*.h5
-*.hdf5
-*.parquet
-*.pkl
-*.npz
-*.npy
-*.zip
-*.tar
-*.gz
-
-# Images, tables, and other generated outputs
-*.png
-*.csv
-*.svg
-*.txt
-important_plots_and_tables.md
-
-# Local data and archived material
-data/
 scratch/
-reference/
-archived/
-report/
 
-# Keep only the core extraction outputs tracked
+# Local model training byproducts
+catboost_info/
+
+# Generated analysis outputs
+archived/
+analysis/screening_scenarios_2026-07-22/
+docs/updates/
+figures/
+report/figures/
+report/
+report/slice_diagnostics_20260716/
+eda/**/plots/
+eda/**/tables/
+eda/**/analysis_summary.txt
+
+# Extraction outputs: keep only the canonical input tables
 extraction_outputs/*
 !extraction_outputs/.gitkeep
 !extraction_outputs/manifest.csv
@@ -58,11 +51,31 @@ extraction_outputs/*
 !extraction_outputs/bound_outcomes.csv
 !extraction_outputs/hdf5_schema_summary.csv
 
-# Local experiment artifacts
-ml/triage/
-src/triage/
-model_training_annotated.ipynb
-scripts/eda/
-docs/updates/
+# Bound-outcome artifacts: keep only shipped API inputs
+ml/bound_outcomes/models/*
+!ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl
+!ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__gradient_boosting_regressor.pkl
+!ml/bound_outcomes/models/positive_bound_runs__with_fof_linking_length__bound_fragment_count__random_forest_regressor.pkl
+!ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__largest_bound_fragment_mass_kg__random_forest_regressor.pkl
+!ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__average_bound_fragment_mass_kg__random_forest_regressor.pkl
+ml/bound_outcomes/tables/*
+!ml/bound_outcomes/tables/classification_metrics.csv
+!ml/bound_outcomes/tables/dataset_summaries.csv
+!ml/bound_outcomes/tables/regression_metrics.csv
+
+# Physics-structured surrogate: keep only API metadata/support tables
+ml/physics_structured_surrogate/tables/*
+!ml/physics_structured_surrogate/tables/promoted_model_info.json
+!ml/physics_structured_surrogate/tables/trust_summary.csv
+!ml/physics_structured_surrogate/tables/coverage_error_summary.csv
+
+# Ignore other generated ML outputs
+ml/**/plots/
 ml/model_optimization_candidates/
-ml/physics_structured_surrogate/
+ml/model_diagnostics/
+ml/bound_outcomes/notebook_demo/
+ml/physics_structured_surrogate/reports/
+ml/physics_structured_surrogate/INTERPOLATION_IN_UNSIMULATED_SPACE.md
+ml/physics_structured_surrogate/recommended_new_sph_runs.csv
+ml/physics_structured_surrogate/unsimulated_interpolation_predictions.csv
+ml/physics_structured_surrogate/unsimulated_mass_19_5_cases.csv

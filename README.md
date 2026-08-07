@@ -1,68 +1,59 @@
 # IRP Repository
 
-Parameter sensitivity and ML prediction of tidal-disruption outcomes in SPH simulations of Martian moon formation.
+Machine-learning screening of asteroid tidal disruption during close encounters with Mars, motivated by possible formation pathways for Phobos and Deimos.
 
-## What is here
+## Abstract
 
-- `scripts/`: extraction, EDA, diagnostics, and ML pipelines
-- `extraction_outputs/`: core extracted tables used by the analysis
-- `eda/`: selected EDA plots and summary tables kept for review
-- `ml/`: selected model metrics and representative plots kept for review
-- `src/triage/`: builds features, loads saved models, predicts outcomes, and serves the local dashboard/API
-- `docs/important_plots_and_tables.md`: figure/table index used in presentation slides
+This paper investigates asteroid tidal disruption during close encounters with Mars, a process in which tidal forces can fragment an incoming asteroid and leave part of the resulting debris gravitationally bound. Such retained material may be relevant to proposed formation pathways for Mars’ moons: Phobos and Deimos. However, exploring the encounter parameter space with high-fidelity smoothed-particle hydrodynamics (SPH) simulations is computationally expensive. To support more efficient exploration, SPH particle outputs are post-processed into fragmentation diagnostics and bound mass fraction (BMF), and machine-learning surrogates are trained using leakage-safe grouped cross-validation. Physics-derived features, advanced boosting models, regime-aware approaches, and two-stage hurdle architectures are evaluated alongside tree-based baselines. The baseline Random Forest achieves out-of-fold R2=0.8971, improving to R2=0.9225 with physics-derived features. The best overall model, an NGBoost hurdle architecture, reaches R2=0.9485 and RMSE=0.0211, while a CatBoost hurdle gives the lowest MAE of 0.0122. Controlled parameter slices and coverage-error diagnostics show that predictive reliability depends strongly on local SPH support. The resulting surrogate is therefore suitable for rapid in-domain screening and prioritisation, while sparse, edge, or physically detailed cases should still be evaluated with full SPH simulation.
 
-## Core data products kept in Git
+## Repository Guide
 
-- `extraction_outputs/manifest.csv`
-- `extraction_outputs/fof_outcomes.csv`
-- `extraction_outputs/bound_outcomes.csv`
-- `extraction_outputs/hdf5_schema_summary.csv`
+- `src/triage/`
+  The packaged local API and dashboard code. This is the user-facing screening interface.
 
-These are kept in Git because they are small enough and let a cloned repo run the API without re-running the full extraction pipeline.
+- `scripts/`
+  The main active extraction, training, packaging, and dashboard-serving scripts.
 
-## Main scripts
+- `scripts/eda/`
+  The main active EDA scripts used to produce retained EDA outputs.
 
-- `scripts/make_manifest.py`
-- `scripts/extract_fof_outcomes.py`
-- `scripts/extract_bound_unbound_outcomes.py`
-- `scripts/eda/eda_raw_data_overview.py`
-- `scripts/eda/eda_outcome_eda.py`
-- `scripts/eda/eda_bound_eda.py`
-- `scripts/eda/eda_eccentricity.py`
-- `scripts/train_baseline_models.py`
-- `scripts/train_bound_models.py`
-- `scripts/train_triage_models.py`
+- `archived/`
+  Older, one-off, or non-core scripts and materials kept for reference rather than day-to-day use.
 
-ML training & results summarised in Notebook for demo: `model_training.ipynb`
+- `ml/`
+  Trained model artifacts, selected metrics, packaged runtime inputs, and model-specific outputs.
 
-## Installable dashboard / API
+- `eda/`
+  Saved exploratory data analysis outputs, tables, and plots.
 
-After cloning the repo, install the package in editable mode:
+- `docs/`
+  Written project documentation, figure references, and supporting notes.
+
+- `extraction_outputs/`
+  Canonical extracted SPH-derived tables used as the main analysis and API inputs.
+
+- `report/`
+  Report-ready notes and figures for presentation or interpretation.
+
+- `deliverables/`
+  Submitted project outputs and formal deliverable files.
+
+- `logbook/`
+  Project logbook and meeting record material.
+
+- `title/`
+  Title-page and repository title configuration material.
+
+- `configs/`
+  Example configuration files and local path templates.
+
+## Local API / Dashboard
+
+Clone the repository, install the package, and run the local screening interface:
 
 ```bash
 pip install -e .
-```
-
-Run the local dashboard/API:
-
-```bash
 mars-flyby-dashboard
 ```
 
-This serves the local dashboard and JSON API on `http://127.0.0.1:8000` by default.
-
-You can also choose a different bind address or port:
-
-```bash
-mars-flyby-dashboard --host 127.0.0.1 --port 8000
-```
-
-Equivalent alias:
-
-```bash
-mars-flyby-api
-```
-
-The package entrypoint delegates to the local dashboard server in `scripts/app.py`, so the cloned repository still provides the required models, tables, and HTML assets.
-
-If you edit the dashboard template or server text, stop the running server and restart it before refreshing the browser.
+This starts the packaged local API/dashboard on `http://127.0.0.1:8000` by default.

@@ -96,7 +96,7 @@ The repository now includes a dedicated next-phase surrogate workflow under:
 
 - `scripts/train_physics_structured_surrogate.py`
 - `ml/physics_structured_surrogate/`
-- `physics_structured_surrogate.ipynb`
+- `model_training.ipynb`
 
 This upgraded phase keeps the scientific framing unchanged:
 

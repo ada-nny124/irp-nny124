@@ -34,6 +34,11 @@ ml/training_artifacts/catboost_info/
 # Generated analysis outputs
 analysis/
 analysis/screening_scenarios_2026-07-22/
+archived/*
+!archived/eda/
+archived/eda/*
+!archived/eda/other/
+!archived/eda/other/**
 docs/updates/
 figures/
 report/figures/

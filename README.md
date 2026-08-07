@@ -12,28 +12,16 @@ This paper investigates asteroid tidal disruption during close encounters with M
   The packaged local API and dashboard code. This is the user-facing screening interface.
 
 - `scripts/`
-  The main active extraction, training, packaging, and dashboard-serving scripts.
-
-- `scripts/eda/`
-  The main active EDA scripts used to produce retained EDA outputs.
-
-- `archived/`
-  Older, one-off, or non-core scripts and materials kept for reference rather than day-to-day use.
+  The main tracked automation scripts for extraction, training, packaging, and dashboard serving.
 
 - `ml/`
-  Trained model artifacts, selected metrics, packaged runtime inputs, and model-specific outputs.
-
-- `eda/`
-  Saved exploratory data analysis outputs, tables, and plots.
+  Tracked model assets, packaged runtime inputs, and selected benchmark or surrogate materials that support the deployed workflow.
 
 - `docs/`
   Written project documentation, figure references, and supporting notes.
 
 - `extraction_outputs/`
-  Canonical extracted SPH-derived tables used as the main analysis and API inputs.
-
-- `report/`
-  Report-ready notes and figures for presentation or interpretation.
+  Canonical SPH-derived tables that feed the downstream modelling and screening pipeline.
 
 - `deliverables/`
   Submitted project outputs and formal deliverable files.
@@ -46,6 +34,8 @@ This paper investigates asteroid tidal disruption during close encounters with M
 
 - `configs/`
   Example configuration files and local path templates.
+
+Ignored local outputs such as exploratory plots, report assets, archived materials, and scratch diagnostics are intentionally excluded from this guide because they are not part of the tracked repo surface.
 
 ## Local API / Dashboard
 

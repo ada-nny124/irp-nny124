@@ -1130,19 +1130,9 @@ def write_model_card(dataset_path: Path) -> Path:
 
 
 def write_notebook_stub() -> Path:
-    path = Path("physics_structured_surrogate.ipynb")
-    notebook = {
-        "cells": [
-            {"cell_type": "markdown", "metadata": {}, "source": ["# Physics-Structured Surrogate\n", "Fast in-domain SPH screening surrogate.\n"]},
-            {"cell_type": "markdown", "metadata": {}, "source": ["## Sections\n", "0. Config\n1. Load data and reproduce baseline\n2. Feature sets\n3. Target definitions and transforms\n4. Grouped CV tuning\n5. Baseline vs tuned results\n6. With-FoF vs without-FoF comparison\n7. Physics feature ablation\n8. Promoted model selection\n9. Trust flags and decision rules\n10. Slice diagnostics\n11. Coverage and error diagnostics\n12. Model card summary\n13. Conclusions and next steps\n"]},
-            {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": ["from pathlib import Path\n", "import pandas as pd\n", "root = Path('ml/physics_structured_surrogate')\n", "baseline = pd.read_csv(root / 'tables' / 'baseline_metrics.csv')\n", "baseline.head()\n"]},
-        ],
-        "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}, "language_info": {"name": "python", "version": "3.13"}},
-        "nbformat": 4,
-        "nbformat_minor": 5,
-    }
-    path.write_text(json.dumps(notebook, indent=2) + "\n", encoding="utf-8")
-    return path
+    # The canonical modelling notebook is model_training.ipynb; this hook is retained
+    # for callers that still expect a notebook path during the package stage.
+    return Path("model_training.ipynb")
 
 
 def summarize_tuning_promotion(

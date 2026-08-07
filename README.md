@@ -4,21 +4,21 @@ Parameter sensitivity and ML prediction of tidal-disruption outcomes in SPH simu
 
 ## What is here
 
-- `scripts/`: extraction, EDA script, and ML pipelines
-- `outputs/`: core extracted tables used by the analysis
+- `scripts/`: extraction, EDA, diagnostics, and ML pipelines
+- `extraction_outputs/`: core extracted tables used by the analysis
 - `eda/`: selected EDA plots and summary tables kept for review
 - `ml/`: selected model metrics and representative plots kept for review
-- `src/irp_triage/`: builds features, loads saved models, predicts outcomes, and recommends whether SPH is needed
-- `important_plots_and_tables.md`: figure/table index used in presentation slides
+- `src/triage/`: builds features, loads saved models, predicts outcomes, and serves the local dashboard/API
+- `docs/important_plots_and_tables.md`: figure/table index used in presentation slides
 
 ## Core data products kept in Git
 
-- `outputs/manifest.csv`
-- `outputs/fof_outcomes.csv`
-- `outputs/bound_outcomes.csv`
-- `outputs/hdf5_schema_summary.csv`
+- `extraction_outputs/manifest.csv`
+- `extraction_outputs/fof_outcomes.csv`
+- `extraction_outputs/bound_outcomes.csv`
+- `extraction_outputs/hdf5_schema_summary.csv`
 
-Pushed to repo because they are small enough + constain useful tables for checking the extraction and analysis pipeline without rerunning the full project.
+These are kept in Git because they are small enough and let a cloned repo run the API without re-running the full extraction pipeline.
 
 ## Main scripts
 
@@ -34,3 +34,35 @@ Pushed to repo because they are small enough + constain useful tables for checki
 - `scripts/train_triage_models.py`
 
 ML training & results summarised in Notebook for demo: `model_training.ipynb`
+
+## Installable dashboard / API
+
+After cloning the repo, install the package in editable mode:
+
+```bash
+pip install -e .
+```
+
+Run the local dashboard/API:
+
+```bash
+mars-flyby-dashboard
+```
+
+This serves the local dashboard and JSON API on `http://127.0.0.1:8000` by default.
+
+You can also choose a different bind address or port:
+
+```bash
+mars-flyby-dashboard --host 127.0.0.1 --port 8000
+```
+
+Equivalent alias:
+
+```bash
+mars-flyby-api
+```
+
+The package entrypoint delegates to the local dashboard server in `scripts/app.py`, so the cloned repository still provides the required models, tables, and HTML assets.
+
+If you edit the dashboard template or server text, stop the running server and restart it before refreshing the browser.

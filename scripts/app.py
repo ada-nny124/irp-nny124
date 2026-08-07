@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import io
 import json
@@ -46,9 +47,12 @@ SCIENTIFIC_SEMANTICS_NOTE = (
     "Debris refers to all material outside the largest remnant. Current deployed BMF is trained on total fragment mass, "
     "so BMF and unbound values are shown as model outputs on that denominator, not as a strict additive parent-mass budget."
 )
-PUBLIC_TITLE = "Mars Flyby Outcome Explorer"
+PUBLIC_TITLE = "Mars Tidal Disruption Screening Explorer"
 PUBLIC_SUBTITLE = (
-    "Explore how an asteroid's mass, closest approach, orbit shape, and spin can affect disruption and retained material around Mars."
+    "One hypothesis for the origin of Mars’s moons is that a close-flying asteroid was torn apart by Mars’s gravity, a "
+    "process called tidal disruption. Some of this debris may have remained bound to Mars and later contributed to moon "
+    "formation. This tool uses models trained on SPH simulations to explore which flyby conditions produce disruption and "
+    "retain debris around Mars."
 )
 EXPORT_COLUMNS = [
     "prediction_timestamp",
@@ -301,6 +305,13 @@ def eccentricity_from_periapsis_and_vinf(periapsis_rm: float, velocity_kms: floa
     return 1.0 + (periapsis_km * (velocity_kms**2)) / MARS_MU_KM3_S2
 
 
+def radius_from_mass_and_density_km(mass_kg: float, density_kg_m3: float) -> float:
+    if mass_kg <= 0.0 or density_kg_m3 <= 0.0:
+        return math.nan
+    radius_m = ((3.0 * mass_kg) / (4.0 * math.pi * density_kg_m3)) ** (1.0 / 3.0)
+    return radius_m / 1000.0
+
+
 def vinf_from_periapsis_and_eccentricity(periapsis_rm: float, eccentricity: float) -> float:
     periapsis_km = periapsis_rm * MARS_RADIUS_KM
     if periapsis_km <= 0.0 or eccentricity < 1.0:
@@ -341,6 +352,8 @@ def get_input_specs() -> list[dict[str, object]]:
         {"name": "has_explicit_spin", "label": "Spin on", "unit": "boolean", "type": "boolean"},
         {"name": "spin_axis", "label": "Spin axis", "unit": "axis", "type": "string"},
         {"name": "spin_period_hr", "label": "Spin period", "unit": "hr", "type": "number"},
+        {"name": "asteroid_density_kg_m3", "label": "Asteroid density", "unit": "kg/m^3", "type": "number"},
+        {"name": "asteroid_type", "label": "Asteroid type", "unit": "", "type": "string"},
     ]
 
 
@@ -488,7 +501,11 @@ def load_demo_metadata() -> dict[str, object]:
     }
     defaults = {
         "case_name": "demo_case_001",
+        "input_mode": "mass",
         "mass_log10_kg": 20.0,
+        "asteroid_radius_km_input": round(radius_from_mass_and_density_km(10.0**20.0, ASTEROID_BULK_DENSITY_KG_M3), 1),
+        "asteroid_density_kg_m3": ASTEROID_BULK_DENSITY_KG_M3,
+        "asteroid_type": "rocky",
         "periapsis_Rm": 2.0,
         "encounter_eccentricity": round(eccentricity_from_periapsis_and_vinf(2.0, 0.0), 3),
         "has_explicit_spin": True,
@@ -505,6 +522,8 @@ def load_demo_metadata() -> dict[str, object]:
         "ranges": ranges,
         "choices": {
             "spin_axis": ["x", "y", "z"],
+            "asteroid_type": ["rocky"],
+            "input_mode": ["mass", "size"],
         },
         "range_labels": {key: format_range(key, payload) for key, payload in ranges.items()},
         "dataset_summary": {
@@ -573,11 +592,20 @@ def normalize_payload(payload: dict[str, object]) -> dict[str, object]:
     normalized = dict(payload)
     defaults = load_demo_metadata()["defaults"]
     normalized["case_name"] = str(normalized.get("case_name", "custom_case") or "custom_case")
+    normalized["input_mode"] = str(normalized.get("input_mode", defaults["input_mode"]) or defaults["input_mode"])
     normalized["mass_log10_kg"] = float(normalized["mass_log10_kg"])
     normalized["periapsis_Rm"] = float(normalized["periapsis_Rm"])
     normalized["encounter_eccentricity"] = float(normalized["encounter_eccentricity"])
     normalized["has_explicit_spin"] = parse_bool(normalized.get("has_explicit_spin", True))
     normalized["spin_axis"] = str(normalized.get("spin_axis", "z") or "z")
+    normalized["asteroid_density_kg_m3"] = float(
+        normalized.get("asteroid_density_kg_m3", defaults["asteroid_density_kg_m3"])
+    )
+    radius_input = normalized.get("asteroid_radius_km_input", defaults["asteroid_radius_km_input"])
+    normalized["asteroid_radius_km_input"] = None if radius_input in (None, "") else float(radius_input)
+    normalized["asteroid_type"] = str(normalized.get("asteroid_type", defaults["asteroid_type"]) or defaults["asteroid_type"])
+    if normalized["asteroid_type"] != "rocky":
+        raise ValueError("Only rocky asteroid type is currently supported by the trained archive.")
     normalized["resolution_value"] = float(normalized.get("resolution_value", defaults["resolution_value"]))
     normalized["timestep"] = float(normalized.get("timestep", defaults["timestep"]))
     normalized["fof_linking_length"] = float(normalized.get("fof_linking_length", defaults["fof_linking_length"]))
@@ -872,6 +900,10 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
     support_level = describe_support_level(support_score)
     support_reason = build_support_reason(support_flags, support_level)
     parent_mass_kg = float(result.get("parent_mass_kg", np.power(10.0, float(result["mass_log10_kg"]))))
+    asteroid_density_kg_m3 = float(normalized_payload.get("asteroid_density_kg_m3", ASTEROID_BULK_DENSITY_KG_M3))
+    display_radius_km = normalized_payload.get("asteroid_radius_km_input")
+    if display_radius_km in (None, ""):
+        display_radius_km = radius_from_mass_and_density_km(parent_mass_kg, asteroid_density_kg_m3)
     largest_remnant_fraction = float(np.clip(float(result.get("predicted_largest_fragment_mass_fraction", 0.0)), 0.0, 1.0))
     largest_remnant_mass_kg = max(0.0, parent_mass_kg * largest_remnant_fraction)
     predicted_bound_mass_kg = max(0.0, parent_mass_kg * bound_mass_fraction)
@@ -905,6 +937,9 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "input_payload": normalized_payload,
         "model_bundle_id": selected_model.get("bundle_id", "unknown_bundle"),
         "parent_mass_kg": parent_mass_kg,
+        "asteroid_density_kg_m3": asteroid_density_kg_m3,
+        "asteroid_type": normalized_payload.get("asteroid_type", "rocky"),
+        "display_radius_km": round(float(display_radius_km), 2) if display_radius_km not in (None, "") and np.isfinite(float(display_radius_km)) else None,
         "largest_remnant_fraction": largest_remnant_fraction,
         "largest_remnant_percent": round(largest_remnant_fraction * 100.0, 1),
         "largest_remnant_mass_kg": largest_remnant_mass_kg,
@@ -1072,9 +1107,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
 
-def main() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), DashboardHandler)
-    print("Serving Mars flyby outcome explorer at http://127.0.0.1:8000")
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind. Default: 127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000, help="Port to serve on. Default: 8000")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    server = ThreadingHTTPServer((args.host, args.port), DashboardHandler)
+    print(f"Serving Mars flyby outcome explorer at http://{args.host}:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

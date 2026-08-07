@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mars Flyby Outcome Explorer</title>
+<style>
+  :root{
+    --bg:#f4f7f1;
+    --panel:#ffffff;
+    --soft:#f8fbf7;
+    --ink:#102133;
+    --muted:#617286;
+    --line:#d7e0d7;
+    --blue:#1f5fbf;
+    --teal:#0f766e;
+    --green:#217346;
+    --gold:#b7791f;
+    --red:#b74d2c;
+    --shadow:0 18px 40px rgba(16,33,51,0.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Segoe UI",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(31,95,191,0.10), transparent 26%),
+      radial-gradient(circle at top right, rgba(15,118,110,0.10), transparent 22%),
+      linear-gradient(180deg, #f8fbf7 0%, var(--bg) 100%);
+  }
+  .page{
+    max-width:1380px;
+    margin:0 auto;
+    padding:24px 16px 40px;
+  }
+  .hero,.card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:24px;
+    box-shadow:var(--shadow);
+  }
+  .hero{
+    padding:24px;
+    margin-bottom:18px;
+  }
+  .hero h1{
+    margin:0 0 8px;
+    font-size:32px;
+    line-height:1.05;
+  }
+  .hero p{
+    margin:0;
+    max-width:920px;
+    font-size:15px;
+    line-height:1.55;
+    color:var(--muted);
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:380px minmax(0, 1fr);
+    gap:18px;
+  }
+  .stack{display:grid;gap:18px}
+  .card{padding:18px}
+  h2,h3{
+    margin:0 0 12px;
+    font-size:18px;
+  }
+  .muted{color:var(--muted)}
+  .section-label{
+    margin:12px 0 8px;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--teal);
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .wide{grid-column:span 2}
+  label{
+    display:block;
+    margin-bottom:4px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  input,select,button{
+    font:inherit;
+  }
+  input,select{
+    width:100%;
+    min-height:42px;
+    border:1px solid #cfd8d2;
+    border-radius:12px;
+    padding:8px 10px;
+    color:var(--ink);
+    background:#fff;
+  }
+  input:focus,select:focus{
+    outline:2px solid rgba(31,95,191,0.16);
+    border-color:var(--blue);
+  }
+  .hint{
+    margin-top:5px;
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.35;
+  }
+  .toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding-top:24px;
+  }
+  .toggle input{
+    width:16px;
+    min-height:auto;
+  }
+  button{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    min-height:42px;
+    border-radius:12px;
+    padding:0 16px;
+    font-weight:700;
+  }
+  .primary-btn{
+    background:var(--blue);
+    color:#fff;
+  }
+  .secondary-btn{
+    background:#fff;
+    color:var(--blue);
+    border:1px solid #c7d7f4;
+  }
+  button[disabled]{
+    opacity:0.45;
+    cursor:not-allowed;
+  }
+  .status{
+    min-height:18px;
+    margin-top:8px;
+    font-size:12px;
+    color:var(--red);
+  }
+  .status.loading{color:var(--blue)}
+  .status.ok{color:var(--green)}
+  .toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .textarea{
+    width:100%;
+    min-height:160px;
+    border:1px solid #cfd8d2;
+    border-radius:14px;
+    padding:12px;
+    color:var(--ink);
+    background:#fff;
+    resize:vertical;
+  }
+  .saved-list{
+    display:grid;
+    gap:10px;
+  }
+  .saved-item{
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:12px;
+    background:var(--soft);
+  }
+  .saved-item strong{
+    display:block;
+    margin-bottom:4px;
+  }
+  .saved-item .meta{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .saved-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .rows{
+    display:grid;
+    gap:10px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding-bottom:8px;
+    border-bottom:1px solid #edf2ee;
+    font-size:13px;
+  }
+  .row:last-child{border-bottom:none;padding-bottom:0}
+  .result-grid{
+    display:grid;
+    grid-template-columns:repeat(5, minmax(0, 1fr));
+    gap:14px;
+  }
+  .metric{
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:12px;
+    background:var(--soft);
+  }
+  .metric .label{
+    margin-bottom:8px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .metric .value{
+    font-size:clamp(18px, 2vw, 22px);
+    font-weight:800;
+    line-height:1.1;
+    margin-bottom:6px;
+    word-break:break-word;
+  }
+  .metric .sub{
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.4;
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:12px;
+    font-weight:700;
+    background:#eef4ff;
+    color:var(--blue);
+  }
+  .pill.high{background:#e6f7ec;color:var(--green)}
+  .pill.moderate{background:#fff6df;color:var(--gold)}
+  .pill.low{background:#fdebe7;color:var(--red)}
+  .viz-grid{
+    display:grid;
+    grid-template-columns:1.08fr 0.92fr;
+    gap:16px;
+    align-items:start;
+  }
+  .storyboard{
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:12px;
+    background:linear-gradient(180deg, #081220 0%, #122137 100%);
+  }
+  .storyboard img{
+    display:block;
+    width:100%;
+    height:auto;
+    border-radius:14px;
+    background:#0f1a2c;
+  }
+  .storyboard-controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-top:12px;
+  }
+  .storyboard-controls button{
+    min-height:38px;
+    padding:0 12px;
+  }
+  .storyboard-meta{
+    flex:1;
+    text-align:center;
+    color:#eef4ff;
+  }
+  .storyboard-meta strong{
+    display:block;
+    margin-bottom:3px;
+    font-size:13px;
+  }
+  .storyboard-meta span{
+    font-size:12px;
+    color:#c7d5ea;
+  }
+  .storyboard-step{
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+    color:#8fd6cf;
+    font-weight:700;
+    letter-spacing:0.02em;
+  }
+  .story{
+    display:grid;
+    gap:12px;
+  }
+  .story-box{
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:14px;
+    background:var(--soft);
+  }
+  .story-box strong{
+    display:block;
+    margin-bottom:6px;
+  }
+  .details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  .inline-details{
+    margin-top:14px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    background:var(--soft);
+    padding:12px;
+  }
+  .inline-details summary{
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+    color:var(--teal);
+  }
+  .inline-details .form-grid label,
+  .inline-details .hint{
+    font-size:10px;
+  }
+  .inline-details input{
+    min-height:36px;
+    font-size:13px;
+  }
+  details summary{
+    cursor:pointer;
+    font-weight:700;
+  }
+  @media (max-width: 1180px){
+    .layout{grid-template-columns:1fr}
+    .result-grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .viz-grid,.details-grid{grid-template-columns:1fr}
+  }
+  @media (max-width: 720px){
+    .form-grid,.result-grid{grid-template-columns:1fr}
+    .wide{grid-column:span 1}
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="hero">
+    <h1 id="page-title">Mars Tidal Disruption Screening Explorer</h1>
+    <p id="page-subtitle">One hypothesis for the origin of Mars's moons is that a close-flying asteroid was torn apart by Mars's gravity, a process called tidal disruption. Some of this debris may have remained bound to Mars and later contributed to moon formation. This tool uses models trained on SPH simulations to explore which flyby conditions produce disruption and retain debris around Mars.</p>
+  </section>
+
+  <section class="layout">
+    <section class="stack">
+      <article class="card">
+        <h2>Main User Inputs</h2>
+        <form id="explorer-form">
+          <div class="form-grid">
+            <div class="wide">
+              <label for="case_name">Scenario name</label>
+              <input id="case_name" type="text" placeholder="mars_flyby_demo">
+            </div>
+
+            <div>
+              <label for="input_mode">Primary size input</label>
+              <select id="input_mode">
+                <option value="mass">Asteroid mass</option>
+                <option value="size">Asteroid size</option>
+              </select>
+            </div>
+            <div>
+              <label for="asteroid_type">Asteroid type</label>
+              <select id="asteroid_type">
+                <option value="rocky">Rocky</option>
+                <option value="metallic" disabled>Metallic (unsupported)</option>
+                <option value="icy" disabled>Icy (unsupported)</option>
+                <option value="custom" disabled>Custom (unsupported)</option>
+              </select>
+              <div class="hint">Current trained archive supports rocky-type assumptions only.</div>
+            </div>
+
+            <div id="mass-input-wrap">
+              <label for="mass_log10_kg">Asteroid mass, log10(kg)</label>
+              <input id="mass_log10_kg" type="number" step="0.01">
+              <div class="hint" id="range-mass_log10_kg"></div>
+            </div>
+            <div id="radius-input-wrap">
+              <label for="asteroid_radius_km_input">Asteroid radius (km)</label>
+              <input id="asteroid_radius_km_input" type="number" step="0.1">
+              <div class="hint">If size is used, the dashboard converts radius and density into equivalent mass.</div>
+            </div>
+
+            <div>
+              <label for="asteroid_density_kg_m3">Asteroid bulk density (kg/m³)</label>
+              <input id="asteroid_density_kg_m3" type="number" step="1">
+              <div class="hint">Default 2700 kg/m³ is a typical rocky-asteroid bulk-density assumption.</div>
+            </div>
+            <div>
+              <label for="periapsis_Rm">Closest approach / periapsis (Mars radii)</label>
+              <input id="periapsis_Rm" type="number" step="0.1">
+              <div class="hint" id="range-periapsis_Rm"></div>
+            </div>
+
+            <div>
+              <label for="encounter_eccentricity">Orbit shape / eccentricity</label>
+              <input id="encounter_eccentricity" type="number" step="0.01" min="1.0">
+              <div class="hint" id="range-encounter_eccentricity"></div>
+            </div>
+            <div class="toggle">
+              <input id="has_explicit_spin" type="checkbox" checked>
+              <label for="has_explicit_spin" style="margin:0;color:var(--ink)">Include spin</label>
+            </div>
+
+            <div>
+              <label for="spin_axis">Spin orientation</label>
+              <select id="spin_axis">
+                <option value="x">x</option>
+                <option value="y">y</option>
+                <option value="z">z</option>
+              </select>
+            </div>
+            <div>
+              <label for="spin_period_hr">Spin period (hr)</label>
+              <input id="spin_period_hr" type="number" step="0.1">
+              <div class="hint" id="range-spin_period_hr"></div>
+            </div>
+
+            <div class="wide">
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="primary-btn" type="submit">Screen this case</button>
+                <button id="randomize-btn" class="secondary-btn" type="button">Randomize scenario</button>
+              </div>
+              <div id="form-status" class="status"></div>
+            </div>
+          </div>
+
+          <details class="inline-details">
+            <summary>Advanced settings</summary>
+            <div class="form-grid" style="margin-top:12px">
+              <div>
+                <label for="resolution_value">Numerical resolution</label>
+                <input id="resolution_value" type="number" step="1">
+                <div class="hint">Numerical setting for archive alignment.</div>
+              </div>
+              <div>
+                <label for="timestep">Timestep / analysis time</label>
+                <input id="timestep" type="number" step="1">
+                <div class="hint">Kept visible for expert users and reproducibility.</div>
+              </div>
+              <div class="wide">
+                <label for="fof_linking_length">FoF linking length</label>
+                <input id="fof_linking_length" type="number" step="0.0001">
+                <div class="hint">Post-processing sensitivity control; useful for diagnostics, not for physical interpretation.</div>
+              </div>
+            </div>
+          </details>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Bulk Conditions</h2>
+        <div class="rows" style="margin-bottom:12px">
+          <div class="row"><span>CSV upload</span><strong>Run many flyby conditions through the same API</strong></div>
+          <div class="row"><span>Template</span><strong>Download a starter CSV and fill in conditions in bulk</strong></div>
+        </div>
+        <label for="bulk-csv">Paste CSV conditions</label>
+        <textarea id="bulk-csv" class="textarea" placeholder="case_name,mass_log10_kg,periapsis_Rm,encounter_eccentricity,has_explicit_spin,spin_axis,spin_period_hr&#10;demo_1,20.0,2.0,1.0,true,z,3.0"></textarea>
+        <div class="toolbar" style="margin-top:12px">
+          <input id="bulk-file" type="file" accept=".csv,text/csv">
+          <button id="bulk-run-btn" class="primary-btn" type="button">Run bulk upload</button>
+          <button id="bulk-template-btn" class="secondary-btn" type="button">Download CSV template</button>
+          <button id="bulk-results-btn" class="secondary-btn" type="button">Download batch results</button>
+        </div>
+        <div id="bulk-status" class="status"></div>
+      </article>
+
+      <article class="card">
+        <h2>How to Read This</h2>
+        <div class="rows">
+          <div class="row"><span>Disruption class</span><strong>Qualitative regime screen from the fragmentation model</strong></div>
+          <div class="row"><span>Predicted Bound Mass Fraction (BMF)</span><strong>Estimated bound-mass fraction associated with Mars on the deployed target</strong></div>
+          <div class="row"><span>Coverage status</span><strong>Whether this case sits in a well-sampled part of the archive</strong></div>
+          <div class="row"><span>Recommendation</span><strong>Whether ML screening is enough or direct SPH follow-up is warranted</strong></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="stack">
+      <section class="result-grid">
+        <article class="metric">
+          <div class="label">Disruption class</div>
+          <div id="metric-outcome" class="value">-</div>
+          <div id="metric-outcome-sub" class="sub">Run the dashboard to classify the flyby regime.</div>
+        </article>
+        <article class="metric">
+          <div class="label">Predicted Bound Mass Fraction (BMF)</div>
+          <div id="metric-bmf" class="value">-</div>
+          <div id="metric-bmf-sub" class="sub">Bound Mass Fraction (BMF) with a visible held-out MAE range.</div>
+        </article>
+        <article class="metric">
+          <div class="label">Estimated Mars-bound mass</div>
+          <div id="metric-bound-mass" class="value">-</div>
+          <div id="metric-bound-mass-sub" class="sub">Mass equivalent of the predicted BMF on the parent body scale.</div>
+        </article>
+        <article class="metric">
+          <div class="label">Coverage / domain support</div>
+          <div id="metric-support" class="value">-</div>
+          <div id="metric-support-sub" class="sub">Training-range and neighbourhood support summary.</div>
+        </article>
+        <article class="metric">
+          <div class="label">Recommendation</div>
+          <div id="metric-recommendation" class="value">-</div>
+          <div id="metric-recommendation-sub" class="sub">Screening verdict for whether SPH follow-up is needed.</div>
+        </article>
+      </section>
+
+      <section class="card viz-grid">
+        <div class="storyboard">
+          <img id="storyboard-image" alt="Fragmentation storyboard">
+          <div class="storyboard-controls">
+            <button id="storyboard-prev" class="secondary-btn" type="button">Previous</button>
+            <div class="storyboard-meta">
+              <strong id="storyboard-title">Scenario storyboard</strong>
+              <span id="storyboard-caption">Run a case to see a simple three-step flyby sequence.</span>
+              <span id="storyboard-step" class="storyboard-step"></span>
+            </div>
+            <button id="storyboard-next" class="secondary-btn" type="button">Next</button>
+          </div>
+        </div>
+        <div class="story">
+          <div class="story-box">
+            <strong>Scenario summary</strong>
+            <div id="public-summary" class="muted">The dashboard summary will appear here.</div>
+          </div>
+          <div class="story-box">
+            <strong>Decision outputs</strong>
+            <div id="science-summary" class="muted">The model interpretation will summarise disruption severity, retained mass, and whether a dominant remnant survives.</div>
+          </div>
+          <div class="story-box">
+            <strong>Recommendation logic</strong>
+            <div id="timing-summary" class="muted">This panel will explain support level, domain status, and whether ML screening is enough or SPH is recommended.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="details-grid">
+        <article class="card">
+          <h2>Prediction Details</h2>
+          <div id="prediction-rows" class="rows">
+            <div class="row"><span>Awaiting run</span><strong>-</strong></div>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Coverage / Domain Status</h2>
+          <div id="support-pill" class="pill">Awaiting run</div>
+          <div id="support-note" class="muted" style="margin-top:10px">The dashboard will report whether the case is in-range, near-edge, or sparse relative to the archive.</div>
+          <div id="support-rows" class="rows" style="margin-top:14px">
+            <div class="row"><span>Awaiting run</span><strong>-</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <details class="card">
+        <summary>Validation and limits</summary>
+        <div id="validation-note" class="muted" style="margin-top:12px; line-height:1.6">This section summarises model quality and the meaning of the visible uncertainty ranges.</div>
+      </details>
+
+      <article class="card">
+        <h2>Saved Results</h2>
+        <div class="toolbar" style="margin-bottom:12px">
+          <button id="save-result-btn" class="primary-btn" type="button">Save current result</button>
+          <button id="download-current-btn" class="secondary-btn" type="button">Download current JSON</button>
+          <button id="download-saved-btn" class="secondary-btn" type="button">Download saved CSV</button>
+          <button id="clear-saved-btn" class="secondary-btn" type="button">Clear saved</button>
+        </div>
+        <div id="save-status" class="status"></div>
+        <div id="saved-results" class="saved-list">
+          <div class="saved-item">
+            <strong>No saved results yet</strong>
+            <div class="meta">Run and save a scenario to keep a local list in the browser.</div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById("explorer-form");
+  const spinToggle = document.getElementById("has_explicit_spin");
+  const spinAxis = document.getElementById("spin_axis");
+  const spinPeriod = document.getElementById("spin_period_hr");
+  const inputMode = document.getElementById("input_mode");
+  const massInput = document.getElementById("mass_log10_kg");
+  const radiusInput = document.getElementById("asteroid_radius_km_input");
+  const densityInput = document.getElementById("asteroid_density_kg_m3");
+  const asteroidType = document.getElementById("asteroid_type");
+  const resolutionInput = document.getElementById("resolution_value");
+  const timestepInput = document.getElementById("timestep");
+  const fofInput = document.getElementById("fof_linking_length");
+  const randomizeBtn = document.getElementById("randomize-btn");
+  const statusEl = document.getElementById("form-status");
+  const bulkStatusEl = document.getElementById("bulk-status");
+  const saveStatusEl = document.getElementById("save-status");
+  const storyboardImage = document.getElementById("storyboard-image");
+  const storyboardTitle = document.getElementById("storyboard-title");
+  const storyboardCaption = document.getElementById("storyboard-caption");
+  const storyboardStep = document.getElementById("storyboard-step");
+  const storyboardPrev = document.getElementById("storyboard-prev");
+  const storyboardNext = document.getElementById("storyboard-next");
+  const bulkCsvEl = document.getElementById("bulk-csv");
+  const bulkFileEl = document.getElementById("bulk-file");
+  const bulkRunBtn = document.getElementById("bulk-run-btn");
+  const bulkTemplateBtn = document.getElementById("bulk-template-btn");
+  const bulkResultsBtn = document.getElementById("bulk-results-btn");
+  const saveResultBtn = document.getElementById("save-result-btn");
+  const downloadCurrentBtn = document.getElementById("download-current-btn");
+  const downloadSavedBtn = document.getElementById("download-saved-btn");
+  const clearSavedBtn = document.getElementById("clear-saved-btn");
+  const savedResultsEl = document.getElementById("saved-results");
+
+  let metadata = null;
+  let latest = null;
+  let storyboardSlides = [];
+  let storyboardIndex = 0;
+  let latestBatch = null;
+  const SAVED_RESULTS_KEY = "mars_flyby_saved_results_v1";
+
+  function setStatus(el, message, mode = "") {
+    el.textContent = message;
+    el.className = `status${mode ? ` ${mode}` : ""}`;
+  }
+
+  function updateActionStates() {
+    const hasCurrent = Boolean(latest);
+    const hasSaved = getSavedResults().length > 0;
+    const hasBatch = Boolean(latestBatch);
+    downloadCurrentBtn.disabled = !hasCurrent;
+    saveResultBtn.disabled = !hasCurrent;
+    downloadSavedBtn.disabled = !hasSaved;
+    clearSavedBtn.disabled = !hasSaved;
+    bulkResultsBtn.disabled = !hasBatch;
+  }
+
+  function setSpinState() {
+    const enabled = spinToggle.checked;
+    spinAxis.disabled = !enabled;
+    spinPeriod.disabled = !enabled;
+  }
+
+  function setMassSizeState() {
+    const useSize = inputMode.value === "size";
+    massInput.disabled = useSize;
+    radiusInput.disabled = !useSize;
+    document.getElementById("mass-input-wrap").style.opacity = useSize ? 0.55 : 1;
+    document.getElementById("radius-input-wrap").style.opacity = useSize ? 1 : 0.55;
+  }
+
+  function formatKg(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) return "0 kg";
+    const [mantissa, exponent] = n.toExponential(1).split("e");
+    return `${mantissa} × 10^${Number(exponent)} kg`;
+  }
+
+  function supportClass(level) {
+    const text = String(level || "").toLowerCase();
+    if (text === "high") return "high";
+    if (text === "moderate") return "moderate";
+    return "low";
+  }
+
+  function randomInRange(min, max, step = 0.01) {
+    const span = Math.max(0, Math.round((max - min) / step));
+    const value = min + Math.round(Math.random() * span) * step;
+    return Number(value.toFixed(String(step).split(".")[1]?.length || 0));
+  }
+
+  function choose(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  function radiusFromMassLog10(massLog10, density) {
+    const massKg = 10 ** Number(massLog10);
+    const radiusM = ((3 * massKg) / (4 * Math.PI * Number(density))) ** (1 / 3);
+    return radiusM / 1000;
+  }
+
+  function massLog10FromRadius(radiusKm, density) {
+    const massKg = (4 / 3) * Math.PI * (Number(radiusKm) * 1000) ** 3 * Number(density);
+    return Math.log10(massKg);
+  }
+
+  function applyMetadata(meta) {
+    metadata = meta;
+    document.getElementById("page-title").textContent = meta.title || "Mars Tidal Disruption Screening Explorer";
+    document.getElementById("page-subtitle").textContent = meta.subtitle || "";
+    for (const [key, value] of Object.entries(meta.defaults || {})) {
+      const el = document.getElementById(key);
+      if (!el) continue;
+      if (el.type === "checkbox") {
+        el.checked = Boolean(value);
+      } else {
+        el.value = value;
+      }
+    }
+    for (const [key, range] of Object.entries(meta.ranges || {})) {
+      const hint = document.getElementById(`range-${key}`);
+      if (hint) hint.textContent = `Archive range: ${Number(range.min).toFixed(2)} to ${Number(range.max).toFixed(2)}`;
+    }
+    setSpinState();
+    setMassSizeState();
+    const validation = meta.model_validation || {};
+    const bmf = validation.bmf_model || {};
+    document.getElementById("validation-note").textContent =
+      `The bound-material model was validated with grouped cross-validation. ` +
+      `Current grouped-CV R²: ${Number(bmf.grouped_cv_r2 || 0).toFixed(3)}. ` +
+      `The visible ± range on BMF uses the grouped-CV mean absolute error of ` +
+      `${Number(bmf.grouped_cv_mae_percentage_points || 0).toFixed(2)} percentage points. ` +
+      `${validation.consistency_note || ""} ${validation.limitations_note || ""}`.trim();
+    renderPlaceholderStoryboard();
+    renderSavedResults();
+    setStatus(statusEl, "Dashboard loaded and ready.", "ok");
+  }
+
+  function payloadFromForm() {
+    const density = Number(densityInput.value || metadata?.defaults?.asteroid_density_kg_m3 || 2700);
+    const inputModeValue = inputMode.value;
+    const radiusKm = radiusInput.value === "" ? null : Number(radiusInput.value);
+    let massLog10 = Number(massInput.value);
+    if (inputModeValue === "size") {
+      if (!Number.isFinite(radiusKm) || radiusKm <= 0) {
+        throw new Error("Asteroid radius must be positive when size mode is selected.");
+      }
+      if (!Number.isFinite(density) || density <= 0) {
+        throw new Error("Density must be positive when size mode is selected.");
+      }
+      massLog10 = massLog10FromRadius(radiusKm, density);
+    }
+    return {
+      case_name: document.getElementById("case_name").value,
+      input_mode: inputModeValue,
+      mass_log10_kg: massLog10,
+      asteroid_radius_km_input: radiusKm,
+      asteroid_density_kg_m3: density,
+      asteroid_type: asteroidType.value,
+      periapsis_Rm: Number(document.getElementById("periapsis_Rm").value),
+      encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value),
+      has_explicit_spin: spinToggle.checked,
+      spin_axis: spinAxis.value,
+      spin_period_hr: spinToggle.checked ? Number(spinPeriod.value) : null,
+      resolution_value: Number(resolutionInput.value),
+      timestep: Number(timestepInput.value),
+      fof_linking_length: Number(fofInput.value),
+    };
+  }
+
+  function randomizeScenario() {
+    if (!metadata) return;
+    const ranges = metadata.ranges || {};
+    const defaults = metadata.defaults || {};
+    const spinOn = Math.random() > 0.5;
+    const mass = randomInRange(ranges.mass_log10_kg.min, ranges.mass_log10_kg.max, 0.5);
+    const density = Number(densityInput.value || defaults.asteroid_density_kg_m3 || 2700);
+    document.getElementById("case_name").value = `random_case_${Math.floor(Math.random() * 10000)}`;
+    massInput.value = mass;
+    radiusInput.value = radiusFromMassLog10(mass, density).toFixed(1);
+    document.getElementById("periapsis_Rm").value = randomInRange(ranges.periapsis_Rm.min, ranges.periapsis_Rm.max, 0.1);
+    document.getElementById("encounter_eccentricity").value = randomInRange(Math.max(1.0, ranges.encounter_eccentricity.min), ranges.encounter_eccentricity.max, 0.01);
+    spinToggle.checked = spinOn;
+    spinAxis.value = choose((metadata.choices && metadata.choices.spin_axis) || ["x", "y", "z"]);
+    spinPeriod.value = spinOn ? randomInRange(ranges.spin_period_hr.min, ranges.spin_period_hr.max, 0.1) : (defaults.spin_period_hr ?? 3.0);
+    asteroidType.value = choose((metadata.choices && metadata.choices.asteroid_type) || ["rocky"]);
+    resolutionInput.value = defaults.resolution_value;
+    timestepInput.value = defaults.timestep;
+    fofInput.value = defaults.fof_linking_length;
+    setSpinState();
+    setMassSizeState();
+    statusEl.textContent = "";
+  }
+
+  function renderSupport(payload) {
+    const pill = document.getElementById("support-pill");
+    pill.textContent = `${payload.support_level} support`;
+    pill.className = `pill ${supportClass(payload.support_level)}`;
+    document.getElementById("support-note").textContent = payload.support_reason;
+    document.getElementById("support-rows").innerHTML = [
+      ["Support score", `${Number(payload.support_score).toFixed(0)}/100`],
+      ["Training range", payload.training_range_status],
+      ["Edge status", payload.edge_status],
+      ["Nearby archive runs", String(payload.nearby_run_count)],
+      ["Model spread", `${Number(payload.model_spread_percentage_points).toFixed(2)} pp`],
+      ["Recommendation basis", payload.recommendation_reason],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  }
+
+  function svgDataUri(svg) {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function buildSlideSvg(stage, payload) {
+    const vis = payload.visualization || {};
+    const outcome = String(vis.predicted_outcome || "");
+    const fragmented = outcome === "Strong fragmentation" || outcome === "Fragmented";
+    const bmf = Number(vis.predicted_bmf || 0);
+    const largest = Number(vis.largest_remnant_fraction || 0);
+    const tidal = Number(vis.tidal_disruption_radius_rm || 2.7);
+    const peri = Number(vis.periapsis_rm || 2.0);
+    const marsX = 250;
+    const marsY = 210;
+    const tidalR = 65 + tidal * 18;
+    const periR = 65 + peri * 18;
+    const debrisOpacity = Math.max(0.25, Math.min(0.95, 0.25 + bmf));
+    const remnantR = 14 + Math.max(0, largest) * 24;
+
+    let extras = "";
+    if (stage === 0) {
+      extras = `
+        <ellipse cx="500" cy="210" rx="210" ry="70" fill="none" stroke="rgba(150,200,255,0.30)" stroke-width="3"/>
+        <circle cx="680" cy="170" r="18" fill="#f6d693"/>
+        <text x="645" y="205" fill="#d9e8ff" font-size="18">incoming asteroid</text>
+      `;
+    } else if (stage === 1) {
+      extras = fragmented
+        ? Array.from({length: 14}, (_, i) => {
+            const x = 510 + Math.cos(i * 0.45) * (20 + i * 7);
+            const y = 210 + Math.sin(i * 0.45) * (12 + i * 5);
+            const r = i < 5 ? 8 : 4;
+            const c = i < 5 ? "#f7c56b" : "#dce9ff";
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${c}"/>`;
+          }).join("")
+        : `<circle cx="520" cy="210" r="20" fill="#f6d693"/>`;
+      extras += `
+        <ellipse cx="${marsX}" cy="${marsY}" rx="${periR}" ry="${Math.max(40, periR * 0.55)}" fill="none" stroke="rgba(150,200,255,0.22)" stroke-width="3"/>
+        <text x="450" y="80" fill="#d9e8ff" font-size="18">${fragmented ? "peak tidal fragmentation" : "closest approach"}</text>
+      `;
+    } else {
+      const debrisCount = Math.max(4, Math.round(4 + bmf * 18));
+      extras = Array.from({length: debrisCount}, (_, i) => {
+        const angle = i * (Math.PI * 2 / debrisCount);
+        const x = marsX + Math.cos(angle) * (tidalR - 30);
+        const y = marsY + Math.sin(angle) * (tidalR - 55) * 0.7;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="rgba(131,243,175,${debrisOpacity.toFixed(2)})"/>`;
+      }).join("");
+      extras += `
+        <circle cx="650" cy="145" r="${remnantR.toFixed(1)}" fill="#fce2a0"/>
+        <text x="598" y="205" fill="#d9e8ff" font-size="18">largest remnant</text>
+        <text x="445" y="78" fill="#d9e8ff" font-size="18">post-flyby configuration</text>
+      `;
+    }
+
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
+        <defs>
+          <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#09131f"/>
+            <stop offset="100%" stop-color="#13243b"/>
+          </linearGradient>
+          <radialGradient id="mars" cx="40%" cy="35%">
+            <stop offset="0%" stop-color="#d78b54"/>
+            <stop offset="100%" stop-color="#8e4c2c"/>
+          </radialGradient>
+        </defs>
+        <rect width="820" height="420" fill="url(#bg)"/>
+        <circle cx="${marsX}" cy="${marsY}" r="${tidalR}" fill="none" stroke="rgba(245,158,11,0.35)" stroke-width="4" stroke-dasharray="12 10"/>
+        <circle cx="${marsX}" cy="${marsY}" r="48" fill="url(#mars)"/>
+        <text x="${marsX - 22}" y="${marsY + 78}" fill="#ffffff" font-size="18">Mars</text>
+        <text x="${marsX + tidalR + 12}" y="${marsY - 4}" fill="#f9d699" font-size="16">tidal zone</text>
+        ${extras}
+      </svg>
+    `;
+  }
+
+  function buildStoryboardSlides(payload) {
+    return [
+      {
+        title: "1. Approach",
+        caption: `The asteroid approaches on a hyperbolic flyby with periapsis ${Number(payload.input_payload.periapsis_Rm).toFixed(2)} R_Mars and eccentricity ${Number(payload.encounter_eccentricity).toFixed(2)}.`,
+        image: svgDataUri(buildSlideSvg(0, payload)),
+      },
+      {
+        title: "2. Closest Approach",
+        caption: payload.predicted_outcome === "Mostly intact"
+          ? "At periapsis the body remains largely coherent in this surrogate prediction."
+          : "Near periapsis the surrogate expects tidal stripping or fragmentation rather than a clean intact pass.",
+        image: svgDataUri(buildSlideSvg(1, payload)),
+      },
+      {
+        title: "3. After Flyby",
+        caption: `Post-flyby, predicted BMF is ${Number(payload.predicted_bmf_percent).toFixed(1)}% and the recommendation is ${payload.recommendation.toLowerCase()}.`,
+        image: svgDataUri(buildSlideSvg(2, payload)),
+      },
+    ];
+  }
+
+  function renderStoryboard() {
+    if (!storyboardSlides.length) return;
+    const slide = storyboardSlides[storyboardIndex];
+    storyboardImage.src = slide.image;
+    storyboardTitle.textContent = slide.title;
+    storyboardCaption.textContent = slide.caption;
+    const total = storyboardSlides.length;
+    const atFirst = storyboardIndex === 0;
+    const atLast = storyboardIndex === total - 1;
+    storyboardPrev.style.display = atFirst ? "none" : "inline-flex";
+    storyboardNext.style.display = atLast ? "none" : "inline-flex";
+    storyboardStep.textContent = atLast ? `Step ${storyboardIndex + 1} of ${total} • Last step` : `Step ${storyboardIndex + 1} of ${total}`;
+  }
+
+  function renderPlaceholderStoryboard() {
+    storyboardSlides = [{
+      title: "Scenario storyboard",
+      caption: "Run a case to step through simple before, during, and after flyby images.",
+      image: svgDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
+          <rect width="820" height="420" fill="#0f1a2c"/>
+          <circle cx="240" cy="220" r="50" fill="#99522f"/>
+          <circle cx="650" cy="170" r="18" fill="#f6d693"/>
+          <text x="80" y="90" fill="#e8f0ff" font-size="28">Run a scenario</text>
+          <text x="80" y="130" fill="#c3d4ea" font-size="18">to see a simple fragmentation storyboard here.</text>
+        </svg>
+      `),
+    }];
+    storyboardIndex = 0;
+    renderStoryboard();
+    updateActionStates();
+  }
+
+  function renderDetails(payload) {
+    latest = payload;
+    document.getElementById("metric-outcome").textContent = payload.predicted_outcome;
+    document.getElementById("metric-outcome-sub").textContent =
+      `${payload.fragmentation_probability_pct.toFixed(1)}% disruption-class probability from the classifier.`;
+    document.getElementById("metric-bmf").textContent =
+      `${payload.predicted_bmf_percent.toFixed(1)}% ± ${payload.predicted_bmf_uncertainty_percentage_points.toFixed(1)} pp`;
+    document.getElementById("metric-bmf-sub").textContent = payload.bmf_threshold_detail;
+    document.getElementById("metric-bound-mass").textContent = formatKg(payload.predicted_bound_mass_kg);
+    document.getElementById("metric-bound-mass-sub").textContent =
+      `Equivalent to ${payload.predicted_bmf_percent.toFixed(1)}% of the parent-body mass on the deployed BMF definition.`;
+    document.getElementById("metric-support").textContent = payload.support_level;
+    document.getElementById("metric-support-sub").textContent = payload.support_reason;
+    document.getElementById("metric-recommendation").textContent = payload.recommendation;
+    document.getElementById("metric-recommendation-sub").textContent = payload.recommendation_reason;
+
+    document.getElementById("public-summary").textContent = payload.public_summary;
+    document.getElementById("science-summary").textContent =
+      `${payload.predicted_outcome_detail} Largest-remnant estimate: ${payload.largest_remnant_percent.toFixed(1)}% of the parent body. Bound retained material estimate: ${payload.predicted_bmf_percent.toFixed(1)}%.`;
+    document.getElementById("timing-summary").textContent =
+      `${payload.support_reason} Recommendation: ${payload.recommendation}. Domain status: ${payload.training_range_status}, ${payload.edge_status.toLowerCase()}.`;
+
+    document.getElementById("prediction-rows").innerHTML = [
+      ["Input mode", payload.input_payload.input_mode === "size" ? "Size-derived mass" : "Direct mass"],
+      ["Asteroid type", payload.asteroid_type || payload.input_payload.asteroid_type || "rocky"],
+      ["Asteroid density", `${Number(payload.asteroid_density_kg_m3).toFixed(0)} kg/m³`],
+      ["Equivalent parent mass", `${Number(payload.input_payload.mass_log10_kg).toFixed(3)} log10 kg`],
+      ["Displayed radius", payload.display_radius_km == null ? "n/a" : `${Number(payload.display_radius_km).toFixed(1)} km`],
+      ["Periapsis", `${Number(payload.input_payload.periapsis_Rm).toFixed(2)} R_Mars`],
+      ["Eccentricity", Number(payload.encounter_eccentricity).toFixed(2)],
+      ["Spin", payload.input_payload.has_explicit_spin ? `${payload.input_payload.spin_axis}-axis, ${Number(payload.input_payload.spin_period_hr).toFixed(1)} hr` : "No explicit spin"],
+      ["Numerical resolution", String(Math.round(Number(payload.input_payload.resolution_value)))],
+      ["Timestep", String(Math.round(Number(payload.input_payload.timestep)))],
+      ["FoF linking length", Number(payload.input_payload.fof_linking_length).toFixed(4)],
+      ["Largest remnant", `${payload.largest_remnant_percent.toFixed(1)}% ± ${payload.largest_remnant_uncertainty_percentage_points.toFixed(1)} pp`],
+      ["Predicted bound mass", formatKg(payload.predicted_bound_mass_kg)],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+
+    renderSupport(payload);
+    storyboardSlides = buildStoryboardSlides(payload);
+    storyboardIndex = 0;
+    renderStoryboard();
+    setStatus(statusEl, `Finished loading results for ${payload.case_name}.`, "ok");
+    updateActionStates();
+  }
+
+  function autosaveLatestResult() {
+    if (!latest) return;
+    const rows = getSavedResults();
+    rows.push(latest);
+    setSavedResults(rows);
+    renderSavedResults();
+    setStatus(saveStatusEl, `Auto-saved result for ${latest.case_name}.`, "ok");
+    updateActionStates();
+  }
+
+  function getSavedResults() {
+    try {
+      return JSON.parse(localStorage.getItem(SAVED_RESULTS_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function setSavedResults(rows) {
+    localStorage.setItem(SAVED_RESULTS_KEY, JSON.stringify(rows));
+  }
+
+  function renderSavedResults() {
+    const rows = getSavedResults();
+    if (!rows.length) {
+      savedResultsEl.innerHTML = `
+        <div class="saved-item">
+          <strong>No saved results yet</strong>
+          <div class="meta">Run and save a scenario to keep a local list in the browser.</div>
+        </div>`;
+      return;
+    }
+    savedResultsEl.innerHTML = rows.slice().reverse().map((row, reverseIndex) => {
+      const index = rows.length - 1 - reverseIndex;
+      return `
+        <div class="saved-item">
+          <strong>${row.case_name || "unnamed_case"}</strong>
+          <div class="meta">${row.prediction_timestamp || ""} | ${row.predicted_outcome} | BMF ${Number(row.predicted_bmf_percent || 0).toFixed(1)}%</div>
+          <div class="saved-actions">
+            <button class="secondary-btn" type="button" onclick="loadSavedResult(${index})">Load</button>
+            <button class="secondary-btn" type="button" onclick="deleteSavedResult(${index})">Delete</button>
+          </div>
+        </div>`;
+    }).join("");
+    updateActionStates();
+  }
+
+  function csvEscape(value) {
+    const text = value == null ? "" : String(value);
+    if (/[",\n]/.test(text)) {
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+    return text;
+  }
+
+  function downloadText(filename, text, mime = "text/plain;charset=utf-8") {
+    const blob = new Blob([text], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function savedResultsToCsv(rows) {
+    const columns = [
+      "prediction_timestamp","case_name","predicted_outcome","predicted_bmf_percent",
+      "predicted_bound_mass_kg","largest_remnant_percent","support_level","recommendation",
+      "periapsis_Rm","encounter_eccentricity","mass_log10_kg","asteroid_type"
+    ];
+    return [
+      columns.join(","),
+      ...rows.map((row) => columns.map((col) => {
+        if (col in row) return csvEscape(row[col]);
+        if (row.input_payload && col in row.input_payload) return csvEscape(row.input_payload[col]);
+        return "";
+      }).join(",")),
+    ].join("\n");
+  }
+
+  function batchResultsToCsv(batch) {
+    const columns = [
+      "row_number","case_name","prediction_timestamp","predicted_outcome","predicted_bmf_percent",
+      "predicted_bound_mass_kg","largest_remnant_percent","support_level","recommendation","error"
+    ];
+    const lines = [columns.join(",")];
+    for (const item of batch.results || []) {
+      const result = item.result || {};
+      lines.push(columns.map((col) => {
+        const value =
+          col === "row_number" ? item.row_number :
+          col === "error" ? "" :
+          (result[col] ?? result.input_payload?.[col] ?? "");
+        return csvEscape(value);
+      }).join(","));
+    }
+    for (const item of batch.errors || []) {
+      lines.push(columns.map((col) => {
+        const value =
+          col === "row_number" ? item.row_number :
+          col === "case_name" ? item.case_name :
+          col === "error" ? item.error :
+          "";
+        return csvEscape(value);
+      }).join(","));
+    }
+    return lines.join("\n");
+  }
+
+  function saveCurrentResult() {
+    if (!latest) {
+      setStatus(saveStatusEl, "No current result to save.", "");
+      return;
+    }
+    const rows = getSavedResults();
+    rows.push(latest);
+    setSavedResults(rows);
+    renderSavedResults();
+    setStatus(saveStatusEl, `Saved result for ${latest.case_name}.`, "ok");
+    updateActionStates();
+  }
+
+  window.loadSavedResult = function(index) {
+    const rows = getSavedResults();
+    const item = rows[index];
+    if (!item) return;
+    latest = item;
+    renderDetails(item);
+    setStatus(saveStatusEl, `Loaded saved result for ${item.case_name}.`, "ok");
+  };
+
+  window.deleteSavedResult = function(index) {
+    const rows = getSavedResults();
+    rows.splice(index, 1);
+    setSavedResults(rows);
+    renderSavedResults();
+    setStatus(saveStatusEl, "Deleted saved result.", "ok");
+    updateActionStates();
+  };
+
+  async function loadMetadata() {
+    const response = await fetch("/api/metadata");
+    if (!response.ok) throw new Error("Failed to load metadata");
+    applyMetadata(await response.json());
+  }
+
+  async function runPrediction() {
+    setStatus(statusEl, "Running prediction and loading results...", "loading");
+    const response = await fetch("/api/predict", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payloadFromForm()),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Prediction failed");
+    renderDetails(payload);
+    autosaveLatestResult();
+  }
+
+  async function runBulkPrediction() {
+    const csvText = bulkCsvEl.value.trim();
+    if (!csvText) {
+      throw new Error("Paste CSV conditions or upload a CSV file first.");
+    }
+    setStatus(bulkStatusEl, "Uploading bulk conditions and waiting for batch results...", "loading");
+    const response = await fetch("/api/predict-batch", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({csv_text: csvText}),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Bulk prediction failed");
+    latestBatch = payload;
+    setStatus(
+      bulkStatusEl,
+      `Finished bulk run: ${payload.success_count}/${payload.total_rows} succeeded, ${payload.error_count} errors.`,
+      "ok"
+    );
+    updateActionStates();
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await runPrediction();
+    } catch (error) {
+      setStatus(statusEl, error.message, "");
+    }
+  });
+
+  bulkRunBtn.addEventListener("click", async () => {
+    try {
+      await runBulkPrediction();
+    } catch (error) {
+      setStatus(bulkStatusEl, error.message, "");
+    }
+  });
+
+  bulkTemplateBtn.addEventListener("click", () => {
+    const rows = [
+      "case_name,mass_log10_kg,periapsis_Rm,encounter_eccentricity,has_explicit_spin,spin_axis,spin_period_hr,input_mode,asteroid_radius_km_input,asteroid_density_kg_m3,asteroid_type,resolution_value,timestep,fof_linking_length",
+      "demo_case_001,20.0,2.0,1.0,true,z,3.0,mass,,2700,rocky,65,90000,0.0040",
+    ];
+    downloadText("mars_flyby_batch_template.csv", rows.join("\n"), "text/csv;charset=utf-8");
+    setStatus(bulkStatusEl, "Downloaded batch CSV template.", "ok");
+  });
+
+  bulkResultsBtn.addEventListener("click", () => {
+    if (!latestBatch) {
+      setStatus(bulkStatusEl, "No batch results available yet.", "");
+      return;
+    }
+    downloadText("mars_flyby_batch_results.csv", batchResultsToCsv(latestBatch), "text/csv;charset=utf-8");
+    setStatus(bulkStatusEl, "Downloaded batch results CSV.", "ok");
+  });
+
+  bulkFileEl.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    bulkCsvEl.value = await file.text();
+    setStatus(bulkStatusEl, `Loaded ${file.name}. Ready to run bulk upload.`, "ok");
+  });
+
+  saveResultBtn.addEventListener("click", saveCurrentResult);
+  downloadCurrentBtn.addEventListener("click", () => {
+    if (!latest) {
+      setStatus(saveStatusEl, "No current result to download.", "");
+      return;
+    }
+    downloadText(`${latest.case_name || "mars_flyby_result"}.json`, JSON.stringify(latest, null, 2), "application/json;charset=utf-8");
+    setStatus(saveStatusEl, `Downloaded JSON for ${latest.case_name}.`, "ok");
+  });
+  downloadSavedBtn.addEventListener("click", () => {
+    const rows = getSavedResults();
+    if (!rows.length) {
+      setStatus(saveStatusEl, "No saved results to export.", "");
+      return;
+    }
+    downloadText("mars_flyby_saved_results.csv", savedResultsToCsv(rows), "text/csv;charset=utf-8");
+    setStatus(saveStatusEl, "Downloaded saved results CSV.", "ok");
+  });
+  clearSavedBtn.addEventListener("click", () => {
+    setSavedResults([]);
+    renderSavedResults();
+    setStatus(saveStatusEl, "Cleared saved results.", "ok");
+    updateActionStates();
+  });
+
+  spinToggle.addEventListener("change", setSpinState);
+  inputMode.addEventListener("change", setMassSizeState);
+  randomizeBtn.addEventListener("click", randomizeScenario);
+  storyboardPrev.addEventListener("click", () => {
+    storyboardIndex = Math.max(0, storyboardIndex - 1);
+    renderStoryboard();
+  });
+  storyboardNext.addEventListener("click", () => {
+    storyboardIndex = Math.min(storyboardSlides.length - 1, storyboardIndex + 1);
+    renderStoryboard();
+  });
+
+  loadMetadata().catch((error) => {
+    setStatus(statusEl, error.message, "");
+  });
+</script>
+</body>
+</html>

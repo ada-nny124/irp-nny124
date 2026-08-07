@@ -32,7 +32,7 @@ scratch/
 ml/training_artifacts/catboost_info/
 
 # Generated analysis outputs
-archived/
+analysis/
 analysis/screening_scenarios_2026-07-22/
 docs/updates/
 figures/

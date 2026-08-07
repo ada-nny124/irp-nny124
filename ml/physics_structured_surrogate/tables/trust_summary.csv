@@ -1,2 +1,0 @@
-promoted_model,feature_set,include_physics_features,spread_threshold,high_confidence_rows,medium_confidence_rows,low_confidence_rows
-physics-feature RF,with_fof_linking_length,True,0.009678327284758106,40,254,113

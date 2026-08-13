@@ -781,7 +781,7 @@
 
       <details class="card">
         <summary>Validation and limits</summary>
-        <div id="validation-note" class="muted" style="margin-top:12px; line-height:1.6">This section summarises model quality and the meaning of the visible uncertainty ranges.</div>
+        <div id="validation-note" class="muted" style="margin-top:12px; line-height:1.6">This section summarises model quality, typical grouped held-out error, and where local support is weaker.</div>
       </details>
 
       <article class="card">
@@ -825,7 +825,7 @@
           </div>
           <div class="sensitivity-legend">
             <div><span class="legend-line"></span><span>Blue line = model prediction</span></div>
-            <div><span class="legend-band"></span><span>Amber band = prediction uncertainty</span></div>
+            <div><span class="legend-band"></span><span>Amber band = typical grouped held-out error</span></div>
             <div><span class="legend-dot"></span><span>Large dot = currently selected input</span></div>
             <div><span class="legend-grey"></span><span>Grey area = outside the training range</span></div>
           </div>
@@ -1159,7 +1159,7 @@
       ["Training range", payload.training_range_status],
       ["Edge status", payload.edge_status],
       ["Nearby archive runs", String(payload.nearby_run_count)],
-      ["Model spread", `${Number(payload.model_spread_percentage_points).toFixed(2)} pp`],
+      ["Model disagreement", `${Number(payload.model_spread_percentage_points).toFixed(2)} pp`],
       ["Recommendation basis", payload.recommendation_reason],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
   }
@@ -1210,7 +1210,7 @@
       mass: Number(document.getElementById("mass_log10_kg").value || payload.mass_log10_kg || metadata?.defaults?.mass_log10_kg || 20.0),
       spin: Number(document.getElementById("spin_period_hr").value || payload.spin_period_hr || metadata?.defaults?.spin_period_hr || 3.0),
       boundPercent: Number(latest?.predicted_bmf_percent ?? 0),
-      uncertaintyPp: Number(latest?.predicted_bmf_uncertainty_percentage_points ?? metadata?.model_validation?.bmf_model?.grouped_cv_mae_percentage_points ?? 3.0),
+      uncertaintyPp: Number(latest?.predicted_bmf_typical_absolute_error_percentage_points ?? metadata?.model_validation?.bmf_model?.grouped_cv_mae_percentage_points ?? 3.0),
     };
   }
 

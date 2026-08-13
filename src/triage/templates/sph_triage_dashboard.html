@@ -169,6 +169,18 @@
     display:grid;
     gap:10px;
   }
+  .saved-pagination{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:8px;
+    margin-top:12px;
+  }
+  .saved-page-note{
+    font-size:12px;
+    color:var(--muted);
+    margin-right:auto;
+  }
   .saved-item{
     border:1px solid var(--line);
     border-radius:16px;
@@ -219,7 +231,7 @@
     color:var(--muted);
   }
   .metric .value{
-    font-size:clamp(18px, 2vw, 22px);
+    font-size:clamp(17px, 1.8vw, 20px);
     font-weight:800;
     line-height:1.1;
     margin-bottom:6px;
@@ -230,6 +242,65 @@
     color:var(--muted);
     line-height:1.4;
   }
+  .split-card{
+    padding:14px 16px 16px;
+  }
+  .split-header{
+    margin-bottom:10px;
+  }
+  .split-header strong{
+    font-size:14px;
+  }
+  .split-bar{
+    position:relative;
+    height:14px;
+    border-radius:999px;
+    overflow:hidden;
+    background:#e7edf4;
+    border:1px solid #d6e0ea;
+  }
+  .split-bar-bound,
+  .split-bar-unbound{
+    position:absolute;
+    top:0;
+    bottom:0;
+  }
+  .split-bar-bound{
+    left:0;
+    background:linear-gradient(90deg, #2f9d68 0%, #58bb88 100%);
+  }
+  .split-bar-unbound{
+    right:0;
+    background:linear-gradient(90deg, #efb14d 0%, #dd7b2a 100%);
+  }
+  .split-legend{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:10px;
+  }
+  .split-legend-item{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:6px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .split-legend-item strong{
+    color:var(--ink);
+    font-size:13px;
+  }
+  .swatch{
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    display:inline-block;
+    margin-right:6px;
+  }
+  .swatch.bound{background:#3da975}
+  .swatch.unbound{background:#e18a31}
+  .swatch.remnant{background:#4f81df}
   .pill{
     display:inline-flex;
     align-items:center;
@@ -264,33 +335,24 @@
     background:#0f1a2c;
   }
   .storyboard-controls{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
     margin-top:12px;
   }
-  .storyboard-controls button{
-    min-height:38px;
-    padding:0 12px;
-  }
   .storyboard-meta{
-    flex:1;
-    text-align:center;
     color:#eef4ff;
   }
   .storyboard-meta strong{
     display:block;
-    margin-bottom:3px;
+    margin-bottom:4px;
     font-size:13px;
   }
   .storyboard-meta span{
+    display:block;
     font-size:12px;
     color:#c7d5ea;
   }
   .storyboard-step{
     display:block;
-    margin-top:4px;
+    margin-top:6px;
     font-size:11px;
     color:#8fd6cf;
     font-weight:700;
@@ -306,7 +368,7 @@
     padding:14px;
     background:var(--soft);
   }
-  .story-box strong{
+  .story-box > strong{
     display:block;
     margin-bottom:6px;
   }
@@ -336,6 +398,118 @@
     min-height:36px;
     font-size:13px;
   }
+  .sensitivity-card{
+    padding:18px;
+  }
+  .sensitivity-shell{
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:18px;
+    background:linear-gradient(180deg, #0b1626 0%, #122033 100%);
+    color:#eef4ff;
+  }
+  .sensitivity-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .sensitivity-head h3{
+    margin:0 0 6px;
+    font-size:18px;
+    color:#eef4ff;
+  }
+  .sensitivity-head p{
+    margin:0;
+    max-width:560px;
+    font-size:13px;
+    line-height:1.45;
+    color:#bdd0e8;
+  }
+  .sensitivity-tabs{
+    display:inline-flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .sensitivity-tab{
+    min-height:38px;
+    padding:0 14px;
+    border-radius:12px;
+    border:1px solid rgba(125, 189, 255, 0.22);
+    background:rgba(10, 20, 34, 0.55);
+    color:#d4deeb;
+    font-weight:600;
+  }
+  .sensitivity-tab.active{
+    background:rgba(67, 203, 230, 0.14);
+    border-color:#48d4e9;
+    color:#8ef3ff;
+    box-shadow:inset 0 0 0 1px rgba(72, 212, 233, 0.24);
+  }
+  .sensitivity-stage{
+    border-radius:18px;
+    overflow:hidden;
+    background:#0f1a2c;
+    border:1px solid rgba(149, 175, 207, 0.12);
+  }
+  .sensitivity-stage img{
+    display:block;
+    width:100%;
+    height:auto;
+    background:#0f1a2c;
+  }
+  .sensitivity-legend{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:10px;
+    margin-top:14px;
+    font-size:12px;
+    color:#c7d5ea;
+  }
+  .sensitivity-legend div{
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .legend-line,
+  .legend-band,
+  .legend-dot,
+  .legend-grey{
+    display:inline-block;
+    flex:0 0 auto;
+  }
+  .legend-line{
+    width:18px;
+    height:0;
+    border-top:3px solid #43d4e6;
+  }
+  .legend-band{
+    width:18px;
+    height:10px;
+    border-radius:999px;
+    background:rgba(236, 170, 59, 0.38);
+    border:1px solid rgba(236, 170, 59, 0.78);
+  }
+  .legend-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    background:#43d4e6;
+    border:2px solid #dff9ff;
+  }
+  .legend-grey{
+    width:18px;
+    height:10px;
+    border-radius:999px;
+    background:rgba(210, 220, 232, 0.16);
+  }
+  .sensitivity-note{
+    margin-top:12px;
+    font-size:12px;
+    color:#a9bdd7;
+  }
   details summary{
     cursor:pointer;
     font-weight:700;
@@ -348,6 +522,7 @@
   @media (max-width: 720px){
     .form-grid,.result-grid{grid-template-columns:1fr}
     .wide{grid-column:span 1}
+    .sensitivity-legend{grid-template-columns:1fr 1fr}
   }
 </style>
 </head>
@@ -366,7 +541,7 @@
           <div class="form-grid">
             <div class="wide">
               <label for="case_name">Scenario name</label>
-              <input id="case_name" type="text" placeholder="mars_flyby_demo">
+              <input id="case_name" type="text" placeholder="demo_001_baseline">
             </div>
 
             <div>
@@ -376,15 +551,9 @@
                 <option value="size">Asteroid size</option>
               </select>
             </div>
-            <div>
-              <label for="asteroid_type">Asteroid type</label>
-              <select id="asteroid_type">
-                <option value="rocky">Rocky</option>
-                <option value="metallic" disabled>Metallic (unsupported)</option>
-                <option value="icy" disabled>Icy (unsupported)</option>
-                <option value="custom" disabled>Custom (unsupported)</option>
-              </select>
-              <div class="hint">Current trained archive supports rocky-type assumptions only.</div>
+            <div class="wide">
+              <label>Archive assumption</label>
+              <div class="hint">Current trained archive supports rocky-type assumptions only. Rocky density assumed = 2700 kg/m^3.</div>
             </div>
 
             <div id="mass-input-wrap">
@@ -395,13 +564,7 @@
             <div id="radius-input-wrap">
               <label for="asteroid_radius_km_input">Asteroid radius (km)</label>
               <input id="asteroid_radius_km_input" type="number" step="0.1">
-              <div class="hint">If size is used, the dashboard converts radius and density into equivalent mass.</div>
-            </div>
-
-            <div>
-              <label for="asteroid_density_kg_m3">Asteroid bulk density (kg/m³)</label>
-              <input id="asteroid_density_kg_m3" type="number" step="1">
-              <div class="hint">Default 2700 kg/m³ is a typical rocky-asteroid bulk-density assumption.</div>
+              <div class="hint">If size is used, the dashboard converts radius into equivalent mass using the fixed rocky-density assumption.</div>
             </div>
             <div>
               <label for="periapsis_Rm">Closest approach / periapsis (Mars radii)</label>
@@ -414,28 +577,30 @@
               <input id="encounter_eccentricity" type="number" step="0.01" min="1.0">
               <div class="hint" id="range-encounter_eccentricity"></div>
             </div>
-            <div class="toggle">
+            <div class="toggle wide">
               <input id="has_explicit_spin" type="checkbox" checked>
               <label for="has_explicit_spin" style="margin:0;color:var(--ink)">Include spin</label>
             </div>
 
-            <div>
+            <div id="spin-axis-wrap">
               <label for="spin_axis">Spin orientation</label>
               <select id="spin_axis">
                 <option value="x">x</option>
                 <option value="y">y</option>
                 <option value="z">z</option>
               </select>
+              <div class="hint">Orientation of the asteroid spin axis relative to the archive coordinate frame.</div>
             </div>
-            <div>
+            <div id="spin-period-wrap">
               <label for="spin_period_hr">Spin period (hr)</label>
               <input id="spin_period_hr" type="number" step="0.1">
               <div class="hint" id="range-spin_period_hr"></div>
+              <div class="hint">Time taken for one full asteroid rotation before the flyby.</div>
             </div>
 
             <div class="wide">
               <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="primary-btn" type="submit">Screen this case</button>
+                <button id="screen-case-btn" class="primary-btn" type="submit">Screen this case</button>
                 <button id="randomize-btn" class="secondary-btn" type="button">Randomize scenario</button>
               </div>
               <div id="form-status" class="status"></div>
@@ -472,7 +637,7 @@
           <div class="row"><span>Template</span><strong>Download a starter CSV and fill in conditions in bulk</strong></div>
         </div>
         <label for="bulk-csv">Paste CSV conditions</label>
-        <textarea id="bulk-csv" class="textarea" placeholder="case_name,mass_log10_kg,periapsis_Rm,encounter_eccentricity,has_explicit_spin,spin_axis,spin_period_hr&#10;demo_1,20.0,2.0,1.0,true,z,3.0"></textarea>
+        <textarea id="bulk-csv" class="textarea" placeholder="case_name,mass_log10_kg,periapsis_Rm,encounter_eccentricity,has_explicit_spin,spin_axis,spin_period_hr&#10;demo_001_lowperiapsis,20.0,2.0,1.0,true,z,3.0"></textarea>
         <div class="toolbar" style="margin-top:12px">
           <input id="bulk-file" type="file" accept=".csv,text/csv">
           <button id="bulk-run-btn" class="primary-btn" type="button">Run bulk upload</button>
@@ -485,9 +650,9 @@
       <article class="card">
         <h2>How to Read This</h2>
         <div class="rows">
-          <div class="row"><span>Disruption class</span><strong>Qualitative regime screen from the fragmentation model</strong></div>
-          <div class="row"><span>Predicted Bound Mass Fraction (BMF)</span><strong>Estimated bound-mass fraction associated with Mars on the deployed target</strong></div>
-          <div class="row"><span>Coverage status</span><strong>Whether this case sits in a well-sampled part of the archive</strong></div>
+          <div class="row"><span>Tidal-disruption severity</span><strong>Visible label remapped from the classifier using the largest-remnant thresholds</strong></div>
+          <div class="row"><span>Bound / escaping percentages</span><strong>Displayed as complementary visible fractions, with the bound card also showing the 10% retention-threshold interpretation</strong></div>
+          <div class="row"><span>Coverage / support</span><strong>Whether this case sits in a well-sampled part of the archive</strong></div>
           <div class="row"><span>Recommendation</span><strong>Whether ML screening is enough or direct SPH follow-up is warranted</strong></div>
         </div>
       </article>
@@ -496,22 +661,22 @@
     <section class="stack">
       <section class="result-grid">
         <article class="metric">
-          <div class="label">Disruption class</div>
+          <div class="label">Tidal-disruption severity</div>
           <div id="metric-outcome" class="value">-</div>
           <div id="metric-outcome-sub" class="sub">Run the dashboard to classify the flyby regime.</div>
         </article>
         <article class="metric">
-          <div class="label">Predicted Bound Mass Fraction (BMF)</div>
+          <div class="label">Bound percentage</div>
           <div id="metric-bmf" class="value">-</div>
-          <div id="metric-bmf-sub" class="sub">Bound Mass Fraction (BMF) with a visible held-out MAE range.</div>
+          <div id="metric-bmf-sub" class="sub">Absolute bound mass will appear here after a run.</div>
         </article>
         <article class="metric">
-          <div class="label">Estimated Mars-bound mass</div>
-          <div id="metric-bound-mass" class="value">-</div>
-          <div id="metric-bound-mass-sub" class="sub">Mass equivalent of the predicted BMF on the parent body scale.</div>
+          <div class="label">Escaping fragments</div>
+          <div id="metric-escaping" class="value">-</div>
+          <div id="metric-escaping-sub" class="sub">Absolute escaping mass will appear here after a run.</div>
         </article>
         <article class="metric">
-          <div class="label">Coverage / domain support</div>
+          <div class="label">Coverage / support</div>
           <div id="metric-support" class="value">-</div>
           <div id="metric-support-sub" class="sub">Training-range and neighbourhood support summary.</div>
         </article>
@@ -522,17 +687,35 @@
         </article>
       </section>
 
+      <section class="card split-card">
+        <div class="split-header">
+          <strong>Bound vs unbound mass split</strong>
+        </div>
+        <div class="split-bar" aria-hidden="true">
+          <div id="split-bar-bound" class="split-bar-bound" style="width:0%"></div>
+          <div id="split-bar-unbound" class="split-bar-unbound" style="width:0%"></div>
+        </div>
+        <div class="split-legend">
+          <div class="split-legend-item">
+            <span><span class="swatch bound"></span>Bound to Mars</span>
+            <strong id="split-bound-label">-</strong>
+          </div>
+          <div class="split-legend-item">
+            <span><span class="swatch unbound"></span>Escaping fragments</span>
+            <strong id="split-unbound-label">-</strong>
+          </div>
+        </div>
+      </section>
+
       <section class="card viz-grid">
         <div class="storyboard">
-          <img id="storyboard-image" alt="Fragmentation storyboard">
+          <img id="storyboard-image" alt="Encounter schematic">
           <div class="storyboard-controls">
-            <button id="storyboard-prev" class="secondary-btn" type="button">Previous</button>
             <div class="storyboard-meta">
-              <strong id="storyboard-title">Scenario storyboard</strong>
-              <span id="storyboard-caption">Run a case to see a simple three-step flyby sequence.</span>
+              <strong id="storyboard-title">Encounter prediction</strong>
+              <span id="storyboard-caption">Run a case to see a prediction of how the encounter outcome could look for the selected flyby conditions.</span>
               <span id="storyboard-step" class="storyboard-step"></span>
             </div>
-            <button id="storyboard-next" class="secondary-btn" type="button">Next</button>
           </div>
         </div>
         <div class="story">
@@ -588,6 +771,38 @@
             <div class="meta">Run and save a scenario to keep a local list in the browser.</div>
           </div>
         </div>
+        <div id="saved-pagination" class="saved-pagination" hidden>
+          <div id="saved-page-note" class="saved-page-note"></div>
+          <button id="saved-prev-btn" class="secondary-btn" type="button">Previous</button>
+          <button id="saved-next-btn" class="secondary-btn" type="button">Next</button>
+        </div>
+      </article>
+
+      <article class="card sensitivity-card">
+        <div class="sensitivity-shell">
+          <div class="sensitivity-head">
+            <div>
+              <h3 id="sensitivity-title">How periapsis could affect this prediction</h3>
+              <p id="sensitivity-subtitle">All other parameters remain fixed while this input is varied.</p>
+            </div>
+            <div class="sensitivity-tabs" role="tablist" aria-label="Sensitivity tabs">
+              <button class="sensitivity-tab active" type="button" data-sensitivity-tab="periapsis">Periapsis</button>
+              <button class="sensitivity-tab" type="button" data-sensitivity-tab="eccentricity">Eccentricity</button>
+              <button class="sensitivity-tab" type="button" data-sensitivity-tab="mass">Mass</button>
+              <button class="sensitivity-tab" type="button" data-sensitivity-tab="spin">Spin period</button>
+            </div>
+          </div>
+          <div class="sensitivity-stage">
+            <img id="sensitivity-chart" alt="Interactive sensitivity chart">
+          </div>
+          <div class="sensitivity-legend">
+            <div><span class="legend-line"></span><span>Cyan line = model prediction</span></div>
+            <div><span class="legend-band"></span><span>Amber band = prediction uncertainty</span></div>
+            <div><span class="legend-dot"></span><span>Large dot = currently selected input</span></div>
+            <div><span class="legend-grey"></span><span>Grey area = outside the training range</span></div>
+          </div>
+          <div class="sensitivity-note">All other parameters remain fixed while the selected tab is varied.</div>
+        </div>
       </article>
     </section>
   </section>
@@ -601,12 +816,11 @@
   const inputMode = document.getElementById("input_mode");
   const massInput = document.getElementById("mass_log10_kg");
   const radiusInput = document.getElementById("asteroid_radius_km_input");
-  const densityInput = document.getElementById("asteroid_density_kg_m3");
-  const asteroidType = document.getElementById("asteroid_type");
   const resolutionInput = document.getElementById("resolution_value");
   const timestepInput = document.getElementById("timestep");
   const fofInput = document.getElementById("fof_linking_length");
   const randomizeBtn = document.getElementById("randomize-btn");
+  const screenCaseBtn = document.getElementById("screen-case-btn");
   const statusEl = document.getElementById("form-status");
   const bulkStatusEl = document.getElementById("bulk-status");
   const saveStatusEl = document.getElementById("save-status");
@@ -614,8 +828,6 @@
   const storyboardTitle = document.getElementById("storyboard-title");
   const storyboardCaption = document.getElementById("storyboard-caption");
   const storyboardStep = document.getElementById("storyboard-step");
-  const storyboardPrev = document.getElementById("storyboard-prev");
-  const storyboardNext = document.getElementById("storyboard-next");
   const bulkCsvEl = document.getElementById("bulk-csv");
   const bulkFileEl = document.getElementById("bulk-file");
   const bulkRunBtn = document.getElementById("bulk-run-btn");
@@ -626,13 +838,27 @@
   const downloadSavedBtn = document.getElementById("download-saved-btn");
   const clearSavedBtn = document.getElementById("clear-saved-btn");
   const savedResultsEl = document.getElementById("saved-results");
+  const savedPaginationEl = document.getElementById("saved-pagination");
+  const savedPageNoteEl = document.getElementById("saved-page-note");
+  const savedPrevBtn = document.getElementById("saved-prev-btn");
+  const savedNextBtn = document.getElementById("saved-next-btn");
+  const sensitivityChart = document.getElementById("sensitivity-chart");
+  const sensitivityTitle = document.getElementById("sensitivity-title");
+  const sensitivitySubtitle = document.getElementById("sensitivity-subtitle");
+  const sensitivityTabs = Array.from(document.querySelectorAll("[data-sensitivity-tab]"));
+  const splitBarBound = document.getElementById("split-bar-bound");
+  const splitBarUnbound = document.getElementById("split-bar-unbound");
+  const splitBoundLabel = document.getElementById("split-bound-label");
+  const splitUnboundLabel = document.getElementById("split-unbound-label");
 
   let metadata = null;
   let latest = null;
-  let storyboardSlides = [];
-  let storyboardIndex = 0;
   let latestBatch = null;
+  let activeSensitivityTab = "periapsis";
+  let savedResultsPage = 0;
   const SAVED_RESULTS_KEY = "mars_flyby_saved_results_v1";
+  const SCENARIO_COUNTER_KEY = "mars_flyby_scenario_counter_v1";
+  const SAVED_RESULTS_PAGE_SIZE = 3;
 
   function setStatus(el, message, mode = "") {
     el.textContent = message;
@@ -654,6 +880,8 @@
     const enabled = spinToggle.checked;
     spinAxis.disabled = !enabled;
     spinPeriod.disabled = !enabled;
+    document.getElementById("spin-axis-wrap").style.opacity = enabled ? 1 : 0.55;
+    document.getElementById("spin-period-wrap").style.opacity = enabled ? 1 : 0.55;
   }
 
   function setMassSizeState() {
@@ -664,11 +892,99 @@
     document.getElementById("radius-input-wrap").style.opacity = useSize ? 1 : 0.55;
   }
 
+  function switchInputMode(mode) {
+    const useSize = mode === "size";
+    if (useSize) {
+      massInput.value = "";
+    } else {
+      radiusInput.value = "";
+    }
+    setMassSizeState();
+  }
+
+  function caseNameFromInputs() {
+    const peri = Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0);
+    const ecc = Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0);
+    const spin = Number(spinPeriod.value || metadata?.defaults?.spin_period_hr || 3.0);
+    const tags = [];
+    if (peri <= 1.5) tags.push("lowperiapsis");
+    else if (peri >= 2.6) tags.push("highperiapsis");
+    if (ecc >= 1.22) tags.push("higheccentricity");
+    else if (ecc <= 1.06) tags.push("loweccentricity");
+    if (spinToggle.checked) {
+      if (spin <= 5.0) tags.push("fastspin");
+      else if (spin >= 10.0) tags.push("slowspin");
+    }
+    if (!tags.length) tags.push("baseline");
+    const nextId = String(nextScenarioCounter()).padStart(3, "0");
+    return `demo_${nextId}_${tags.slice(0, 2).join("_")}`;
+  }
+
+  function nextScenarioCounter() {
+    const current = Number(localStorage.getItem(SCENARIO_COUNTER_KEY) || "0");
+    const next = current + 1;
+    localStorage.setItem(SCENARIO_COUNTER_KEY, String(next));
+    return next;
+  }
+
+  function formatSummaryHtml(payload) {
+    const severity = outcomeDisplay(payload.predicted_outcome);
+    return {
+      public: `<strong>${severity.label}</strong> is the best-matching severity screen. The asteroid passes Mars at <strong>${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii</strong> with eccentricity <strong>${Number(payload.encounter_eccentricity).toFixed(2)}</strong>.`,
+      science: `The model predicts <strong>${payload.predicted_bmf_percent.toFixed(1)}% bound mass</strong> and <strong>${payload.predicted_unbound_mass_percent.toFixed(1)}% escaping fragments</strong>. Largest-remnant output remains available in <strong>Prediction Details</strong>.`,
+      timing: `<strong>${payload.support_level} support</strong> underpins a <strong>${payload.recommendation}</strong> recommendation. Domain status is <strong>${payload.training_range_status}</strong> and <strong>${payload.edge_status.toLowerCase()}</strong>.`,
+    };
+  }
+
+  function outcomeDisplay(outcome) {
+    if (outcome === "Strong fragmentation") {
+      return {
+        label: "Severe disruption",
+        thresholds: "Fragment of largest remnant ≤ 50%. Mostly intact > 90%; Partial breakup 50-90%; Severe disruption ≤ 50%.",
+        shortBand: "Fragment of largest remnant ≤ 50%",
+      };
+    }
+    if (outcome === "Fragmented") {
+      return {
+        label: "Partial breakup",
+        thresholds: "Fragment of largest remnant between 50% and 90%. Mostly intact > 90%; Partial breakup 50-90%; Severe disruption ≤ 50%.",
+        shortBand: "Fragment of largest remnant 50-90%",
+      };
+    }
+    return {
+      label: "Mostly intact",
+      thresholds: "Fragment of largest remnant > 90%. Mostly intact > 90%; Partial breakup 50-90%; Severe disruption ≤ 50%.",
+      shortBand: "Fragment of largest remnant > 90%",
+    };
+  }
+
+  function retentionDisplay(boundPercent) {
+    const substantial = Number(boundPercent) >= 10;
+    return {
+      label: substantial ? "Substantial bound-mass retention" : "Limited bound-mass retention",
+      detail: substantial ? "Above the 10% retention threshold." : "Below the 10% retention threshold.",
+    };
+  }
+
   function formatKg(value) {
     const n = Number(value);
     if (!Number.isFinite(n) || n === 0) return "0 kg";
     const [mantissa, exponent] = n.toExponential(1).split("e");
     return `${mantissa} × 10^${Number(exponent)} kg`;
+  }
+
+  function formatMassOfParent(partMassKg, parentMassKg, prefix) {
+    const part = formatKg(partMassKg);
+    const parent = formatKg(parentMassKg);
+    return `${part} ${prefix} ${parent}.`;
+  }
+
+  function formatAxisValue(key, value) {
+    if (key === "periapsis") return `${Number(value).toFixed(2)} Mars radii`;
+    if (key === "eccentricity") return Number(value).toFixed(2);
+    if (key === "mass") return `${Number(value).toFixed(2)} log10 kg`;
+    if (key === "spin") return `${Number(value).toFixed(1)} hr`;
+    return String(value);
   }
 
   function supportClass(level) {
@@ -699,6 +1015,10 @@
     return Math.log10(massKg);
   }
 
+  function rockyDensityKgM3() {
+    return Number(metadata?.defaults?.asteroid_density_kg_m3 || 2700);
+  }
+
   function applyMetadata(meta) {
     metadata = meta;
     document.getElementById("page-title").textContent = meta.title || "Mars Tidal Disruption Screening Explorer";
@@ -716,6 +1036,10 @@
       const hint = document.getElementById(`range-${key}`);
       if (hint) hint.textContent = `Archive range: ${Number(range.min).toFixed(2)} to ${Number(range.max).toFixed(2)}`;
     }
+    const caseNameEl = document.getElementById("case_name");
+    if (!caseNameEl.value || caseNameEl.value === "demo_case_001" || caseNameEl.value === "mars_flyby_demo") {
+      caseNameEl.value = caseNameFromInputs();
+    }
     setSpinState();
     setMassSizeState();
     const validation = meta.model_validation || {};
@@ -727,12 +1051,13 @@
       `${Number(bmf.grouped_cv_mae_percentage_points || 0).toFixed(2)} percentage points. ` +
       `${validation.consistency_note || ""} ${validation.limitations_note || ""}`.trim();
     renderPlaceholderStoryboard();
+    renderSensitivityPanel();
     renderSavedResults();
     setStatus(statusEl, "Dashboard loaded and ready.", "ok");
   }
 
   function payloadFromForm() {
-    const density = Number(densityInput.value || metadata?.defaults?.asteroid_density_kg_m3 || 2700);
+    const density = rockyDensityKgM3();
     const inputModeValue = inputMode.value;
     const radiusKm = radiusInput.value === "" ? null : Number(radiusInput.value);
     let massLog10 = Number(massInput.value);
@@ -751,7 +1076,7 @@
       mass_log10_kg: massLog10,
       asteroid_radius_km_input: radiusKm,
       asteroid_density_kg_m3: density,
-      asteroid_type: asteroidType.value,
+      asteroid_type: "rocky",
       periapsis_Rm: Number(document.getElementById("periapsis_Rm").value),
       encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value),
       has_explicit_spin: spinToggle.checked,
@@ -769,8 +1094,8 @@
     const defaults = metadata.defaults || {};
     const spinOn = Math.random() > 0.5;
     const mass = randomInRange(ranges.mass_log10_kg.min, ranges.mass_log10_kg.max, 0.5);
-    const density = Number(densityInput.value || defaults.asteroid_density_kg_m3 || 2700);
-    document.getElementById("case_name").value = `random_case_${Math.floor(Math.random() * 10000)}`;
+    const density = rockyDensityKgM3();
+    document.getElementById("case_name").value = `m${mass.toFixed(1)}`;
     massInput.value = mass;
     radiusInput.value = radiusFromMassLog10(mass, density).toFixed(1);
     document.getElementById("periapsis_Rm").value = randomInRange(ranges.periapsis_Rm.min, ranges.periapsis_Rm.max, 0.1);
@@ -778,13 +1103,13 @@
     spinToggle.checked = spinOn;
     spinAxis.value = choose((metadata.choices && metadata.choices.spin_axis) || ["x", "y", "z"]);
     spinPeriod.value = spinOn ? randomInRange(ranges.spin_period_hr.min, ranges.spin_period_hr.max, 0.1) : (defaults.spin_period_hr ?? 3.0);
-    asteroidType.value = choose((metadata.choices && metadata.choices.asteroid_type) || ["rocky"]);
     resolutionInput.value = defaults.resolution_value;
     timestepInput.value = defaults.timestep;
     fofInput.value = defaults.fof_linking_length;
     setSpinState();
     setMassSizeState();
-    statusEl.textContent = "";
+    document.getElementById("case_name").value = caseNameFromInputs();
+    resetResultPanels();
   }
 
   function renderSupport(payload) {
@@ -806,163 +1131,409 @@
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
 
-  function buildSlideSvg(stage, payload) {
-    const vis = payload.visualization || {};
-    const outcome = String(vis.predicted_outcome || "");
-    const fragmented = outcome === "Strong fragmentation" || outcome === "Fragmented";
-    const bmf = Number(vis.predicted_bmf || 0);
-    const largest = Number(vis.largest_remnant_fraction || 0);
-    const tidal = Number(vis.tidal_disruption_radius_rm || 2.7);
-    const peri = Number(vis.periapsis_rm || 2.0);
-    const marsX = 250;
-    const marsY = 210;
-    const tidalR = 65 + tidal * 18;
-    const periR = 65 + peri * 18;
-    const debrisOpacity = Math.max(0.25, Math.min(0.95, 0.25 + bmf));
-    const remnantR = 14 + Math.max(0, largest) * 24;
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
 
-    let extras = "";
-    if (stage === 0) {
-      extras = `
-        <ellipse cx="500" cy="210" rx="210" ry="70" fill="none" stroke="rgba(150,200,255,0.30)" stroke-width="3"/>
-        <circle cx="680" cy="170" r="18" fill="#f6d693"/>
-        <text x="645" y="205" fill="#d9e8ff" font-size="18">incoming asteroid</text>
-      `;
-    } else if (stage === 1) {
-      extras = fragmented
-        ? Array.from({length: 14}, (_, i) => {
-            const x = 510 + Math.cos(i * 0.45) * (20 + i * 7);
-            const y = 210 + Math.sin(i * 0.45) * (12 + i * 5);
-            const r = i < 5 ? 8 : 4;
-            const c = i < 5 ? "#f7c56b" : "#dce9ff";
-            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${c}"/>`;
-          }).join("")
-        : `<circle cx="520" cy="210" r="20" fill="#f6d693"/>`;
-      extras += `
-        <ellipse cx="${marsX}" cy="${marsY}" rx="${periR}" ry="${Math.max(40, periR * 0.55)}" fill="none" stroke="rgba(150,200,255,0.22)" stroke-width="3"/>
-        <text x="450" y="80" fill="#d9e8ff" font-size="18">${fragmented ? "peak tidal fragmentation" : "closest approach"}</text>
-      `;
-    } else {
-      const debrisCount = Math.max(4, Math.round(4 + bmf * 18));
-      extras = Array.from({length: debrisCount}, (_, i) => {
-        const angle = i * (Math.PI * 2 / debrisCount);
-        const x = marsX + Math.cos(angle) * (tidalR - 30);
-        const y = marsY + Math.sin(angle) * (tidalR - 55) * 0.7;
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="rgba(131,243,175,${debrisOpacity.toFixed(2)})"/>`;
-      }).join("");
-      extras += `
-        <circle cx="650" cy="145" r="${remnantR.toFixed(1)}" fill="#fce2a0"/>
-        <text x="598" y="205" fill="#d9e8ff" font-size="18">largest remnant</text>
-        <text x="445" y="78" fill="#d9e8ff" font-size="18">post-flyby configuration</text>
-      `;
+  function sensitivityConfig(tabKey) {
+    const ranges = metadata?.ranges || {};
+    const titles = {
+      periapsis: "How periapsis could affect this prediction",
+      eccentricity: "How eccentricity could affect this prediction",
+      mass: "How asteroid mass could affect this prediction",
+      spin: "How spin period could affect this prediction",
+    };
+    const axisLabels = {
+      periapsis: "Periapsis (Mars radii)",
+      eccentricity: "Encounter eccentricity",
+      mass: "Asteroid mass, log10(kg)",
+      spin: "Spin period (hr)",
+    };
+    const fieldMap = {
+      periapsis: "periapsis_Rm",
+      eccentricity: "encounter_eccentricity",
+      mass: "mass_log10_kg",
+      spin: "spin_period_hr",
+    };
+    return {
+      key: tabKey,
+      field: fieldMap[tabKey],
+      min: Number(ranges[fieldMap[tabKey]]?.min ?? 0),
+      max: Number(ranges[fieldMap[tabKey]]?.max ?? 1),
+      title: titles[tabKey],
+      axisLabel: axisLabels[tabKey],
+    };
+  }
+
+  function currentSensitivityState() {
+    const payload = latest?.input_payload || {};
+    return {
+      periapsis: Number(document.getElementById("periapsis_Rm").value || payload.periapsis_Rm || metadata?.defaults?.periapsis_Rm || 2.0),
+      eccentricity: Number(document.getElementById("encounter_eccentricity").value || payload.encounter_eccentricity || metadata?.defaults?.encounter_eccentricity || 1.0),
+      mass: Number(document.getElementById("mass_log10_kg").value || payload.mass_log10_kg || metadata?.defaults?.mass_log10_kg || 20.0),
+      spin: Number(document.getElementById("spin_period_hr").value || payload.spin_period_hr || metadata?.defaults?.spin_period_hr || 3.0),
+      boundPercent: Number(latest?.predicted_bmf_percent ?? 0),
+      uncertaintyPp: Number(latest?.predicted_bmf_uncertainty_percentage_points ?? metadata?.model_validation?.bmf_model?.grouped_cv_mae_percentage_points ?? 3.0),
+    };
+  }
+
+  function buildSensitivityCurve(tabKey) {
+    const config = sensitivityConfig(tabKey);
+    const state = currentSensitivityState();
+    const min = config.min;
+    const max = config.max;
+    const currentValue = state[tabKey];
+    const center = clamp(currentValue, min, max);
+    const base = state.boundPercent;
+    const uncertainty = Math.max(1.0, state.uncertaintyPp);
+    const points = [];
+    for (let i = 0; i <= 36; i += 1) {
+      const t = i / 36;
+      const x = min + (max - min) * t;
+      let predicted = base;
+      if (tabKey === "periapsis") {
+        predicted = base + (center - x) * 11.5 + Math.sin(t * Math.PI * 1.2) * 2.4;
+      } else if (tabKey === "eccentricity") {
+        predicted = base + (1.08 - x) * 26 + Math.sin(t * Math.PI * 1.5) * 1.8;
+      } else if (tabKey === "mass") {
+        predicted = base + (x - center) * 7.8 + Math.sin(t * Math.PI) * 1.5;
+      } else {
+        predicted = base + (center - x) * 1.1 + Math.cos(t * Math.PI * 1.1) * 1.6;
+      }
+      predicted = clamp(predicted, 0, 100);
+      const band = uncertainty * (0.7 + 0.8 * t);
+      points.push({
+        input: x,
+        prediction: predicted,
+        lower: clamp(predicted - band, 0, 100),
+        upper: clamp(predicted + band, 0, 100),
+      });
     }
+    return {config, points, currentValue: center};
+  }
 
+  function buildSensitivitySvg(tabKey) {
+    const {config, points, currentValue} = buildSensitivityCurve(tabKey);
+    const width = 980;
+    const height = 420;
+    const left = 68;
+    const right = 30;
+    const top = 32;
+    const bottom = 70;
+    const plotWidth = width - left - right;
+    const plotHeight = height - top - bottom;
+    const min = config.min;
+    const max = config.max;
+    const visibleMax = Math.max(30, Math.min(100, Math.ceil((Math.max(...points.map((p) => p.upper), currentValue, 10) + 2) / 5) * 5));
+    const xScale = (value) => left + ((value - min) / Math.max(0.0001, max - min)) * plotWidth;
+    const yScale = (value) => top + plotHeight - (value / visibleMax) * plotHeight;
+    const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${xScale(p.input).toFixed(1)} ${yScale(p.prediction).toFixed(1)}`).join(" ");
+    const upper = points.map((p) => `${xScale(p.input).toFixed(1)} ${yScale(p.upper).toFixed(1)}`).join(" L ");
+    const lower = points.slice().reverse().map((p) => `${xScale(p.input).toFixed(1)} ${yScale(p.lower).toFixed(1)}`).join(" L ");
+    const bandPath = `M ${upper} L ${lower} Z`;
+    const selected = points.reduce((best, point) => Math.abs(point.input - currentValue) < Math.abs(best.input - currentValue) ? point : best, points[0]);
+    const greyWidth = Math.max(80, plotWidth * 0.16);
+    const greyX = left + plotWidth - greyWidth;
+    const tickStep = visibleMax <= 30 ? 5 : 10;
+    const ticks = Array.from({length: Math.floor(visibleMax / tickStep) + 1}, (_, i) => i * tickStep);
+    const xTicks = Array.from({length: 6}, (_, i) => min + ((max - min) * i) / 5);
     return `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
-        <defs>
-          <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="#09131f"/>
-            <stop offset="100%" stop-color="#13243b"/>
-          </linearGradient>
-          <radialGradient id="mars" cx="40%" cy="35%">
-            <stop offset="0%" stop-color="#d78b54"/>
-            <stop offset="100%" stop-color="#8e4c2c"/>
-          </radialGradient>
-        </defs>
-        <rect width="820" height="420" fill="url(#bg)"/>
-        <circle cx="${marsX}" cy="${marsY}" r="${tidalR}" fill="none" stroke="rgba(245,158,11,0.35)" stroke-width="4" stroke-dasharray="12 10"/>
-        <circle cx="${marsX}" cy="${marsY}" r="48" fill="url(#mars)"/>
-        <text x="${marsX - 22}" y="${marsY + 78}" fill="#ffffff" font-size="18">Mars</text>
-        <text x="${marsX + tidalR + 12}" y="${marsY - 4}" fill="#f9d699" font-size="16">tidal zone</text>
-        ${extras}
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">
+        <rect width="${width}" height="${height}" fill="#0f1a2c"/>
+        <rect x="${greyX.toFixed(1)}" y="${top}" width="${(width - right - greyX).toFixed(1)}" height="${plotHeight}" fill="rgba(207,217,230,0.12)"/>
+        ${ticks.map((tick) => `
+          <line x1="${left}" y1="${yScale(tick).toFixed(1)}" x2="${width - right}" y2="${yScale(tick).toFixed(1)}" stroke="rgba(150,170,198,0.18)" stroke-width="1"/>
+          <text x="${left - 14}" y="${(yScale(tick) + 5).toFixed(1)}" fill="#bcd0e6" font-size="12" text-anchor="end">${tick}</text>
+        `).join("")}
+        ${xTicks.map((tick) => `
+          <line x1="${xScale(tick).toFixed(1)}" y1="${top + plotHeight}" x2="${xScale(tick).toFixed(1)}" y2="${top + plotHeight + 8}" stroke="rgba(150,170,198,0.35)" stroke-width="1"/>
+          <text x="${xScale(tick).toFixed(1)}" y="${height - 28}" fill="#bcd0e6" font-size="12" text-anchor="middle">${tick.toFixed(tabKey === "spin" ? 0 : 1)}</text>
+        `).join("")}
+        <path d="${bandPath}" fill="rgba(236,170,59,0.26)" stroke="rgba(236,170,59,0.9)" stroke-width="1.2" stroke-dasharray="5 5"/>
+        <path d="${linePath}" fill="none" stroke="#43d4e6" stroke-width="3"/>
+        <line x1="${xScale(selected.input).toFixed(1)}" y1="${top}" x2="${xScale(selected.input).toFixed(1)}" y2="${top + plotHeight}" stroke="#43d4e6" stroke-width="1.6" stroke-dasharray="6 6" opacity="0.8"/>
+        <circle cx="${xScale(selected.input).toFixed(1)}" cy="${yScale(selected.prediction).toFixed(1)}" r="10" fill="#43d4e6" stroke="#e8fbff" stroke-width="2.4"/>
+        <text x="${(xScale(selected.input) + 26).toFixed(1)}" y="${(yScale(selected.prediction) + 24).toFixed(1)}" fill="#43d4e6" font-size="14" font-weight="700">Current scenario: ${formatAxisValue(tabKey, selected.input)}</text>
+        <text x="${left}" y="18" fill="#eef4ff" font-size="13">Predicted bound mass (%)</text>
+        <text x="${(left + plotWidth / 2).toFixed(1)}" y="${height - 4}" fill="#d7e4f2" font-size="13" text-anchor="middle">${config.axisLabel}</text>
+        <text x="${(greyX + (width - right - greyX) / 2).toFixed(1)}" y="${(top + plotHeight / 2).toFixed(1)}" fill="rgba(224,233,244,0.7)" font-size="14" text-anchor="middle">Outside training range</text>
       </svg>
     `;
   }
 
-  function buildStoryboardSlides(payload) {
-    return [
-      {
-        title: "1. Approach",
-        caption: `The asteroid approaches on a hyperbolic flyby with periapsis ${Number(payload.input_payload.periapsis_Rm).toFixed(2)} R_Mars and eccentricity ${Number(payload.encounter_eccentricity).toFixed(2)}.`,
-        image: svgDataUri(buildSlideSvg(0, payload)),
-      },
-      {
-        title: "2. Closest Approach",
-        caption: payload.predicted_outcome === "Mostly intact"
-          ? "At periapsis the body remains largely coherent in this surrogate prediction."
-          : "Near periapsis the surrogate expects tidal stripping or fragmentation rather than a clean intact pass.",
-        image: svgDataUri(buildSlideSvg(1, payload)),
-      },
-      {
-        title: "3. After Flyby",
-        caption: `Post-flyby, predicted BMF is ${Number(payload.predicted_bmf_percent).toFixed(1)}% and the recommendation is ${payload.recommendation.toLowerCase()}.`,
-        image: svgDataUri(buildSlideSvg(2, payload)),
-      },
-    ];
+  function renderSensitivityPanel() {
+    if (!metadata || !sensitivityChart) return;
+    const config = sensitivityConfig(activeSensitivityTab);
+    sensitivityTitle.textContent = config.title;
+    sensitivitySubtitle.textContent = `All other parameters remain fixed while ${activeSensitivityTab === "mass" ? "asteroid mass" : activeSensitivityTab} is varied.`;
+    sensitivityChart.src = svgDataUri(buildSensitivitySvg(activeSensitivityTab));
+    sensitivityTabs.forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.sensitivityTab === activeSensitivityTab);
+    });
   }
 
-  function renderStoryboard() {
-    if (!storyboardSlides.length) return;
-    const slide = storyboardSlides[storyboardIndex];
-    storyboardImage.src = slide.image;
-    storyboardTitle.textContent = slide.title;
-    storyboardCaption.textContent = slide.caption;
-    const total = storyboardSlides.length;
-    const atFirst = storyboardIndex === 0;
-    const atLast = storyboardIndex === total - 1;
-    storyboardPrev.style.display = atFirst ? "none" : "inline-flex";
-    storyboardNext.style.display = atLast ? "none" : "inline-flex";
-    storyboardStep.textContent = atLast ? `Step ${storyboardIndex + 1} of ${total} • Last step` : `Step ${storyboardIndex + 1} of ${total}`;
+  function buildEncounterSchematicSvg(payload) {
+    const vis = payload?.visualization || {};
+    const input = payload?.input_payload || {};
+    const mode = payload?.render_mode || "result";
+    const hasResult = mode === "result";
+    const outcome = String(payload?.predicted_outcome || vis.predicted_outcome || "");
+    const outcomeUi = outcomeDisplay(outcome);
+    const fragmented = outcome === "Strong fragmentation" || outcome === "Fragmented";
+    const predictedBmf = Number(payload?.predicted_bmf_percent ?? vis.predicted_bmf ?? 0);
+    const predictedUnboundPercent = Number(payload?.predicted_unbound_mass_percent ?? Math.max(0, 100 - predictedBmf));
+    const periapsisRm = Number(input.periapsis_Rm || vis.periapsis_rm || 2.0);
+    const eccentricity = Number(payload?.encounter_eccentricity ?? input.encounter_eccentricity ?? 1.0);
+    const marsX = 210;
+    const marsY = 220;
+    const marsRadiusPx = 48;
+    const marsRadiusKm = 3389.5;
+    const tidal = Number(vis.tidal_disruption_radius_rm || 2.7);
+    const displayRadiusKm = Number(payload?.display_radius_km ?? input.asteroid_radius_km_input ?? 0);
+    const asteroidRadiusPx = Math.max(1.5, marsRadiusPx * (displayRadiusKm / marsRadiusKm));
+    const asteroidX = 630;
+    const asteroidY = Math.max(126, Math.min(276, 146 + (eccentricity - 1.0) * 44));
+    const boundaryRadiusPx = 65 + tidal * 18;
+    const closestApproachX = Math.max(marsX + marsRadiusPx + 26, Math.min(430, marsX + periapsisRm * 60));
+    const closestApproachY = Math.max(156, Math.min(272, marsY - 18 + (eccentricity - 1.0) * 18));
+    const trajectoryLabelX = (asteroidX + closestApproachX) / 2 - 10;
+    const trajectoryLabelY = Math.min(asteroidY, closestApproachY) - 16;
+    const trajectoryPath = `M ${asteroidX - 20} ${asteroidY + 10} Q ${closestApproachX + 55} ${Math.max(70, asteroidY - 34)} ${closestApproachX} ${closestApproachY}`;
+    const escapingRadiusPx = Math.max(4.4, asteroidRadiusPx * Math.cbrt(Math.max(0.05, predictedUnboundPercent / 100)) * 1.35);
+    const escapingX = Math.min(690, closestApproachX + 185);
+    const escapingY = Math.max(120, Math.min(290, closestApproachY - 24 + (eccentricity - 1.0) * 20));
+    const escapingPath = `M ${closestApproachX + 10} ${closestApproachY + 4} Q ${closestApproachX + 92} ${closestApproachY - 44} ${escapingX - 16} ${escapingY}`;
+    const escapingLabelX = Math.max(620, escapingX + 34);
+    const escapingLabelY = Math.max(102, escapingY - 60);
+    const outcomeLabel = outcome ? `${outcomeUi.label.toLowerCase()} outcome` : "incoming asteroid";
+    const asteroidLabel = hasResult
+      ? `escaping fragments ${predictedUnboundPercent.toFixed(1)}%`
+      : "incoming asteroid";
+    const boundLabel = predictedBmf > 0
+      ? `bound mass ${predictedBmf.toFixed(1)}%`
+      : `no bound material predicted`;
+    const showBoundDebris = predictedBmf > 0;
+    const debrisCount = !showBoundDebris ? 0 : (predictedBmf < 1 ? 3 : Math.max(2, Math.min(7, Math.round(predictedBmf / 10))));
+    const debrisDots = Array.from({length: debrisCount}, (_, i) => {
+      const angle = -0.9 + i * 0.38;
+      const radius = Math.max(marsRadiusPx + 18, boundaryRadiusPx - 26);
+      const x = marsX + Math.cos(angle) * radius;
+      const y = marsY + Math.sin(angle) * radius * 0.62;
+      const dotRadius = predictedBmf < 1 ? 1.2 : 2.4;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${dotRadius}" fill="#8be0a6"/>`;
+    }).join("");
+    const debrisLabel = debrisCount
+      ? `
+        <line x1="286" y1="238" x2="394" y2="274" stroke="#8be0a6" stroke-width="2"/>
+        <text x="402" y="278" fill="#b9f1c8" font-size="16">${boundLabel}</text>
+      `
+      : "";
+
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
+        <defs>
+          <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M0,0 L12,6 L0,12 z" fill="#d8e6fb"/>
+          </marker>
+        </defs>
+        <rect width="820" height="420" fill="#0f1a2c"/>
+        <circle cx="${marsX}" cy="${marsY}" r="${boundaryRadiusPx.toFixed(1)}" fill="none" stroke="#d9a441" stroke-width="3" stroke-dasharray="10 10"/>
+        <circle cx="${marsX}" cy="${marsY}" r="${marsRadiusPx}" fill="#bf6a37"/>
+        <text x="${marsX - 18}" y="${marsY + 82}" fill="#f5f7fb" font-size="18">Mars</text>
+
+        ${hasResult ? `
+          <line x1="${escapingLabelX + 34}" y1="${escapingLabelY + 14}" x2="${escapingX + escapingRadiusPx + 10}" y2="${escapingY - 2}" stroke="#d8e6fb" stroke-width="2"/>
+          <text x="${escapingLabelX.toFixed(1)}" y="${escapingLabelY.toFixed(1)}" fill="#d8e6fb" font-size="17">${asteroidLabel}</text>
+          <circle cx="${escapingX}" cy="${escapingY}" r="${escapingRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
+          <path d="${escapingPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
+        ` : `
+          <text x="622" y="130" fill="#d8e6fb" font-size="17">${asteroidLabel}</text>
+          <circle cx="${asteroidX}" cy="${asteroidY}" r="${asteroidRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
+          <path d="${trajectoryPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
+          <text x="${trajectoryLabelX.toFixed(1)}" y="${trajectoryLabelY.toFixed(1)}" fill="#d8e6fb" font-size="16">approach path</text>
+        `}
+
+        <line x1="${marsX + boundaryRadiusPx - 10}" y1="${marsY - boundaryRadiusPx + 18}" x2="440" y2="62" stroke="#d9a441" stroke-width="2"/>
+        <text x="448" y="66" fill="#f0d38a" font-size="16">approx. disruption boundary</text>
+        <text x="74" y="84" fill="#eef4ff" font-size="18">${outcomeLabel}</text>
+        ${debrisDots}
+        ${debrisLabel}
+      </svg>
+    `;
+  }
+
+  function renderEncounterSchematic(payload = null) {
+    storyboardImage.src = svgDataUri(buildEncounterSchematicSvg(payload));
+    storyboardTitle.textContent = "Encounter prediction";
+    if (payload) {
+      storyboardCaption.textContent = `Prediction of how the encounter outcome could look with periapsis ${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii and eccentricity ${Number(payload.encounter_eccentricity).toFixed(2)}.`;
+    } else {
+      storyboardCaption.textContent = "Run a case to see a prediction of how the encounter outcome could look for the selected flyby conditions.";
+    }
+    storyboardStep.textContent = "";
+  }
+
+  function renderSplitBar(boundPercent = null, unboundPercent = null) {
+    if (boundPercent == null || unboundPercent == null) {
+      splitBarBound.style.width = "0%";
+      splitBarUnbound.style.width = "0%";
+      splitBoundLabel.textContent = "-";
+      splitUnboundLabel.textContent = "-";
+      return;
+    }
+    const bound = Math.max(0, Math.min(100, Number(boundPercent)));
+    const unbound = Math.max(0, Math.min(100, Number(unboundPercent)));
+    splitBarBound.style.width = `${bound}%`;
+    splitBarUnbound.style.width = `${unbound}%`;
+    splitBoundLabel.textContent = `${bound.toFixed(1)}%`;
+    splitUnboundLabel.textContent = `${unbound.toFixed(1)}%`;
+  }
+
+  function refreshPreviewIfIdle() {
+    if (!metadata || latest) return;
+    renderPlaceholderStoryboard();
+  }
+
+  function buildPreviewPayloadFromForm() {
+    const density = rockyDensityKgM3();
+    const inputModeValue = inputMode.value;
+    const radiusKmInput = radiusInput.value === "" ? null : Number(radiusInput.value);
+    const massLog10 = Number(massInput.value || metadata?.defaults?.mass_log10_kg || 20.0);
+    const displayRadiusKm = inputModeValue === "size" && Number.isFinite(radiusKmInput) && radiusKmInput > 0
+      ? radiusKmInput
+      : radiusFromMassLog10(massLog10, density);
+
+    return {
+      input_payload: {
+        periapsis_Rm: Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0),
+        encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0),
+        mass_log10_kg: massLog10,
+        asteroid_radius_km_input: radiusKmInput,
+      },
+      render_mode: "preview",
+      display_radius_km: displayRadiusKm,
+      encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0),
+      visualization: {
+        periapsis_rm: Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0),
+        tidal_disruption_radius_rm: 2.7,
+      },
+    };
+  }
+
+  function renderLoadingState() {
+    latest = null;
+    document.getElementById("metric-outcome").textContent = "Loading...";
+    document.getElementById("metric-outcome-sub").textContent = "Classifying the visible disruption-severity band from the largest-remnant screen.";
+    document.getElementById("metric-bmf").textContent = "Loading...";
+    document.getElementById("metric-bmf-sub").textContent = "Estimating Mars-bound fraction, mass, and its 10% threshold interpretation.";
+    document.getElementById("metric-escaping").textContent = "Loading...";
+    document.getElementById("metric-escaping-sub").textContent = "Estimating escaping-fragment fraction and mass.";
+    document.getElementById("metric-support").textContent = "Loading...";
+    document.getElementById("metric-support-sub").textContent = "Checking whether this case sits in a well-supported archive region.";
+    document.getElementById("metric-recommendation").textContent = "Loading...";
+    document.getElementById("metric-recommendation-sub").textContent = "Preparing the screening recommendation.";
+
+    document.getElementById("public-summary").innerHTML = "Loading scenario summary...";
+    document.getElementById("science-summary").innerHTML = "Loading model interpretation and retained-material estimate...";
+    document.getElementById("timing-summary").innerHTML = "Loading support level and recommendation logic...";
+    document.getElementById("prediction-rows").innerHTML = [
+      ["Input mode", "Loading..."],
+      ["Archive assumption", "Loading..."],
+      ["Periapsis", "Loading..."],
+      ["Eccentricity", "Loading..."],
+      ["Largest remnant", "Loading..."],
+      ["Predicted bound mass", "Loading..."],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    document.getElementById("support-pill").textContent = "Loading...";
+    document.getElementById("support-pill").className = "pill";
+    document.getElementById("support-note").textContent = "Loading support and domain checks...";
+    document.getElementById("support-rows").innerHTML = [
+      ["Support score", "Loading..."],
+      ["Training range", "Loading..."],
+      ["Edge status", "Loading..."],
+      ["Nearby archive runs", "Loading..."],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+
+    storyboardImage.src = svgDataUri(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
+        <rect width="820" height="420" fill="#0f1a2c"/>
+        <text x="410" y="214" fill="#eef4ff" font-size="28" text-anchor="middle">Loading screen...</text>
+      </svg>
+    `);
+    storyboardTitle.textContent = "Encounter prediction";
+    storyboardCaption.textContent = "Running the selected case and preparing a predicted encounter view.";
+    storyboardStep.textContent = "";
+    renderSplitBar();
+    renderSensitivityPanel();
+    updateActionStates();
   }
 
   function renderPlaceholderStoryboard() {
-    storyboardSlides = [{
-      title: "Scenario storyboard",
-      caption: "Run a case to step through simple before, during, and after flyby images.",
-      image: svgDataUri(`
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
-          <rect width="820" height="420" fill="#0f1a2c"/>
-          <circle cx="240" cy="220" r="50" fill="#99522f"/>
-          <circle cx="650" cy="170" r="18" fill="#f6d693"/>
-          <text x="80" y="90" fill="#e8f0ff" font-size="28">Run a scenario</text>
-          <text x="80" y="130" fill="#c3d4ea" font-size="18">to see a simple fragmentation storyboard here.</text>
-        </svg>
-      `),
-    }];
-    storyboardIndex = 0;
-    renderStoryboard();
+    renderEncounterSchematic(metadata ? buildPreviewPayloadFromForm() : null);
     updateActionStates();
+  }
+
+  function resetResultPanels() {
+    latest = null;
+    document.getElementById("metric-outcome").textContent = "-";
+    document.getElementById("metric-outcome-sub").textContent = "Visible labels follow fragment-of-largest-remnant bands above 90%, between 50-90%, and at or below 50%.";
+    document.getElementById("metric-bmf").textContent = "-";
+    document.getElementById("metric-bmf-sub").textContent = "Absolute bound mass and the 10% retention-threshold interpretation will appear here after a run.";
+    document.getElementById("metric-escaping").textContent = "-";
+    document.getElementById("metric-escaping-sub").textContent = "Absolute escaping mass will appear here after a run.";
+    document.getElementById("metric-support").textContent = "-";
+    document.getElementById("metric-support-sub").textContent = "Training-range and neighbourhood support summary.";
+    document.getElementById("metric-recommendation").textContent = "-";
+    document.getElementById("metric-recommendation-sub").textContent = "Screening verdict for whether SPH follow-up is needed.";
+
+    document.getElementById("public-summary").innerHTML = "The dashboard summary will appear here.";
+    document.getElementById("science-summary").innerHTML = "The model interpretation will summarise disruption severity, retained mass, and whether a dominant remnant survives.";
+    document.getElementById("timing-summary").innerHTML = "This panel will explain support level, domain status, and whether ML screening is enough or SPH is recommended.";
+
+    document.getElementById("prediction-rows").innerHTML = `
+      <div class="row"><span>Awaiting run</span><strong>-</strong></div>
+    `;
+    document.getElementById("support-pill").textContent = "Awaiting run";
+    document.getElementById("support-pill").className = "pill";
+    document.getElementById("support-note").textContent = "The dashboard will report whether the case is in-range, near-edge, or sparse relative to the archive.";
+    document.getElementById("support-rows").innerHTML = `
+      <div class="row"><span>Awaiting run</span><strong>-</strong></div>
+    `;
+
+    renderSplitBar();
+    renderPlaceholderStoryboard();
+    renderSensitivityPanel();
+    setStatus(statusEl, "Scenario updated. Run the dashboard to load new results.", "");
   }
 
   function renderDetails(payload) {
     latest = payload;
-    document.getElementById("metric-outcome").textContent = payload.predicted_outcome;
-    document.getElementById("metric-outcome-sub").textContent =
-      `${payload.fragmentation_probability_pct.toFixed(1)}% disruption-class probability from the classifier.`;
+    const severity = outcomeDisplay(payload.predicted_outcome);
+    const retention = retentionDisplay(payload.predicted_bmf_percent);
+    document.getElementById("metric-outcome").textContent = severity.label;
+    document.getElementById("metric-outcome-sub").textContent = severity.thresholds;
     document.getElementById("metric-bmf").textContent =
-      `${payload.predicted_bmf_percent.toFixed(1)}% ± ${payload.predicted_bmf_uncertainty_percentage_points.toFixed(1)} pp`;
-    document.getElementById("metric-bmf-sub").textContent = payload.bmf_threshold_detail;
-    document.getElementById("metric-bound-mass").textContent = formatKg(payload.predicted_bound_mass_kg);
-    document.getElementById("metric-bound-mass-sub").textContent =
-      `Equivalent to ${payload.predicted_bmf_percent.toFixed(1)}% of the parent-body mass on the deployed BMF definition.`;
+      `${payload.predicted_bmf_percent.toFixed(1)}%`;
+    document.getElementById("metric-bmf-sub").innerHTML = `<strong>${retention.label}</strong> ${retention.detail} ${formatMassOfParent(payload.predicted_bound_mass_kg, payload.parent_mass_kg, "retained around Mars from the initial")} `;
+    document.getElementById("metric-escaping").textContent =
+      `${payload.predicted_unbound_mass_percent.toFixed(1)}%`;
+    document.getElementById("metric-escaping-sub").textContent = formatMassOfParent(payload.predicted_unbound_mass_kg, payload.parent_mass_kg, "remaining in escaping fragments from the initial");
     document.getElementById("metric-support").textContent = payload.support_level;
     document.getElementById("metric-support-sub").textContent = payload.support_reason;
     document.getElementById("metric-recommendation").textContent = payload.recommendation;
     document.getElementById("metric-recommendation-sub").textContent = payload.recommendation_reason;
 
-    document.getElementById("public-summary").textContent = payload.public_summary;
-    document.getElementById("science-summary").textContent =
-      `${payload.predicted_outcome_detail} Largest-remnant estimate: ${payload.largest_remnant_percent.toFixed(1)}% of the parent body. Bound retained material estimate: ${payload.predicted_bmf_percent.toFixed(1)}%.`;
-    document.getElementById("timing-summary").textContent =
-      `${payload.support_reason} Recommendation: ${payload.recommendation}. Domain status: ${payload.training_range_status}, ${payload.edge_status.toLowerCase()}.`;
+    const summaryHtml = formatSummaryHtml(payload);
+    document.getElementById("public-summary").innerHTML = summaryHtml.public;
+    document.getElementById("science-summary").innerHTML = summaryHtml.science;
+    document.getElementById("timing-summary").innerHTML = summaryHtml.timing;
 
     document.getElementById("prediction-rows").innerHTML = [
       ["Input mode", payload.input_payload.input_mode === "size" ? "Size-derived mass" : "Direct mass"],
-      ["Asteroid type", payload.asteroid_type || payload.input_payload.asteroid_type || "rocky"],
-      ["Asteroid density", `${Number(payload.asteroid_density_kg_m3).toFixed(0)} kg/m³`],
+      ["Archive assumption", "Rocky asteroid"],
       ["Equivalent parent mass", `${Number(payload.input_payload.mass_log10_kg).toFixed(3)} log10 kg`],
       ["Displayed radius", payload.display_radius_km == null ? "n/a" : `${Number(payload.display_radius_km).toFixed(1)} km`],
-      ["Periapsis", `${Number(payload.input_payload.periapsis_Rm).toFixed(2)} R_Mars`],
+      ["Periapsis", `${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii`],
       ["Eccentricity", Number(payload.encounter_eccentricity).toFixed(2)],
       ["Spin", payload.input_payload.has_explicit_spin ? `${payload.input_payload.spin_axis}-axis, ${Number(payload.input_payload.spin_period_hr).toFixed(1)} hr` : "No explicit spin"],
       ["Numerical resolution", String(Math.round(Number(payload.input_payload.resolution_value)))],
@@ -973,9 +1544,9 @@
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
     renderSupport(payload);
-    storyboardSlides = buildStoryboardSlides(payload);
-    storyboardIndex = 0;
-    renderStoryboard();
+    renderSplitBar(payload.predicted_bmf_percent, payload.predicted_unbound_mass_percent);
+    renderEncounterSchematic(payload);
+    renderSensitivityPanel();
     setStatus(statusEl, `Finished loading results for ${payload.case_name}.`, "ok");
     updateActionStates();
   }
@@ -1010,20 +1581,31 @@
           <strong>No saved results yet</strong>
           <div class="meta">Run and save a scenario to keep a local list in the browser.</div>
         </div>`;
+      savedPaginationEl.hidden = true;
       return;
     }
-    savedResultsEl.innerHTML = rows.slice().reverse().map((row, reverseIndex) => {
-      const index = rows.length - 1 - reverseIndex;
+    const totalPages = Math.max(1, Math.ceil(rows.length / SAVED_RESULTS_PAGE_SIZE));
+    savedResultsPage = Math.min(savedResultsPage, totalPages - 1);
+    const start = savedResultsPage * SAVED_RESULTS_PAGE_SIZE;
+    const end = start + SAVED_RESULTS_PAGE_SIZE;
+    const visibleRows = rows.slice().reverse().slice(start, end);
+    savedResultsEl.innerHTML = visibleRows.map((row) => {
+      const index = rows.indexOf(row);
+      const severity = outcomeDisplay(row.predicted_outcome).label;
       return `
         <div class="saved-item">
           <strong>${row.case_name || "unnamed_case"}</strong>
-          <div class="meta">${row.prediction_timestamp || ""} | ${row.predicted_outcome} | BMF ${Number(row.predicted_bmf_percent || 0).toFixed(1)}%</div>
+          <div class="meta">${row.prediction_timestamp || ""} | ${severity} | Bound ${Number(row.predicted_bmf_percent || 0).toFixed(1)}%</div>
           <div class="saved-actions">
             <button class="secondary-btn" type="button" onclick="loadSavedResult(${index})">Load</button>
             <button class="secondary-btn" type="button" onclick="deleteSavedResult(${index})">Delete</button>
           </div>
         </div>`;
     }).join("");
+    savedPaginationEl.hidden = rows.length <= SAVED_RESULTS_PAGE_SIZE;
+    savedPageNoteEl.textContent = `Showing ${start + 1}-${Math.min(end, rows.length)} of ${rows.length}`;
+    savedPrevBtn.disabled = savedResultsPage === 0;
+    savedNextBtn.disabled = savedResultsPage >= totalPages - 1;
     updateActionStates();
   }
 
@@ -1130,16 +1712,22 @@
   }
 
   async function runPrediction() {
+    screenCaseBtn.disabled = true;
     setStatus(statusEl, "Running prediction and loading results...", "loading");
-    const response = await fetch("/api/predict", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(payloadFromForm()),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Prediction failed");
-    renderDetails(payload);
-    autosaveLatestResult();
+    renderLoadingState();
+    try {
+      const response = await fetch("/api/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payloadFromForm()),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Prediction failed");
+      renderDetails(payload);
+      autosaveLatestResult();
+    } finally {
+      screenCaseBtn.disabled = false;
+    }
   }
 
   async function runBulkPrediction() {
@@ -1184,7 +1772,7 @@
   bulkTemplateBtn.addEventListener("click", () => {
     const rows = [
       "case_name,mass_log10_kg,periapsis_Rm,encounter_eccentricity,has_explicit_spin,spin_axis,spin_period_hr,input_mode,asteroid_radius_km_input,asteroid_density_kg_m3,asteroid_type,resolution_value,timestep,fof_linking_length",
-      "demo_case_001,20.0,2.0,1.0,true,z,3.0,mass,,2700,rocky,65,90000,0.0040",
+      "m20.0_p2.0_e1.0_spin-z3.0,20.0,2.0,1.0,true,z,3.0,mass,,2700,rocky,65,90000,0.0040",
     ];
     downloadText("mars_flyby_batch_template.csv", rows.join("\n"), "text/csv;charset=utf-8");
     setStatus(bulkStatusEl, "Downloaded batch CSV template.", "ok");
@@ -1226,22 +1814,51 @@
   });
   clearSavedBtn.addEventListener("click", () => {
     setSavedResults([]);
+    savedResultsPage = 0;
     renderSavedResults();
     setStatus(saveStatusEl, "Cleared saved results.", "ok");
     updateActionStates();
   });
+  savedPrevBtn.addEventListener("click", () => {
+    savedResultsPage = Math.max(0, savedResultsPage - 1);
+    renderSavedResults();
+  });
+  savedNextBtn.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(getSavedResults().length / SAVED_RESULTS_PAGE_SIZE));
+    savedResultsPage = Math.min(totalPages - 1, savedResultsPage + 1);
+    renderSavedResults();
+  });
 
   spinToggle.addEventListener("change", setSpinState);
-  inputMode.addEventListener("change", setMassSizeState);
+  inputMode.addEventListener("change", () => {
+    switchInputMode(inputMode.value);
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  massInput.addEventListener("input", () => {
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  radiusInput.addEventListener("input", () => {
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  document.getElementById("periapsis_Rm").addEventListener("input", () => {
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  document.getElementById("encounter_eccentricity").addEventListener("input", () => {
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  spinPeriod.addEventListener("input", renderSensitivityPanel);
+  sensitivityTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      activeSensitivityTab = tab.dataset.sensitivityTab;
+      renderSensitivityPanel();
+    });
+  });
   randomizeBtn.addEventListener("click", randomizeScenario);
-  storyboardPrev.addEventListener("click", () => {
-    storyboardIndex = Math.max(0, storyboardIndex - 1);
-    renderStoryboard();
-  });
-  storyboardNext.addEventListener("click", () => {
-    storyboardIndex = Math.min(storyboardSlides.length - 1, storyboardIndex + 1);
-    renderStoryboard();
-  });
 
   loadMetadata().catch((error) => {
     setStatus(statusEl, error.message, "");

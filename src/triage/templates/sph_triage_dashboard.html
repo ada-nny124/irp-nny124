@@ -6,18 +6,18 @@
 <title>Mars Flyby Outcome Explorer</title>
 <style>
   :root{
-    --bg:#f4f7f1;
+    --bg:#f3f6f3;
     --panel:#ffffff;
-    --soft:#f8fbf7;
-    --ink:#102133;
-    --muted:#617286;
-    --line:#d7e0d7;
-    --blue:#1f5fbf;
-    --teal:#0f766e;
-    --green:#217346;
-    --gold:#b7791f;
-    --red:#b74d2c;
-    --shadow:0 18px 40px rgba(16,33,51,0.08);
+    --soft:#ffffff;
+    --ink:#1a2b3d;
+    --muted:#5f728c;
+    --line:#d8e2ea;
+    --blue:#31c7e7;
+    --teal:#22b8cf;
+    --green:#5fd08c;
+    --gold:#f3a63a;
+    --red:#ff8d7b;
+    --shadow:0 18px 38px rgba(27, 46, 70, 0.08);
   }
   *{box-sizing:border-box}
   body{
@@ -25,9 +25,9 @@
     font-family:"Segoe UI",system-ui,sans-serif;
     color:var(--ink);
     background:
-      radial-gradient(circle at top left, rgba(31,95,191,0.10), transparent 26%),
-      radial-gradient(circle at top right, rgba(15,118,110,0.10), transparent 22%),
-      linear-gradient(180deg, #f8fbf7 0%, var(--bg) 100%);
+      radial-gradient(circle at top left, rgba(49,199,231,0.08), transparent 24%),
+      radial-gradient(circle at top right, rgba(243,166,58,0.08), transparent 20%),
+      linear-gradient(180deg, #fbfdfb 0%, var(--bg) 100%);
   }
   .page{
     max-width:1380px;
@@ -94,14 +94,14 @@
   input,select{
     width:100%;
     min-height:42px;
-    border:1px solid #cfd8d2;
+    border:1px solid #d5dde5;
     border-radius:12px;
     padding:8px 10px;
     color:var(--ink);
-    background:#fff;
+    background:#ffffff;
   }
   input:focus,select:focus{
-    outline:2px solid rgba(31,95,191,0.16);
+    outline:2px solid rgba(49,199,231,0.22);
     border-color:var(--blue);
   }
   .hint{
@@ -130,13 +130,16 @@
     font-weight:700;
   }
   .primary-btn{
-    background:var(--blue);
-    color:#fff;
+    background:#3f6fd4;
+    color:#ffffff;
+    border:1px solid #bfcdf0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);
   }
   .secondary-btn{
-    background:#fff;
-    color:var(--blue);
-    border:1px solid #c7d7f4;
+    background:#ffffff;
+    color:#3f6fd4;
+    border:1px solid #cfdaf0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.65);
   }
   button[disabled]{
     opacity:0.45;
@@ -149,7 +152,7 @@
     color:var(--red);
   }
   .status.loading{color:var(--blue)}
-  .status.ok{color:var(--green)}
+  .status.ok{color:#3f6fd4}
   .toolbar{
     display:flex;
     gap:10px;
@@ -158,12 +161,16 @@
   .textarea{
     width:100%;
     min-height:160px;
-    border:1px solid #cfd8d2;
+    border:1px solid #d5dde5;
     border-radius:14px;
     padding:12px;
     color:var(--ink);
-    background:#fff;
+    background:#ffffff;
     resize:vertical;
+  }
+  .textarea:focus{
+    outline:2px solid rgba(49,199,231,0.22);
+    border-color:var(--blue);
   }
   .saved-list{
     display:grid;
@@ -185,7 +192,7 @@
     border:1px solid var(--line);
     border-radius:16px;
     padding:12px;
-    background:var(--soft);
+    background:#ffffff;
   }
   .saved-item strong{
     display:block;
@@ -210,7 +217,7 @@
     justify-content:space-between;
     gap:12px;
     padding-bottom:8px;
-    border-bottom:1px solid #edf2ee;
+    border-bottom:1px solid rgba(157,177,201,0.12);
     font-size:13px;
   }
   .row:last-child{border-bottom:none;padding-bottom:0}
@@ -223,7 +230,7 @@
     border:1px solid var(--line);
     border-radius:18px;
     padding:12px;
-    background:var(--soft);
+    background:#ffffff;
   }
   .metric .label{
     margin-bottom:8px;
@@ -236,6 +243,24 @@
     line-height:1.1;
     margin-bottom:6px;
     word-break:break-word;
+  }
+  .metric .value.tone-severe,
+  .metric .value.tone-unbound,
+  .metric .value.tone-recommend{
+    color:var(--gold);
+  }
+  .metric .value.tone-bound{
+    color:var(--blue);
+  }
+  .metric .value.tone-intact,
+  .metric .value.tone-support-high{
+    color:var(--green);
+  }
+  .metric .value.tone-support-moderate{
+    color:#ffd27a;
+  }
+  .metric .value.tone-support-low{
+    color:var(--red);
   }
   .metric .sub{
     font-size:11px;
@@ -256,8 +281,8 @@
     height:14px;
     border-radius:999px;
     overflow:hidden;
-    background:#e7edf4;
-    border:1px solid #d6e0ea;
+    background:#e9eff5;
+    border:1px solid #d7e0e8;
   }
   .split-bar-bound,
   .split-bar-unbound{
@@ -309,12 +334,12 @@
     padding:8px 12px;
     font-size:12px;
     font-weight:700;
-    background:#eef4ff;
-    color:var(--blue);
+    background:#e7eefc;
+    color:#3557a8;
   }
-  .pill.high{background:#e6f7ec;color:var(--green)}
-  .pill.moderate{background:#fff6df;color:var(--gold)}
-  .pill.low{background:#fdebe7;color:var(--red)}
+  .pill.high{background:rgba(95,208,140,0.14);color:var(--green)}
+  .pill.moderate{background:rgba(243,166,58,0.14);color:var(--gold)}
+  .pill.low{background:rgba(255,141,123,0.14);color:var(--red)}
   .viz-grid{
     display:grid;
     grid-template-columns:1.08fr 0.92fr;
@@ -327,12 +352,13 @@
     padding:12px;
     background:linear-gradient(180deg, #081220 0%, #122137 100%);
   }
-  .storyboard img{
+  .storyboard-canvas{
     display:block;
     width:100%;
-    height:auto;
+    min-height:420px;
     border-radius:14px;
     background:#0f1a2c;
+    overflow:hidden;
   }
   .storyboard-controls{
     margin-top:12px;
@@ -388,7 +414,7 @@
     cursor:pointer;
     font-size:13px;
     font-weight:700;
-    color:var(--teal);
+    color:#4c8b89;
   }
   .inline-details .form-grid label,
   .inline-details .hint{
@@ -405,8 +431,8 @@
     border:1px solid var(--line);
     border-radius:22px;
     padding:18px;
-    background:linear-gradient(180deg, #0b1626 0%, #122033 100%);
-    color:#eef4ff;
+    background:#ffffff;
+    color:var(--ink);
   }
   .sensitivity-head{
     display:flex;
@@ -419,14 +445,14 @@
   .sensitivity-head h3{
     margin:0 0 6px;
     font-size:18px;
-    color:#eef4ff;
+    color:var(--ink);
   }
   .sensitivity-head p{
     margin:0;
     max-width:560px;
     font-size:13px;
     line-height:1.45;
-    color:#bdd0e8;
+    color:var(--muted);
   }
   .sensitivity-tabs{
     display:inline-flex;
@@ -437,28 +463,28 @@
     min-height:38px;
     padding:0 14px;
     border-radius:12px;
-    border:1px solid rgba(125, 189, 255, 0.22);
-    background:rgba(10, 20, 34, 0.55);
-    color:#d4deeb;
+    border:1px solid #d5dde5;
+    background:#ffffff;
+    color:var(--muted);
     font-weight:600;
   }
   .sensitivity-tab.active{
-    background:rgba(67, 203, 230, 0.14);
-    border-color:#48d4e9;
-    color:#8ef3ff;
-    box-shadow:inset 0 0 0 1px rgba(72, 212, 233, 0.24);
+    background:rgba(63, 111, 212, 0.12);
+    border-color:#7d9ee7;
+    color:#3557a8;
+    box-shadow:inset 0 0 0 1px rgba(63, 111, 212, 0.16);
   }
   .sensitivity-stage{
     border-radius:18px;
     overflow:hidden;
-    background:#0f1a2c;
-    border:1px solid rgba(149, 175, 207, 0.12);
+    background:#f8fbfd;
+    border:1px solid #d8e2ea;
   }
   .sensitivity-stage img{
     display:block;
     width:100%;
     height:auto;
-    background:#0f1a2c;
+    background:#f8fbfd;
   }
   .sensitivity-legend{
     display:grid;
@@ -466,7 +492,7 @@
     gap:10px;
     margin-top:14px;
     font-size:12px;
-    color:#c7d5ea;
+    color:var(--muted);
   }
   .sensitivity-legend div{
     display:flex;
@@ -483,7 +509,7 @@
   .legend-line{
     width:18px;
     height:0;
-    border-top:3px solid #43d4e6;
+    border-top:3px solid #3f6fd4;
   }
   .legend-band{
     width:18px;
@@ -496,7 +522,7 @@
     width:12px;
     height:12px;
     border-radius:999px;
-    background:#43d4e6;
+    background:#3f6fd4;
     border:2px solid #dff9ff;
   }
   .legend-grey{
@@ -508,11 +534,12 @@
   .sensitivity-note{
     margin-top:12px;
     font-size:12px;
-    color:#a9bdd7;
+    color:var(--muted);
   }
   details summary{
     cursor:pointer;
     font-weight:700;
+    color:#4c8b89;
   }
   @media (max-width: 1180px){
     .layout{grid-template-columns:1fr}
@@ -553,13 +580,14 @@
             </div>
             <div class="wide">
               <label>Archive assumption</label>
-              <div class="hint">Current trained archive supports rocky-type assumptions only. Rocky density assumed = 2700 kg/m^3.</div>
+              <div class="hint">This dashboard currently supports rocky-type asteroid assumptions with density assumed = 2700 kg/m^3.</div>
             </div>
 
             <div id="mass-input-wrap">
               <label for="mass_log10_kg">Asteroid mass, log10(kg)</label>
               <input id="mass_log10_kg" type="number" step="0.01">
               <div class="hint" id="range-mass_log10_kg"></div>
+              <div class="hint">For example, 20.00 means 1.0 × 10^20 kg.</div>
             </div>
             <div id="radius-input-wrap">
               <label for="asteroid_radius_km_input">Asteroid radius (km)</label>
@@ -709,7 +737,7 @@
 
       <section class="card viz-grid">
         <div class="storyboard">
-          <img id="storyboard-image" alt="Encounter schematic">
+          <div id="storyboard-canvas" class="storyboard-canvas" aria-label="Encounter schematic"></div>
           <div class="storyboard-controls">
             <div class="storyboard-meta">
               <strong id="storyboard-title">Encounter prediction</strong>
@@ -796,7 +824,7 @@
             <img id="sensitivity-chart" alt="Interactive sensitivity chart">
           </div>
           <div class="sensitivity-legend">
-            <div><span class="legend-line"></span><span>Cyan line = model prediction</span></div>
+            <div><span class="legend-line"></span><span>Blue line = model prediction</span></div>
             <div><span class="legend-band"></span><span>Amber band = prediction uncertainty</span></div>
             <div><span class="legend-dot"></span><span>Large dot = currently selected input</span></div>
             <div><span class="legend-grey"></span><span>Grey area = outside the training range</span></div>
@@ -808,6 +836,7 @@
   </section>
 </main>
 
+<script src="https://unpkg.com/konva@9/konva.min.js"></script>
 <script>
   const form = document.getElementById("explorer-form");
   const spinToggle = document.getElementById("has_explicit_spin");
@@ -824,7 +853,7 @@
   const statusEl = document.getElementById("form-status");
   const bulkStatusEl = document.getElementById("bulk-status");
   const saveStatusEl = document.getElementById("save-status");
-  const storyboardImage = document.getElementById("storyboard-image");
+  const storyboardCanvas = document.getElementById("storyboard-canvas");
   const storyboardTitle = document.getElementById("storyboard-title");
   const storyboardCaption = document.getElementById("storyboard-caption");
   const storyboardStep = document.getElementById("storyboard-step");
@@ -856,6 +885,7 @@
   let latestBatch = null;
   let activeSensitivityTab = "periapsis";
   let savedResultsPage = 0;
+  let storyboardStage = null;
   const SAVED_RESULTS_KEY = "mars_flyby_saved_results_v1";
   const SCENARIO_COUNTER_KEY = "mars_flyby_scenario_counter_v1";
   const SAVED_RESULTS_PAGE_SIZE = 3;
@@ -979,6 +1009,12 @@
     return `${part} ${prefix} ${parent}.`;
   }
 
+  function formatLogMassWithKg(logMass, massKg = null) {
+    const numericLogMass = Number(logMass);
+    const resolvedMassKg = massKg == null ? 10 ** numericLogMass : Number(massKg);
+    return `${numericLogMass.toFixed(2)} log10 kg (${formatKg(resolvedMassKg)})`;
+  }
+
   function formatAxisValue(key, value) {
     if (key === "periapsis") return `${Number(value).toFixed(2)} Mars radii`;
     if (key === "eccentricity") return Number(value).toFixed(2);
@@ -1053,6 +1089,7 @@
     renderPlaceholderStoryboard();
     renderSensitivityPanel();
     renderSavedResults();
+    updateActionStates();
     setStatus(statusEl, "Dashboard loaded and ready.", "ok");
   }
 
@@ -1239,24 +1276,23 @@
     const xTicks = Array.from({length: 6}, (_, i) => min + ((max - min) * i) / 5);
     return `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">
-        <rect width="${width}" height="${height}" fill="#0f1a2c"/>
-        <rect x="${greyX.toFixed(1)}" y="${top}" width="${(width - right - greyX).toFixed(1)}" height="${plotHeight}" fill="rgba(207,217,230,0.12)"/>
+        <rect width="${width}" height="${height}" fill="#f8fbfd"/>
+        <rect x="${greyX.toFixed(1)}" y="${top}" width="${(width - right - greyX).toFixed(1)}" height="${plotHeight}" fill="rgba(198,208,220,0.28)"/>
         ${ticks.map((tick) => `
-          <line x1="${left}" y1="${yScale(tick).toFixed(1)}" x2="${width - right}" y2="${yScale(tick).toFixed(1)}" stroke="rgba(150,170,198,0.18)" stroke-width="1"/>
-          <text x="${left - 14}" y="${(yScale(tick) + 5).toFixed(1)}" fill="#bcd0e6" font-size="12" text-anchor="end">${tick}</text>
+          <line x1="${left}" y1="${yScale(tick).toFixed(1)}" x2="${width - right}" y2="${yScale(tick).toFixed(1)}" stroke="rgba(126,148,171,0.22)" stroke-width="1"/>
+          <text x="${left - 14}" y="${(yScale(tick) + 5).toFixed(1)}" fill="#60758d" font-size="12" text-anchor="end">${tick}</text>
         `).join("")}
         ${xTicks.map((tick) => `
-          <line x1="${xScale(tick).toFixed(1)}" y1="${top + plotHeight}" x2="${xScale(tick).toFixed(1)}" y2="${top + plotHeight + 8}" stroke="rgba(150,170,198,0.35)" stroke-width="1"/>
-          <text x="${xScale(tick).toFixed(1)}" y="${height - 28}" fill="#bcd0e6" font-size="12" text-anchor="middle">${tick.toFixed(tabKey === "spin" ? 0 : 1)}</text>
+          <line x1="${xScale(tick).toFixed(1)}" y1="${top + plotHeight}" x2="${xScale(tick).toFixed(1)}" y2="${top + plotHeight + 8}" stroke="rgba(126,148,171,0.35)" stroke-width="1"/>
+          <text x="${xScale(tick).toFixed(1)}" y="${height - 28}" fill="#60758d" font-size="12" text-anchor="middle">${tick.toFixed(tabKey === "spin" ? 0 : 1)}</text>
         `).join("")}
-        <path d="${bandPath}" fill="rgba(236,170,59,0.26)" stroke="rgba(236,170,59,0.9)" stroke-width="1.2" stroke-dasharray="5 5"/>
-        <path d="${linePath}" fill="none" stroke="#43d4e6" stroke-width="3"/>
-        <line x1="${xScale(selected.input).toFixed(1)}" y1="${top}" x2="${xScale(selected.input).toFixed(1)}" y2="${top + plotHeight}" stroke="#43d4e6" stroke-width="1.6" stroke-dasharray="6 6" opacity="0.8"/>
-        <circle cx="${xScale(selected.input).toFixed(1)}" cy="${yScale(selected.prediction).toFixed(1)}" r="10" fill="#43d4e6" stroke="#e8fbff" stroke-width="2.4"/>
-        <text x="${(xScale(selected.input) + 26).toFixed(1)}" y="${(yScale(selected.prediction) + 24).toFixed(1)}" fill="#43d4e6" font-size="14" font-weight="700">Current scenario: ${formatAxisValue(tabKey, selected.input)}</text>
-        <text x="${left}" y="18" fill="#eef4ff" font-size="13">Predicted bound mass (%)</text>
-        <text x="${(left + plotWidth / 2).toFixed(1)}" y="${height - 4}" fill="#d7e4f2" font-size="13" text-anchor="middle">${config.axisLabel}</text>
-        <text x="${(greyX + (width - right - greyX) / 2).toFixed(1)}" y="${(top + plotHeight / 2).toFixed(1)}" fill="rgba(224,233,244,0.7)" font-size="14" text-anchor="middle">Outside training range</text>
+        <path d="${bandPath}" fill="rgba(236,170,59,0.22)" stroke="rgba(215,144,29,0.88)" stroke-width="1.2" stroke-dasharray="5 5"/>
+        <path d="${linePath}" fill="none" stroke="#3f6fd4" stroke-width="3"/>
+        <line x1="${xScale(selected.input).toFixed(1)}" y1="${top}" x2="${xScale(selected.input).toFixed(1)}" y2="${top + plotHeight}" stroke="#3f6fd4" stroke-width="1.6" stroke-dasharray="6 6" opacity="0.78"/>
+        <circle cx="${xScale(selected.input).toFixed(1)}" cy="${yScale(selected.prediction).toFixed(1)}" r="10" fill="#3f6fd4" stroke="#ffffff" stroke-width="2.4"/>
+        <text x="${left}" y="18" fill="#4f647b" font-size="13">Predicted bound mass (%)</text>
+        <text x="${(left + plotWidth / 2).toFixed(1)}" y="${height - 4}" fill="#4f647b" font-size="13" text-anchor="middle">${config.axisLabel}</text>
+        <text x="${(greyX + (width - right - greyX) / 2).toFixed(1)}" y="${(top + plotHeight / 2).toFixed(1)}" fill="rgba(84,101,121,0.72)" font-size="14" text-anchor="middle">Outside training range</text>
       </svg>
     `;
   }
@@ -1264,15 +1300,20 @@
   function renderSensitivityPanel() {
     if (!metadata || !sensitivityChart) return;
     const config = sensitivityConfig(activeSensitivityTab);
+    const {currentValue} = buildSensitivityCurve(activeSensitivityTab);
     sensitivityTitle.textContent = config.title;
     sensitivitySubtitle.textContent = `All other parameters remain fixed while ${activeSensitivityTab === "mass" ? "asteroid mass" : activeSensitivityTab} is varied.`;
     sensitivityChart.src = svgDataUri(buildSensitivitySvg(activeSensitivityTab));
+    document.querySelector(".sensitivity-note").textContent =
+      activeSensitivityTab === "mass"
+        ? `Current scenario: ${formatLogMassWithKg(currentValue)}. All other parameters remain fixed while the selected tab is varied.`
+        : `Current scenario: ${formatAxisValue(activeSensitivityTab, currentValue)}. All other parameters remain fixed while the selected tab is varied.`;
     sensitivityTabs.forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.sensitivityTab === activeSensitivityTab);
     });
   }
 
-  function buildEncounterSchematicSvg(payload) {
+  function buildEncounterScene(payload) {
     const vis = payload?.visualization || {};
     const input = payload?.input_payload || {};
     const mode = payload?.render_mode || "result";
@@ -1296,19 +1337,24 @@
     const boundaryRadiusPx = 65 + tidal * 18;
     const closestApproachX = Math.max(marsX + marsRadiusPx + 26, Math.min(430, marsX + periapsisRm * 60));
     const closestApproachY = Math.max(156, Math.min(272, marsY - 18 + (eccentricity - 1.0) * 18));
-    const trajectoryLabelX = (asteroidX + closestApproachX) / 2 - 10;
-    const trajectoryLabelY = Math.min(asteroidY, closestApproachY) - 16;
+    const trajectoryLabelX = 430;
+    const trajectoryLabelY = 190;
     const trajectoryPath = `M ${asteroidX - 20} ${asteroidY + 10} Q ${closestApproachX + 55} ${Math.max(70, asteroidY - 34)} ${closestApproachX} ${closestApproachY}`;
     const escapingRadiusPx = Math.max(4.4, asteroidRadiusPx * Math.cbrt(Math.max(0.05, predictedUnboundPercent / 100)) * 1.35);
     const escapingX = Math.min(690, closestApproachX + 185);
     const escapingY = Math.max(120, Math.min(290, closestApproachY - 24 + (eccentricity - 1.0) * 20));
     const escapingPath = `M ${closestApproachX + 10} ${closestApproachY + 4} Q ${closestApproachX + 92} ${closestApproachY - 44} ${escapingX - 16} ${escapingY}`;
-    const escapingLabelX = Math.max(620, escapingX + 34);
-    const escapingLabelY = Math.max(102, escapingY - 60);
-    const outcomeLabel = outcome ? `${outcomeUi.label.toLowerCase()} outcome` : "incoming asteroid";
+    const escapingLabelX = 464;
+    const escapingLabelY = 124;
+    const outcomeLabel = "";
     const asteroidLabel = hasResult
       ? `escaping fragments ${predictedUnboundPercent.toFixed(1)}%`
       : "incoming asteroid";
+    const previewAsteroidLabelX = 520;
+    const previewAsteroidLabelY = 128;
+    const boundaryLegendX = 66;
+    const boundaryLegendY = 56;
+    const boundaryLabelText = "disruption boundary";
     const boundLabel = predictedBmf > 0
       ? `bound mass ${predictedBmf.toFixed(1)}%`
       : `no bound material predicted`;
@@ -1320,50 +1366,236 @@
       const x = marsX + Math.cos(angle) * radius;
       const y = marsY + Math.sin(angle) * radius * 0.62;
       const dotRadius = predictedBmf < 1 ? 1.2 : 2.4;
-      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${dotRadius}" fill="#8be0a6"/>`;
-    }).join("");
-    const debrisLabel = debrisCount
-      ? `
-        <line x1="286" y1="238" x2="394" y2="274" stroke="#8be0a6" stroke-width="2"/>
-        <text x="402" y="278" fill="#b9f1c8" font-size="16">${boundLabel}</text>
-      `
-      : "";
+      return {x, y, r: dotRadius};
+    });
+    return {
+      width: 820,
+      height: 420,
+      hasResult,
+      marsX,
+      marsY,
+      marsRadiusPx,
+      boundaryRadiusPx,
+      asteroidX,
+      asteroidY,
+      asteroidRadiusPx,
+      trajectoryPath,
+      trajectoryLabelX,
+      trajectoryLabelY,
+      closestApproachX,
+      closestApproachY,
+      escapingX,
+      escapingY,
+      escapingRadiusPx,
+      escapingPath,
+      escapingLabelX,
+      escapingLabelY,
+      asteroidLabel,
+      boundLabel,
+      outcomeLabel,
+      debrisDots,
+      previewAsteroidLabelX,
+      previewAsteroidLabelY,
+      boundaryLegendX,
+      boundaryLegendY,
+      boundaryLabelText,
+      showDebrisLabel: debrisCount > 0,
+    };
+  }
+
+  function buildEncounterSchematicSvg(payload) {
+    const scene = buildEncounterScene(payload);
+    const debrisDots = scene.debrisDots.map((dot) => `<circle cx="${dot.x.toFixed(1)}" cy="${dot.y.toFixed(1)}" r="${dot.r}" fill="#8be0a6"/>`).join("");
 
     return `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${scene.width} ${scene.height}">
         <defs>
-          <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-            <path d="M0,0 L12,6 L0,12 z" fill="#d8e6fb"/>
+          <marker id="arrowhead" markerWidth="18" markerHeight="18" refX="14" refY="9" orient="auto">
+            <path d="M0,0 L18,9 L0,18 z" fill="#d8e6fb"/>
           </marker>
         </defs>
-        <rect width="820" height="420" fill="#0f1a2c"/>
-        <circle cx="${marsX}" cy="${marsY}" r="${boundaryRadiusPx.toFixed(1)}" fill="none" stroke="#d9a441" stroke-width="3" stroke-dasharray="10 10"/>
-        <circle cx="${marsX}" cy="${marsY}" r="${marsRadiusPx}" fill="#bf6a37"/>
-        <text x="${marsX - 18}" y="${marsY + 82}" fill="#f5f7fb" font-size="18">Mars</text>
+        <rect width="${scene.width}" height="${scene.height}" fill="#0f1a2c"/>
+        <circle cx="${scene.marsX}" cy="${scene.marsY}" r="${scene.boundaryRadiusPx.toFixed(1)}" fill="none" stroke="#d9a441" stroke-width="3" stroke-dasharray="10 10"/>
+        <circle cx="${scene.marsX}" cy="${scene.marsY}" r="${scene.marsRadiusPx}" fill="#bf6a37"/>
+        <text x="${scene.marsX - 18}" y="${scene.marsY + 82}" fill="#f5f7fb" font-size="18">Mars</text>
 
-        ${hasResult ? `
-          <line x1="${escapingLabelX + 34}" y1="${escapingLabelY + 14}" x2="${escapingX + escapingRadiusPx + 10}" y2="${escapingY - 2}" stroke="#d8e6fb" stroke-width="2"/>
-          <text x="${escapingLabelX.toFixed(1)}" y="${escapingLabelY.toFixed(1)}" fill="#d8e6fb" font-size="17">${asteroidLabel}</text>
-          <circle cx="${escapingX}" cy="${escapingY}" r="${escapingRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
-          <path d="${escapingPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
+        ${scene.hasResult ? `
+          <line x1="${scene.escapingLabelX + 176}" y1="${scene.escapingLabelY + 10}" x2="${scene.escapingX + scene.escapingRadiusPx + 10}" y2="${scene.escapingY - 2}" stroke="#d8e6fb" stroke-width="2"/>
+          <rect x="${(scene.escapingLabelX - 8).toFixed(1)}" y="${(scene.escapingLabelY - 18).toFixed(1)}" width="214" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+          <text x="${scene.escapingLabelX.toFixed(1)}" y="${scene.escapingLabelY.toFixed(1)}" fill="#d8e6fb" font-size="15" font-family="Segoe UI, Arial, sans-serif">${scene.asteroidLabel}</text>
+          <circle cx="${scene.escapingX}" cy="${scene.escapingY}" r="${scene.escapingRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
+          <path d="${scene.escapingPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
         ` : `
-          <text x="622" y="130" fill="#d8e6fb" font-size="17">${asteroidLabel}</text>
-          <circle cx="${asteroidX}" cy="${asteroidY}" r="${asteroidRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
-          <path d="${trajectoryPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-          <text x="${trajectoryLabelX.toFixed(1)}" y="${trajectoryLabelY.toFixed(1)}" fill="#d8e6fb" font-size="16">approach path</text>
+          <rect x="${(scene.previewAsteroidLabelX - 10).toFixed(1)}" y="${(scene.previewAsteroidLabelY - 20).toFixed(1)}" width="128" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+          <text x="${scene.previewAsteroidLabelX}" y="${scene.previewAsteroidLabelY}" fill="#d8e6fb" font-size="15" font-family="Segoe UI, Arial, sans-serif">${scene.asteroidLabel}</text>
+          <circle cx="${scene.asteroidX}" cy="${scene.asteroidY}" r="${scene.asteroidRadiusPx.toFixed(1)}" fill="#f5dfaa"/>
+          <path d="${scene.trajectoryPath}" fill="none" stroke="#d8e6fb" stroke-width="2.5" marker-end="url(#arrowhead)"/>
+          <rect x="${(scene.trajectoryLabelX - 8).toFixed(1)}" y="${(scene.trajectoryLabelY - 18).toFixed(1)}" width="118" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+          <text x="${scene.trajectoryLabelX.toFixed(1)}" y="${scene.trajectoryLabelY.toFixed(1)}" fill="#d8e6fb" font-size="15" font-family="Segoe UI, Arial, sans-serif">approach path</text>
         `}
 
-        <line x1="${marsX + boundaryRadiusPx - 10}" y1="${marsY - boundaryRadiusPx + 18}" x2="440" y2="62" stroke="#d9a441" stroke-width="2"/>
-        <text x="448" y="66" fill="#f0d38a" font-size="16">approx. disruption boundary</text>
-        <text x="74" y="84" fill="#eef4ff" font-size="18">${outcomeLabel}</text>
+        <line x1="${scene.boundaryLegendX}" y1="${scene.boundaryLegendY}" x2="${scene.boundaryLegendX + 40}" y2="${scene.boundaryLegendY}" stroke="#d9a441" stroke-width="3" stroke-dasharray="10 8"/>
+        <rect x="${scene.boundaryLegendX + 48}" y="${scene.boundaryLegendY - 16}" width="152" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+        <text x="${scene.boundaryLegendX + 56}" y="${scene.boundaryLegendY + 1}" fill="#f0d38a" font-size="15" font-family="Segoe UI, Arial, sans-serif">${scene.boundaryLabelText}</text>
+        ${scene.outcomeLabel ? `
+          <rect x="66" y="64" width="160" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+          <text x="74" y="81" fill="#eef4ff" font-size="17">${scene.outcomeLabel}</text>
+        ` : ""}
         ${debrisDots}
-        ${debrisLabel}
+        ${scene.showDebrisLabel ? `
+          <line x1="286" y1="238" x2="394" y2="274" stroke="#8be0a6" stroke-width="2"/>
+          <rect x="394" y="260" width="132" height="22" rx="7" fill="rgba(15,26,44,0.9)"/>
+          <text x="402" y="276" fill="#b9f1c8" font-size="15" font-family="Segoe UI, Arial, sans-serif">${scene.boundLabel}</text>
+        ` : ""}
       </svg>
     `;
   }
 
+  function ensureStoryboardStage() {
+    if (!window.Konva || !storyboardCanvas) return null;
+    const width = storyboardCanvas.clientWidth || 820;
+    const height = 420;
+    if (!storyboardStage) {
+      storyboardCanvas.innerHTML = "";
+      storyboardStage = new Konva.Stage({
+        container: "storyboard-canvas",
+        width,
+        height,
+      });
+    } else {
+      storyboardStage.width(width);
+      storyboardStage.height(height);
+    }
+    return storyboardStage;
+  }
+
+  function renderEncounterSchematicWithKonva(payload = null) {
+    const stage = ensureStoryboardStage();
+    if (!stage) return false;
+    const scene = buildEncounterScene(payload);
+    const sx = (x) => x * (stage.width() / scene.width);
+    const sy = (y) => y * (stage.height() / scene.height);
+    const addArrowHead = (x1, y1, x2, y2, color) => {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const size = 16;
+      layer.add(new Konva.Line({
+        points: [
+          sx(x2), sy(y2),
+          sx(x2 - size * Math.cos(angle - Math.PI / 7)), sy(y2 - size * Math.sin(angle - Math.PI / 7)),
+          sx(x2 - size * Math.cos(angle + Math.PI / 7)), sy(y2 - size * Math.sin(angle + Math.PI / 7)),
+          sx(x2), sy(y2),
+        ],
+        closed: true,
+        fill: color,
+        stroke: color,
+        strokeWidth: 1.2,
+      }));
+    };
+    stage.destroyChildren();
+    const layer = new Konva.Layer();
+    layer.add(new Konva.Rect({x: 0, y: 0, width: stage.width(), height: stage.height(), fill: "#0f1a2c"}));
+    layer.add(new Konva.Circle({
+      x: sx(scene.marsX), y: sy(scene.marsY), radius: sx(scene.boundaryRadiusPx),
+      stroke: "#d9a441", strokeWidth: 3, dash: [10, 10],
+    }));
+    layer.add(new Konva.Circle({
+      x: sx(scene.marsX), y: sy(scene.marsY), radius: sx(scene.marsRadiusPx), fill: "#bf6a37",
+    }));
+    layer.add(new Konva.Text({
+      x: sx(scene.marsX - 18), y: sy(scene.marsY + 64), text: "Mars",
+      fill: "#f5f7fb", fontSize: 18, fontFamily: "Georgia",
+    }));
+    layer.add(new Konva.Line({
+      points: [sx(scene.boundaryLegendX), sy(scene.boundaryLegendY), sx(scene.boundaryLegendX + 40), sy(scene.boundaryLegendY)],
+      stroke: "#d9a441", strokeWidth: 3, dash: [10, 8],
+    }));
+    layer.add(new Konva.Text({
+      x: sx(scene.boundaryLegendX + 56), y: sy(scene.boundaryLegendY - 11), text: "disruption boundary",
+      fill: "#f0d38a", fontSize: 15, fontFamily: "Segoe UI, Arial, sans-serif",
+    }));
+    if (scene.outcomeLabel) {
+      layer.add(new Konva.Rect({
+        x: sx(66), y: sy(64), width: sx(160), height: sy(22), cornerRadius: 7,
+        fill: "rgba(15,26,44,0.9)",
+      }));
+      layer.add(new Konva.Text({
+        x: sx(74), y: sy(66), text: scene.outcomeLabel,
+        fill: "#eef4ff", fontSize: 17, fontFamily: "Georgia",
+      }));
+    }
+    scene.debrisDots.forEach((dot) => {
+      layer.add(new Konva.Circle({x: sx(dot.x), y: sy(dot.y), radius: Math.max(1.2, sx(dot.r)), fill: "#8be0a6"}));
+    });
+    if (scene.showDebrisLabel) {
+      layer.add(new Konva.Line({
+        points: [sx(286), sy(238), sx(394), sy(274)],
+        stroke: "#8be0a6", strokeWidth: 2,
+      }));
+      layer.add(new Konva.Rect({
+        x: sx(394), y: sy(250), width: sx(142), height: sy(24), cornerRadius: 7,
+        fill: "rgba(15,26,44,0.9)",
+      }));
+      layer.add(new Konva.Text({
+        x: sx(402), y: sy(261), text: scene.boundLabel,
+        fill: "#b9f1c8", fontSize: 15, fontFamily: "Segoe UI, Arial, sans-serif",
+      }));
+    }
+    if (scene.hasResult) {
+      layer.add(new Konva.Line({
+        points: [sx(scene.escapingLabelX + 176), sy(scene.escapingLabelY + 10), sx(scene.escapingX + scene.escapingRadiusPx + 10), sy(scene.escapingY - 2)],
+        stroke: "#d8e6fb", strokeWidth: 2,
+      }));
+      layer.add(new Konva.Rect({
+        x: sx(scene.escapingLabelX - 8), y: sy(scene.escapingLabelY - 20), width: sx(214), height: sy(24), cornerRadius: 7,
+        fill: "rgba(15,26,44,0.9)",
+      }));
+      layer.add(new Konva.Text({
+        x: sx(scene.escapingLabelX), y: sy(scene.escapingLabelY - 15), text: scene.asteroidLabel,
+        fill: "#d8e6fb", fontSize: 15, fontFamily: "Segoe UI, Arial, sans-serif",
+      }));
+      layer.add(new Konva.Circle({
+        x: sx(scene.escapingX), y: sy(scene.escapingY), radius: sx(scene.escapingRadiusPx), fill: "#f5dfaa",
+      }));
+      layer.add(new Konva.Path({
+        data: scene.escapingPath, stroke: "#d8e6fb", strokeWidth: 2.5,
+        scaleX: stage.width() / scene.width, scaleY: stage.height() / scene.height,
+      }));
+      addArrowHead(scene.escapingX - 38, scene.escapingY - 4, scene.escapingX - 12, scene.escapingY, "#d8e6fb");
+    } else {
+      layer.add(new Konva.Rect({
+        x: sx(scene.previewAsteroidLabelX - 10), y: sy(scene.previewAsteroidLabelY - 20), width: sx(132), height: sy(24), cornerRadius: 7,
+        fill: "rgba(15,26,44,0.9)",
+      }));
+      layer.add(new Konva.Text({
+        x: sx(scene.previewAsteroidLabelX), y: sy(scene.previewAsteroidLabelY - 15), text: scene.asteroidLabel,
+        fill: "#d8e6fb", fontSize: 15, fontFamily: "Segoe UI, Arial, sans-serif",
+      }));
+      layer.add(new Konva.Circle({
+        x: sx(scene.asteroidX), y: sy(scene.asteroidY), radius: sx(scene.asteroidRadiusPx), fill: "#f5dfaa",
+      }));
+      layer.add(new Konva.Path({
+        data: scene.trajectoryPath, stroke: "#d8e6fb", strokeWidth: 2.5,
+        scaleX: stage.width() / scene.width, scaleY: stage.height() / scene.height,
+      }));
+      addArrowHead(scene.closestApproachX + 30, scene.closestApproachY - 22, scene.closestApproachX, scene.closestApproachY, "#d8e6fb");
+      layer.add(new Konva.Rect({
+        x: sx(scene.trajectoryLabelX - 8), y: sy(scene.trajectoryLabelY - 30), width: sx(118), height: sy(24), cornerRadius: 7,
+        fill: "rgba(15,26,44,0.9)",
+      }));
+      layer.add(new Konva.Text({
+        x: sx(scene.trajectoryLabelX), y: sy(scene.trajectoryLabelY - 13), text: "approach path",
+        fill: "#d8e6fb", fontSize: 15, fontFamily: "Segoe UI, Arial, sans-serif",
+      }));
+    }
+    stage.add(layer);
+    layer.draw();
+    return true;
+  }
+
   function renderEncounterSchematic(payload = null) {
-    storyboardImage.src = svgDataUri(buildEncounterSchematicSvg(payload));
+    if (!renderEncounterSchematicWithKonva(payload)) {
+      storyboardCanvas.innerHTML = `<img alt="Encounter schematic" src="${svgDataUri(buildEncounterSchematicSvg(payload))}" style="display:block;width:100%;height:auto;border-radius:14px;background:#0f1a2c">`;
+    }
     storyboardTitle.textContent = "Encounter prediction";
     if (payload) {
       storyboardCaption.textContent = `Prediction of how the encounter outcome could look with periapsis ${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii and eccentricity ${Number(payload.encounter_eccentricity).toFixed(2)}.`;
@@ -1454,12 +1686,11 @@
       ["Nearby archive runs", "Loading..."],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
-    storyboardImage.src = svgDataUri(`
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420">
-        <rect width="820" height="420" fill="#0f1a2c"/>
-        <text x="410" y="214" fill="#eef4ff" font-size="28" text-anchor="middle">Loading screen...</text>
-      </svg>
-    `);
+    storyboardCanvas.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:420px;color:#eef4ff;font-size:28px;background:#0f1a2c;border-radius:14px;">Loading screen...</div>`;
+    if (storyboardStage) {
+      storyboardStage.destroy();
+      storyboardStage = null;
+    }
     storyboardTitle.textContent = "Encounter prediction";
     storyboardCaption.textContent = "Running the selected case and preparing a predicted encounter view.";
     storyboardStep.textContent = "";
@@ -1496,9 +1727,7 @@
     document.getElementById("support-pill").textContent = "Awaiting run";
     document.getElementById("support-pill").className = "pill";
     document.getElementById("support-note").textContent = "The dashboard will report whether the case is in-range, near-edge, or sparse relative to the archive.";
-    document.getElementById("support-rows").innerHTML = `
-      <div class="row"><span>Awaiting run</span><strong>-</strong></div>
-    `;
+    document.getElementById("support-rows").innerHTML = "";
 
     renderSplitBar();
     renderPlaceholderStoryboard();
@@ -1531,7 +1760,7 @@
     document.getElementById("prediction-rows").innerHTML = [
       ["Input mode", payload.input_payload.input_mode === "size" ? "Size-derived mass" : "Direct mass"],
       ["Archive assumption", "Rocky asteroid"],
-      ["Equivalent parent mass", `${Number(payload.input_payload.mass_log10_kg).toFixed(3)} log10 kg`],
+      ["Equivalent parent mass", formatLogMassWithKg(payload.input_payload.mass_log10_kg, payload.parent_mass_kg)],
       ["Displayed radius", payload.display_radius_km == null ? "n/a" : `${Number(payload.display_radius_km).toFixed(1)} km`],
       ["Periapsis", `${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii`],
       ["Eccentricity", Number(payload.encounter_eccentricity).toFixed(2)],
@@ -1862,6 +2091,11 @@
 
   loadMetadata().catch((error) => {
     setStatus(statusEl, error.message, "");
+  });
+
+  window.addEventListener("resize", () => {
+    if (!metadata) return;
+    renderEncounterSchematic(latest || buildPreviewPayloadFromForm());
   });
 </script>
 </body>

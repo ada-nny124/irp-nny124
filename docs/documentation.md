@@ -70,25 +70,28 @@ Interpretation:
 
 ### Best bound-retention regressions
 
-- `bound_mass_fraction`: random forest on all successful runs with FoF length, `R² = 0.897`
+- `bound_mass_fraction`: deployed two-stage CatBoost hurdle, grouped `R² = 0.9483`, `MAE = 0.01217`, `RMSE = 0.02115`
+- `bound_mass_fraction` previous deployed benchmark: random forest with FoF length, grouped `R² = 0.8970`, `MAE = 0.01848`, `RMSE = 0.02986`
 - `largest_bound_fragment_mass_kg`: random forest on all successful runs with FoF length, `R² = 0.824`
 - `average_bound_fragment_mass_kg`: random forest with FoF length, `R² = 0.569`
 - `bound_fragment_count`: random forest with FoF length, `R² = 0.496`
 
 Interpretation:
 
-- continuous retained mass is predicted well
+- continuous retained mass is predicted substantially better by the deployed hurdle surrogate than by the previous random-forest benchmark
+- the visible `BMF >= 10%` retention screen remains a transparent threshold applied to the continuous deployed BMF prediction
 - fragment-count style bound targets are materially harder than retained-mass targets
 
 ### Best bound-retention classifications
 
-- `bound_mass_fraction_ge_0_1`: gradient boosting with FoF length, balanced accuracy `0.962`, ROC AUC `0.990`
-- `has_any_bound_mass`: gradient boosting with FoF length, balanced accuracy `0.927`, ROC AUC `0.975`
+- `bound_mass_fraction_ge_0_1`: shown in the dashboard as a threshold on the deployed continuous BMF prediction, not as a separate deployed classifier
+- `has_any_bound_mass`: also derived from the deployed continuous BMF prediction in the dashboard view
+- archived classification experiments remain useful benchmarks, but they are not the deployed public-facing path
 
 Interpretation:
 
-- coarse decision boundaries such as “any bound mass” and “BMF >= 10%” are strongly learnable from the available metadata
-- these are useful screening targets even when finer physical detail still requires SPH
+- coarse decision boundaries such as “any bound mass” and “BMF >= 10%” are still useful screening views
+- the deployment now keeps those decisions transparent by deriving them from one continuous BMF surrogate rather than switching model families
 
 ## Physics-structured surrogate upgrade
 
@@ -111,7 +114,7 @@ The upgraded pipeline first reproduces the grouped-validation baseline with `Gro
 
 Confirmed baseline reference:
 
-- `bound_mass_fraction`, random forest, `with_fof_linking_length`: `R² = 0.8971`, `MAE = 0.0184`, `RMSE = 0.0298`
+- `bound_mass_fraction`, random forest, `with_fof_linking_length`: `R² = 0.8970`, `MAE = 0.01848`, `RMSE = 0.02986`
 
 The baseline stage now writes matched outputs for both:
 
@@ -162,23 +165,38 @@ Current ablation result:
 
 - `physics-feature RF`, `with_fof_linking_length`, `bound_mass_fraction`: `R² = 0.9225`, `MAE = 0.0179`
 
-This is the current promoted surrogate because it materially improves BMF prediction over the reproduced baseline.
+This result is **not** the deployed surrogate because that feature set included `largest_fragment_mass_fraction`, which is only known after the SPH outcome and therefore leaks post-simulation information.
 
-### Current promoted model
+### Current deployed BMF model
 
-The current promoted model card is:
+The current deployed model card is:
 
-- promoted model: `physics-feature RF`
+- deployed model: `two-stage CatBoost hurdle`
+- bundle id: `bmf_hurdle_catboost_v1`
 - target: `bound_mass_fraction`
-- feature set: `with_fof_linking_length`
-- grouped-CV BMF score: `R² = 0.9225`
-- grouped-CV BMF MAE: `0.0179`
+- feature set: `with_fof_linking_length` plus leakage-safe setup-time physics-derived features
+- grouped validation: by `physical_file`
+- grouped-CV BMF score: `R² = 0.9483205515`
+- grouped-CV BMF MAE: `0.0121695104` (`1.21695` percentage points)
+- grouped-CV BMF RMSE: `0.0211527841`
+- previous deployed benchmark: random forest, `R² = 0.8970378216`, `MAE = 0.0184811442`, `RMSE = 0.0298570889`
+- experimental benchmark retained but not deployed: `Hurdle NGBoost surrogate`
+
+The deployed hurdle architecture is:
+
+1. CatBoost classifier for `BMF > 0`
+2. CatBoost regressor trained only on positive-BMF rows
+3. final prediction `predicted_bmf = P(BMF > 0) × predicted_positive_bmf`
+4. final value clipped to `[0, 1]`
 
 Supporting files:
 
-- `ml/physics_structured_surrogate/model_card.md`
-- `ml/physics_structured_surrogate/tables/promoted_model_info.json`
-- `ml/physics_structured_surrogate/tables/trust_summary.csv`
+- `ml/triage/bmf_hurdle_bundle.pkl`
+- `ml/triage/bmf_hurdle_metrics.json`
+- `ml/triage/bmf_hurdle_oof_predictions.csv`
+- `ml/triage/bmf_hurdle_local_diagnostics.csv`
+- `ml/triage/bmf_hurdle_controlled_slices.csv`
+- `ml/triage/bmf_hurdle_mass_19p5_check.csv`
 
 ### Trust rules and caution zones
 
@@ -192,11 +210,14 @@ Trust logic is based on:
 - model spread between tree families
 - whether predicted `bound_mass_fraction` is borderline around the `0.10` threshold
 
-Current trust summary:
+Current trust inputs in the deployed dashboard:
 
-- high-confidence screening rows: `40`
-- medium-confidence screening rows: `254`
-- low-confidence / SPH-required rows: `113`
+- whether the query lies inside the sampled training range
+- whether it is near the sampled edge
+- nearby independent SPH run count from the local diagnostics table
+- local grouped held-out absolute error
+- whether predicted `bound_mass_fraction` is borderline around the `0.10` threshold
+- disagreement between the deployed CatBoost hurdle prediction and the random-forest benchmark
 
 Low-confidence / SPH-required cases remain those that are:
 
@@ -210,7 +231,7 @@ Low-confidence / SPH-required cases remain those that are:
 
 The upgraded phase now produces:
 
-- baseline-vs-promoted periapsis slice plots
+- controlled periapsis / velocity / mass / spin slices from the deployed hurdle bundle
 - parameter coverage heatmaps
 - coverage-vs-error heatmaps
 - target-transform comparison tables for the secondary targets

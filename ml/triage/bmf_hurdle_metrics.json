@@ -1,0 +1,95 @@
+{
+  "benchmark_disagreement_mean_fraction": 0.011275636804296269,
+  "benchmark_disagreement_mean_percentage_points": 1.127563680429627,
+  "benchmark_disagreement_p75_fraction": 0.01533371640083158,
+  "benchmark_disagreement_p75_percentage_points": 1.533371640083158,
+  "benchmark_grouped_cv_mae_fraction": 0.018481144195463237,
+  "benchmark_grouped_cv_r2": 0.8970378216374238,
+  "benchmark_grouped_cv_rmse": 0.029857088944279304,
+  "benchmark_model_name": "baseline_random_forest",
+  "bundle_id": "bmf_hurdle_catboost_v1",
+  "categorical_columns": [
+    "spin_axis",
+    "special_case_code"
+  ],
+  "feature_columns": [
+    "mass_log10_kg",
+    "particle_log10",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "spin_axis",
+    "has_explicit_spin",
+    "special_case_code",
+    "timestep",
+    "fof_linking_length",
+    "encounter_eccentricity_proxy",
+    "v_inf_squared",
+    "periapsis_inverse",
+    "angular_momentum_proxy",
+    "asteroid_radius_km",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
+    "spin_frequency_hr_inv",
+    "has_spin",
+    "particle_mass_proxy",
+    "mass_resolution_interaction"
+  ],
+  "feature_set": "with_fof_linking_length",
+  "fold_metrics": [
+    {
+      "benchmark_mae": 0.019586251492726088,
+      "benchmark_r2": 0.901177644851354,
+      "fold_index": 0,
+      "mae": 0.01472495244928039,
+      "r2": 0.9503842684569052,
+      "rmse": 0.0221072734511481,
+      "rows": 82
+    },
+    {
+      "benchmark_mae": 0.021763653780963847,
+      "benchmark_r2": 0.8943119881599211,
+      "fold_index": 1,
+      "mae": 0.010371368881781588,
+      "r2": 0.9672603722054903,
+      "rmse": 0.016782965655256436,
+      "rows": 82
+    },
+    {
+      "benchmark_mae": 0.01799472294878793,
+      "benchmark_r2": 0.8885572733313829,
+      "fold_index": 2,
+      "mae": 0.012730898365158918,
+      "r2": 0.93450602726599,
+      "rmse": 0.02356747925037346,
+      "rows": 81
+    },
+    {
+      "benchmark_mae": 0.020050788512539133,
+      "benchmark_r2": 0.861774865565333,
+      "fold_index": 3,
+      "mae": 0.013404729190189507,
+      "r2": 0.9318718336801803,
+      "rmse": 0.022694558086579494,
+      "rows": 81
+    },
+    {
+      "benchmark_mae": 0.012956136132635453,
+      "benchmark_r2": 0.9135979969730352,
+      "fold_index": 4,
+      "mae": 0.009606253951060953,
+      "r2": 0.9410583326327658,
+      "rmse": 0.01994667017279011,
+      "rows": 81
+    }
+  ],
+  "grouped_cv_mae_fraction": 0.0121695104451259,
+  "grouped_cv_mae_percentage_points": 1.21695104451259,
+  "grouped_cv_r2": 0.948320551493999,
+  "grouped_cv_rmse": 0.021152784063661858,
+  "grouping": "physical_file",
+  "model_name": "two-stage CatBoost hurdle",
+  "rows": 407,
+  "unique_physical_files": 279,
+  "zero_share": 0.44717444717444715
+}

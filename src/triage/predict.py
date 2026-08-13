@@ -46,16 +46,10 @@ def get_artifact_status(model_dir: str | Path) -> list[dict[str, str]]:
             "target": "predicted_largest_fragment_mass_kg",
         },
         {
-            "label": "bound_mass_classifier.pkl",
-            "path": str(model_dir / "bound_mass_classifier.pkl"),
-            "status": "loaded" if (model_dir / "bound_mass_classifier.pkl").exists() else "missing",
-            "target": "has_any_bound_mass (analysis only)",
-        },
-        {
-            "label": "bmf_ge_0p1_classifier.pkl",
-            "path": str(model_dir / "bmf_ge_0p1_classifier.pkl"),
-            "status": "loaded" if (model_dir / "bmf_ge_0p1_classifier.pkl").exists() else "missing",
-            "target": "bound_mass_fraction_ge_0p1 (analysis only)",
+            "label": "bmf_hurdle_bundle.pkl",
+            "path": str(model_dir / "bmf_hurdle_bundle.pkl"),
+            "status": "loaded" if (model_dir / "bmf_hurdle_bundle.pkl").exists() else "missing",
+            "target": "continuous bound mass fraction via two-stage CatBoost hurdle",
         },
         {
             "label": "training_domain.json",

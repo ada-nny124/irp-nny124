@@ -9,6 +9,7 @@ description = "Installable local API and dashboard for Mars flyby triage and out
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "catboost",
   "numpy",
   "pandas",
   "scikit-learn",

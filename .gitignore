@@ -21,6 +21,8 @@ eda/
 report/
 deliverables/*.pptx
 figures/presentation/*.png
+catboost_info/
+ml/triage/bmf_hurdle_fold_assignments.csv
 
 # Local logs, scratch space, OS, caches, test tooling, local env, etc
 .DS_Store

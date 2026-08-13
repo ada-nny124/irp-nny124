@@ -24,11 +24,13 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from triage import add_derived_features, check_training_domain, get_artifact_status, load_artifacts, predict_cases
+from triage.bmf import get_bmf_bundle_status, load_bmf_bundle, predict_bmf_from_bundle
 
 MODEL_DIR = ROOT / "ml" / "triage"
-BOUND_MODELS_DIR = ROOT / "ml" / "bound_outcomes" / "models"
-BOUND_TABLES_DIR = ROOT / "ml" / "bound_outcomes" / "tables"
-SURROGATE_TABLES_DIR = ROOT / "ml" / "physics_structured_surrogate" / "tables"
+BMF_BUNDLE_PATH = ROOT / "ml" / "triage" / "bmf_hurdle_bundle.pkl"
+BMF_METRICS_PATH = ROOT / "ml" / "triage" / "bmf_hurdle_metrics.json"
+BMF_OOF_PATH = ROOT / "ml" / "triage" / "bmf_hurdle_oof_predictions.csv"
+BMF_LOCAL_DIAGNOSTICS_PATH = ROOT / "ml" / "triage" / "bmf_hurdle_local_diagnostics.csv"
 DATASET_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
 HTML_PATH = ROOT / "src" / "triage" / "templates" / "sph_triage_dashboard.html"
 
@@ -109,15 +111,6 @@ def load_triage_bundle() -> tuple[object, object, dict[str, object]]:
 
 
 @lru_cache(maxsize=1)
-def load_bound_metrics_tables() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
-    classification_path = BOUND_TABLES_DIR / "classification_metrics.csv"
-    regression_path = BOUND_TABLES_DIR / "regression_metrics.csv"
-    classification_df = pd.read_csv(classification_path) if classification_path.exists() else None
-    regression_df = pd.read_csv(regression_path) if regression_path.exists() else None
-    return classification_df, regression_df
-
-
-@lru_cache(maxsize=1)
 def load_fragmentation_metrics() -> dict[str, object]:
     metrics_path = MODEL_DIR / "metrics.json"
     largest_mass_metrics_path = MODEL_DIR / "largest_fragment_mass_kg_metrics.json"
@@ -130,84 +123,33 @@ def load_fragmentation_metrics() -> dict[str, object]:
 
 
 @lru_cache(maxsize=1)
-def select_best_bound_model_paths() -> dict[str, Path]:
-    _, regression_df = load_bound_metrics_tables()
-    selected: dict[str, Path] = {}
-    if regression_df is not None and not regression_df.empty:
-        for target in [
-            "bound_mass_fraction",
-            "bound_fragment_count",
-            "largest_bound_fragment_mass_kg",
-            "average_bound_fragment_mass_kg",
-        ]:
-            subset = regression_df[regression_df["target"] == target].sort_values(
-                ["r2", "mae", "rmse"],
-                ascending=[False, True, True],
-            )
-            if subset.empty:
-                continue
-            row = subset.iloc[0]
-            selected[target] = BOUND_MODELS_DIR / (
-                f"{row['dataset']}__{row['feature_set']}__{row['target']}__{row['model']}.pkl"
-            )
-    return selected
-
-
-@lru_cache(maxsize=1)
-def load_bound_models() -> dict[str, object]:
-    models: dict[str, object] = {}
-    for target, path in select_best_bound_model_paths().items():
-        if not path.exists():
-            continue
-        with path.open("rb") as handle:
-            models[target] = pickle.load(handle)
-    return models
-
-
-@lru_cache(maxsize=1)
-def select_best_bound_classifiers() -> dict[str, dict[str, object]]:
-    classification_df, _ = load_bound_metrics_tables()
-    selected: dict[str, dict[str, object]] = {}
-    if classification_df is None or classification_df.empty:
-        return selected
-
-    for target in ["has_any_bound_mass", "bound_mass_fraction_ge_0_1"]:
-        subset = classification_df[classification_df["target"] == target].sort_values(
-            ["balanced_accuracy", "f1", "roc_auc"],
-            ascending=[False, False, False],
+def load_bmf_metrics() -> dict[str, object]:
+    if not BMF_METRICS_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing required BMF metrics file at {BMF_METRICS_PATH}. "
+            "Run the deployed BMF CatBoost hurdle training/build step first."
         )
-        if subset.empty:
-            continue
-        row = subset.iloc[0]
-        path = BOUND_MODELS_DIR / f"{row['dataset']}__{row['feature_set']}__{row['target']}__{row['model']}.pkl"
-        selected[target] = {
-            "target": str(row["target"]),
-            "dataset": str(row["dataset"]),
-            "feature_set": str(row["feature_set"]),
-            "model_name": str(row["model"]),
-            "balanced_accuracy": float(row["balanced_accuracy"]),
-            "roc_auc": float(row["roc_auc"]),
-            "path": str(path),
-            "available": path.exists(),
-        }
-    return selected
+    return json.loads(BMF_METRICS_PATH.read_text(encoding="utf-8"))
 
 
 @lru_cache(maxsize=1)
-def load_spread_models() -> dict[str, object]:
-    model_paths = {
-        "random_forest": BOUND_MODELS_DIR
-        / "all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl",
-        "gradient_boosting": BOUND_MODELS_DIR
-        / "all_successful_runs__with_fof_linking_length__bound_mass_fraction__gradient_boosting_regressor.pkl",
-    }
-    models: dict[str, object] = {}
-    for name, path in model_paths.items():
-        if not path.exists():
-            continue
-        with path.open("rb") as handle:
-            models[name] = pickle.load(handle)
-    return models
+def load_bmf_oof_predictions() -> pd.DataFrame:
+    if not BMF_OOF_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing required BMF grouped OOF predictions at {BMF_OOF_PATH}. "
+            "Run the deployed BMF CatBoost hurdle training/build step first."
+        )
+    return pd.read_csv(BMF_OOF_PATH)
+
+
+@lru_cache(maxsize=1)
+def load_bmf_local_diagnostics() -> pd.DataFrame:
+    if not BMF_LOCAL_DIAGNOSTICS_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing required BMF local diagnostics at {BMF_LOCAL_DIAGNOSTICS_PATH}. "
+            "Run the deployed BMF CatBoost hurdle training/build step first."
+        )
+    return pd.read_csv(BMF_LOCAL_DIAGNOSTICS_PATH)
 
 
 def parse_numeric_code(series: pd.Series, pattern: str, scale: float = 1.0) -> pd.Series:
@@ -358,11 +300,17 @@ def get_input_specs() -> list[dict[str, object]]:
 
 
 def get_support_thresholds() -> dict[str, float]:
-    trust_summary = pd.read_csv(SURROGATE_TABLES_DIR / "trust_summary.csv").iloc[0].to_dict()
+    metrics = load_bmf_metrics()
+    local = load_bmf_local_diagnostics()
+    disagreement_threshold = float(metrics.get("benchmark_disagreement_p75_fraction", 0.0))
+    local_error_threshold = float(local["local_grouped_mae"].median()) if not local.empty else float(
+        metrics.get("grouped_cv_mae_fraction", 0.0)
+    )
     return {
         "high_support_min": HIGH_SUPPORT_MIN,
         "moderate_support_min": MODERATE_SUPPORT_MIN,
-        "spread_threshold": float(trust_summary["spread_threshold"]),
+        "disagreement_threshold": disagreement_threshold,
+        "local_error_threshold": local_error_threshold,
         "borderline_bmf_min": BORDERLINE_BMF_MIN,
         "borderline_bmf_max": BORDERLINE_BMF_MAX,
         "bmf_threshold": BMF_THRESHOLD,
@@ -370,39 +318,21 @@ def get_support_thresholds() -> dict[str, float]:
 
 
 def get_selected_bound_model_metadata() -> dict[str, object]:
-    selected_path = select_best_bound_model_paths().get("bound_mass_fraction")
-    if selected_path is None:
-        return {}
-    regression_df = load_bound_metrics_tables()[1]
-    if regression_df is None or regression_df.empty:
-        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
-
-    parts = selected_path.stem.split("__")
-    if len(parts) < 4:
-        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
-    dataset, feature_set, target, model_name = parts[0], parts[1], parts[2], "__".join(parts[3:])
-    subset = regression_df[
-        (regression_df["dataset"] == dataset)
-        & (regression_df["feature_set"] == feature_set)
-        & (regression_df["target"] == target)
-        & (regression_df["model"] == model_name)
-    ]
-    if subset.empty:
-        return {"bundle_id": selected_path.stem, "path": str(selected_path)}
-    row = subset.iloc[0]
+    metrics = load_bmf_metrics()
     return {
-        "bundle_id": selected_path.stem,
-        "path": str(selected_path),
-        "dataset": str(row["dataset"]),
-        "feature_set": str(row["feature_set"]),
-        "target": str(row["target"]),
-        "model_name": str(row["model"]),
-        "grouped_cv_r2": float(row["r2"]),
-        "grouped_cv_mae_fraction": float(row["mae"]),
-        "grouped_cv_mae_percentage_points": float(row["mae"]) * 100.0,
-        "rows": int(row["rows"]),
-        "unique_physical_files": int(row["unique_physical_files"]),
-        "validation_grouping": "Grouped by physical flyby setup",
+        "bundle_id": str(metrics["bundle_id"]),
+        "path": str(BMF_BUNDLE_PATH),
+        "feature_set": str(metrics["feature_set"]),
+        "target": "continuous bound mass fraction",
+        "model_name": str(metrics["model_name"]),
+        "grouped_cv_r2": float(metrics["grouped_cv_r2"]),
+        "grouped_cv_mae_fraction": float(metrics["grouped_cv_mae_fraction"]),
+        "grouped_cv_mae_percentage_points": float(metrics["grouped_cv_mae_percentage_points"]),
+        "grouped_cv_rmse": float(metrics["grouped_cv_rmse"]),
+        "rows": int(metrics["rows"]),
+        "unique_physical_files": int(metrics["unique_physical_files"]),
+        "validation_grouping": "Grouped by physical SPH simulation",
+        "benchmark_model_name": str(metrics.get("benchmark_model_name", "baseline_random_forest")),
     }
 
 
@@ -423,9 +353,9 @@ def get_fragmentation_model_metadata() -> dict[str, object]:
 
 
 def build_validation_metadata() -> dict[str, object]:
-    promoted_info = json.loads((SURROGATE_TABLES_DIR / "promoted_model_info.json").read_text(encoding="utf-8"))
     thresholds = get_support_thresholds()
     selected_bmf = get_selected_bound_model_metadata()
+    metrics = load_bmf_metrics()
     return {
         "fragmentation_models": get_fragmentation_model_metadata(),
         "bmf_model": selected_bmf,
@@ -444,8 +374,8 @@ def build_validation_metadata() -> dict[str, object]:
             },
             {
                 "target": "Predicted BMF",
-                "model_type": "regression",
-                "source": selected_bmf.get("model_name", "bound_mass_fraction regressor"),
+                "model_type": "two-stage hurdle regression",
+                "source": "CatBoost classifier × positive-only CatBoost regressor",
                 "used_in_dashboard": True,
             },
             {
@@ -455,14 +385,15 @@ def build_validation_metadata() -> dict[str, object]:
                 "used_in_dashboard": True,
             },
         ],
-        "hidden_classifiers": select_best_bound_classifiers(),
+        "hidden_classifiers": [],
         "thresholds": {
             "support_score": {
                 "high": f">= {HIGH_SUPPORT_MIN:.0f}",
                 "moderate": f">= {MODERATE_SUPPORT_MIN:.0f} and < {HIGH_SUPPORT_MIN:.0f}",
                 "low": f"< {MODERATE_SUPPORT_MIN:.0f}",
             },
-            "model_spread_percentage_points": round(thresholds["spread_threshold"] * 100.0, 2),
+            "model_disagreement_percentage_points": round(thresholds["disagreement_threshold"] * 100.0, 2),
+            "local_grouped_mae_percentage_points": round(thresholds["local_error_threshold"] * 100.0, 2),
             "borderline_bmf_percentage": [
                 round(BORDERLINE_BMF_MIN * 100.0, 2),
                 round(BORDERLINE_BMF_MAX * 100.0, 2),
@@ -470,19 +401,38 @@ def build_validation_metadata() -> dict[str, object]:
             "bmf_threshold_percentage": round(BMF_THRESHOLD * 100.0, 1),
         },
         "limitations_note": (
-            "The experimental physics-feature surrogate improved grouped-CV BMF performance, but it is not the deployed "
-            "inference path for this dashboard because its promoted ablation bundle includes a post-outcome feature."
+            "The deployed BMF model is the leakage-safe two-stage CatBoost hurdle bundle. Previous physics-feature random-forest "
+            "experiments are not deployed because they relied on a post-outcome feature."
         ),
         "consistency_note": (
             "The dashboard uses regression for the continuous BMF output, then applies a visible 10% threshold rule for the "
-            "retention screen. Archive classifiers for `has_any_bound_mass` and `bound_mass_fraction_ge_0_1` exist, but they are "
-            "not used for the current dashboard recommendation or visible outputs."
+            "retention screen. The displayed typical grouped held-out absolute error is a validation average, not a case-specific "
+            "confidence interval. Any benchmark comparison is labelled as model disagreement."
         ),
-        "experimental_reference": {
-            "promotion_label": promoted_info.get("promotion_label"),
-            "model_name": promoted_info.get("model_name"),
-            "grouped_cv_r2": promoted_info.get("r2"),
-            "grouped_cv_mae_fraction": promoted_info.get("mae"),
+        "benchmark_reference": {
+            "previous_deployed_benchmark": {
+                "model_name": "Random Forest",
+                "grouped_cv_r2": 0.897127,
+            },
+            "experimental_physics_feature_rf": {
+                "model_name": "physics-feature RF",
+                "deployed": False,
+                "reason": "included post-outcome feature",
+            },
+            "experimental_ngboost_hurdle": {
+                "model_name": "Hurdle NGBoost surrogate",
+                "deployed": False,
+            },
+        },
+        "deployed_bmf_summary": {
+            "model": str(metrics["model_name"]),
+            "target": "continuous bound mass fraction",
+            "validation": "grouped by physical SPH simulation",
+            "grouped_cv_r2": float(metrics["grouped_cv_r2"]),
+            "grouped_cv_mae_fraction": float(metrics["grouped_cv_mae_fraction"]),
+            "grouped_cv_mae_percentage_points": float(metrics["grouped_cv_mae_percentage_points"]),
+            "grouped_cv_rmse": float(metrics["grouped_cv_rmse"]),
+            "bundle_id": str(metrics["bundle_id"]),
         },
     }
 
@@ -490,7 +440,9 @@ def build_validation_metadata() -> dict[str, object]:
 @lru_cache(maxsize=1)
 def load_demo_metadata() -> dict[str, object]:
     support = load_support_frame()
-    coverage_summary = pd.read_csv(SURROGATE_TABLES_DIR / "coverage_error_summary.csv").iloc[0].to_dict()
+    bmf_oof = load_bmf_oof_predictions()
+    occupied_mass_peri_bins = int(bmf_oof[["mass_log10_kg", "periapsis_Rm"]].drop_duplicates().shape[0])
+    occupied_peri_vel_bins = int(bmf_oof[["periapsis_Rm", "v_inf_kms"]].drop_duplicates().shape[0])
     support["encounter_eccentricity"] = support["encounter_eccentricity_proxy"]
     ranges = {
         "mass_log10_kg": range_payload(support["mass_log10_kg"]),
@@ -528,8 +480,9 @@ def load_demo_metadata() -> dict[str, object]:
         "range_labels": {key: format_range(key, payload) for key, payload in ranges.items()},
         "dataset_summary": {
             "bound_rows": int(len(support)),
-            "occupied_mass_peri_bins": int(coverage_summary["occupied_mass_peri_bins"]),
-            "occupied_peri_vel_bins": int(coverage_summary["occupied_peri_vel_bins"]),
+            "occupied_mass_peri_bins": occupied_mass_peri_bins,
+            "occupied_peri_vel_bins": occupied_peri_vel_bins,
+            "local_diagnostic_groups": int(load_bmf_local_diagnostics().shape[0]),
         },
         "scientific_semantics_note": SCIENTIFIC_SEMANTICS_NOTE,
         "input_specs": get_input_specs(),
@@ -635,36 +588,32 @@ def validate_payload(payload: dict[str, object]) -> dict[str, object]:
 
 
 def apply_bound_predictions(result: pd.Series, input_df: pd.DataFrame) -> pd.Series:
-    models = load_bound_models()
-    if not models:
-        return result
-
+    bundle = load_bmf_bundle(MODEL_DIR)
     features = make_bound_feature_frame(input_df)
-    for target, model in models.items():
-        expected_columns = list(getattr(model.named_steps["preprocessor"], "feature_names_in_", []))
-        if not expected_columns:
-            continue
-        X = features[expected_columns].copy()
-        result[target] = float(model.predict(X)[0])
-
-    bound_mass_fraction = float(np.clip(float(result.get("bound_mass_fraction", 0.0)), 0.0, 1.0))
+    prediction = predict_bmf_from_bundle(bundle, features)
+    bound_mass_fraction = float(prediction.final_prediction[0])
     result["bound_mass_fraction"] = bound_mass_fraction
+    result["bound_mass_positive_probability"] = float(prediction.positive_probability[0])
+    result["bound_mass_positive_only_estimate"] = float(prediction.positive_estimate[0])
+    result["has_any_bound_mass"] = bool(bound_mass_fraction > 0.0)
+    result["bound_mass_fraction_ge_0p1"] = bool(bound_mass_fraction >= BMF_THRESHOLD)
     return result
 
 
 def add_spread_diagnostic(result: pd.Series, input_df: pd.DataFrame) -> pd.Series:
-    spread_models = load_spread_models()
-    if len(spread_models) < 2:
+    bundle = load_bmf_bundle(MODEL_DIR)
+    benchmark = bundle.get("benchmark_random_forest")
+    if benchmark is None:
         result["bmf_model_spread"] = 0.0
+        result["bmf_model_disagreement"] = 0.0
         return result
-
     features = make_bound_feature_frame(input_df)
-    predictions = []
-    for model in spread_models.values():
-        expected_columns = list(getattr(model.named_steps["preprocessor"], "feature_names_in_", []))
-        X = features[expected_columns].copy()
-        predictions.append(float(model.predict(X)[0]))
-    result["bmf_model_spread"] = float(abs(predictions[0] - predictions[1]))
+    feature_columns = list(bundle["feature_columns"])
+    benchmark_prediction = float(benchmark.predict(features[feature_columns])[0])
+    disagreement = float(abs(float(result.get("bound_mass_fraction", 0.0)) - benchmark_prediction))
+    result["benchmark_random_forest_bmf"] = benchmark_prediction
+    result["bmf_model_disagreement"] = disagreement
+    result["bmf_model_spread"] = disagreement
     return result
 
 
@@ -694,7 +643,7 @@ def describe_support_level(trust_score_pct: float) -> str:
 
 def build_support_flags(result: pd.Series, input_df: pd.DataFrame) -> dict[str, object]:
     metadata = load_demo_metadata()
-    support = load_support_frame()
+    local = load_bmf_local_diagnostics()
     row = input_df.iloc[0]
     ranges = metadata["ranges"]
 
@@ -710,20 +659,34 @@ def build_support_flags(result: pd.Series, input_df: pd.DataFrame) -> dict[str, 
         or float(row["v_inf_kms"]) >= ranges["v_inf_kms"]["max"] - 0.1
     )
 
-    bin_counts = support.groupby(["mass_log10_kg", "periapsis_Rm"]).size()
-    key = (float(row["mass_log10_kg"]), float(row["periapsis_Rm"]))
-    bin_count = int(bin_counts.get(key, 0))
-    sparse_threshold = float(bin_counts.median()) if not bin_counts.empty else 0.0
-    sparse_bin_flag = bin_count <= sparse_threshold
+    local_match = local[
+        np.isclose(local["mass_log10_kg"], float(row["mass_log10_kg"]))
+        & np.isclose(local["periapsis_Rm"], float(row["periapsis_Rm"]))
+        & np.isclose(local["v_inf_kms"], float(row["v_inf_kms"]))
+        & (local["spin_axis"].astype(str) == str(row["spin_axis"]))
+        & (local["has_explicit_spin"].astype(bool) == bool(row["has_explicit_spin"]))
+    ]
+    if local_match.empty:
+        bin_count = 0
+        sparse_bin_flag = True
+        local_grouped_mae = float(load_bmf_metrics()["grouped_cv_mae_fraction"])
+    else:
+        record = local_match.iloc[0]
+        bin_count = int(record["nearby_run_count"])
+        sparse_bin_flag = bool(record["sparse_region_flag"])
+        local_grouped_mae = float(record["local_grouped_mae"])
     borderline_bmf = BORDERLINE_BMF_MIN <= float(result.get("bound_mass_fraction", 0.0)) <= BORDERLINE_BMF_MAX
-    model_spread = float(result.get("bmf_model_spread", 0.0))
-    spread_threshold = float(metadata["support_thresholds"]["spread_threshold"])
+    model_spread = float(result.get("bmf_model_disagreement", result.get("bmf_model_spread", 0.0)))
+    spread_threshold = float(metadata["support_thresholds"]["disagreement_threshold"])
+    local_error_threshold = float(metadata["support_thresholds"]["local_error_threshold"])
     return {
         "in_training_range": in_training_range,
         "near_training_edge": near_training_edge,
         "sparse_bin_flag": sparse_bin_flag,
         "bin_count": bin_count,
         "borderline_bmf": borderline_bmf,
+        "local_grouped_mae": local_grouped_mae,
+        "local_error_threshold": local_error_threshold,
         "model_spread": model_spread,
         "spread_threshold": spread_threshold,
     }
@@ -743,13 +706,14 @@ def make_demo_recommendation(
     if (
         support_flags["near_training_edge"]
         or support_flags["sparse_bin_flag"]
+        or support_flags["local_grouped_mae"] > support_flags["local_error_threshold"]
         or support_flags["model_spread"] > support_flags["spread_threshold"]
         or support_flags["borderline_bmf"]
     ):
         return (
             "SPH recommended",
             "warn",
-            "The case is near the sampled edge, sparsely supported, borderline in BMF, or unstable across model families, so the surrogate is better used for prioritisation than as a stopping rule.",
+            "The case is near the sampled edge, sparsely supported, locally high-error, borderline in BMF, or unstable relative to the benchmark model, so the surrogate is better used for prioritisation than as a stopping rule.",
         )
     if predicted_outcome == "Strong fragmentation" or bound_mass_fraction >= BMF_THRESHOLD:
         return (
@@ -774,6 +738,10 @@ def compute_support_score(support_flags: dict[str, object]) -> float:
         score -= 15.0
     if support_flags["borderline_bmf"]:
         score -= 12.0
+    local_threshold = float(support_flags["local_error_threshold"])
+    if local_threshold > 0:
+        local_error_ratio = min(float(support_flags["local_grouped_mae"]) / local_threshold, 2.0)
+        score -= local_error_ratio * 8.0
     threshold = float(support_flags["spread_threshold"])
     if threshold > 0:
         spread_ratio = min(float(support_flags["model_spread"]) / threshold, 2.0)
@@ -788,8 +756,10 @@ def build_support_reason(support_flags: dict[str, object], support_level: str) -
         return "Inside the sampled range but near its edge, so this estimate is less secure than a well-supported interior case."
     if support_flags["sparse_bin_flag"]:
         return "Inside the sampled range but locally sparse, so there are fewer similar archive cases nearby."
+    if support_flags["local_grouped_mae"] > support_flags["local_error_threshold"]:
+        return "Similar archive cases show a larger grouped held-out absolute error here than in better-supported regions."
     if support_flags["model_spread"] > support_flags["spread_threshold"]:
-        return "The scenario is in range, but the model families disagree more than usual on bound material."
+        return "The scenario is in range, but the deployed CatBoost hurdle and the benchmark Random Forest disagree more than usual on bound material."
     if support_flags["borderline_bmf"]:
         return "The scenario lies near the 10% bound-material threshold, so small changes could alter the interpretation."
     return f"{support_level} support because the query is in range, not near edge, and model spread is low."
@@ -814,7 +784,11 @@ def build_support_rows(support_flags: dict[str, object], support_score: float) -
             "value": f"{support_flags['bin_count']}",
         },
         {
-            "label": "Model spread",
+            "label": "Local grouped MAE",
+            "value": f"{support_flags['local_grouped_mae'] * 100.0:.2f} percentage points",
+        },
+        {
+            "label": "Model disagreement",
             "value": f"{support_flags['model_spread'] * 100.0:.1f} percentage points",
         },
     ]
@@ -910,7 +884,7 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
     predicted_unbound_mass_fraction = float(np.clip(1.0 - bound_mass_fraction, 0.0, 1.0))
     predicted_unbound_mass_kg = max(0.0, parent_mass_kg * predicted_unbound_mass_fraction)
     support_frame = make_bound_feature_frame(input_df)
-    domain = check_training_domain(support_frame.iloc[0].to_dict(), load_triage_bundle()[2])
+    domain = check_training_domain(support_frame.iloc[0].to_dict(), load_bmf_bundle(MODEL_DIR)["training_domain"])
     fragmentation_metrics = load_fragmentation_metrics()
     bmf_mae_fraction = float(selected_model.get("grouped_cv_mae_fraction", 0.0))
     largest_mae_kg = float(
@@ -951,6 +925,8 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "predicted_bmf_percent": round(bound_mass_fraction * 100.0, 1),
         "predicted_bmf_uncertainty_fraction": bmf_mae_fraction,
         "predicted_bmf_uncertainty_percentage_points": round(bmf_mae_fraction * 100.0, 2),
+        "predicted_bmf_typical_absolute_error_fraction": bmf_mae_fraction,
+        "predicted_bmf_typical_absolute_error_percentage_points": round(bmf_mae_fraction * 100.0, 2),
         "predicted_bound_mass_kg": predicted_bound_mass_kg,
         "predicted_unbound_mass_fraction": predicted_unbound_mass_fraction,
         "predicted_unbound_mass_percent": round(predicted_unbound_mass_fraction * 100.0, 1),
@@ -993,11 +969,13 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "nearby_run_count": int(support_flags["bin_count"]),
         "model_spread_fraction": float(support_flags["model_spread"]),
         "model_spread_percentage_points": round(float(support_flags["model_spread"]) * 100.0, 2),
+        "model_disagreement_fraction": float(support_flags["model_spread"]),
+        "model_disagreement_percentage_points": round(float(support_flags["model_spread"]) * 100.0, 2),
         "domain_status": domain["status"],
         "domain_near_edge_features": domain["near_edge_features"],
         "domain_out_of_domain_features": domain["out_of_domain_features"],
         "validation": load_demo_metadata()["model_validation"],
-        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible public-facing outcomes in this dashboard.",
+        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible public-facing outcomes in this dashboard. The BMF error figure is a typical grouped held-out absolute error, not a case-specific uncertainty interval.",
         "visualization": {
             "periapsis_rm": float(normalized_payload["periapsis_Rm"]),
             "encounter_eccentricity": encounter_eccentricity,

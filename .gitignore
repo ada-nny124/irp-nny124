@@ -20,6 +20,11 @@ archived/
 eda/
 report/
 
+# Generated presentation outputs
+deliverables/*.pptx
+deliverables/~$*.pptx
+figures/presentation/*.png
+
 # Local logs, scratch space, OS, caches, test tooling, local env, etc
 .DS_Store
 *.swp

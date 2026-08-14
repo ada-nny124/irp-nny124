@@ -70,8 +70,8 @@ Interpretation:
 
 ### Best bound-retention regressions
 
-- `bound_mass_fraction`: deployed two-stage CatBoost hurdle, grouped `R² = 0.9483`, `MAE = 0.01217`, `RMSE = 0.02115`
-- `bound_mass_fraction` previous deployed benchmark: random forest with FoF length, grouped `R² = 0.8970`, `MAE = 0.01848`, `RMSE = 0.02986`
+- `bound_mass_fraction`: Random Forest used for the evaluated dashboard prototype, grouped `R² = 0.8971`, `MAE = 0.01839`, `RMSE = 0.02984`
+- `bound_mass_fraction` subsequent model-comparison result: two-stage CatBoost hurdle, grouped `R² = 0.9483`, `MAE = 0.01217`, `RMSE = 0.02115`
 - `largest_bound_fragment_mass_kg`: random forest on all successful runs with FoF length, `R² = 0.824`
 - `average_bound_fragment_mass_kg`: random forest with FoF length, `R² = 0.569`
 - `bound_fragment_count`: random forest with FoF length, `R² = 0.496`
@@ -167,22 +167,26 @@ Current ablation result:
 
 This result is **not** the deployed surrogate because that feature set included `largest_fragment_mass_fraction`, which is only known after the SPH outcome and therefore leaks post-simulation information.
 
-### Current deployed BMF model
+### Dashboard prototype model and follow-up comparison
 
-The current deployed model card is:
+The Random Forest was used for the evaluated dashboard prototype.
 
-- deployed model: `two-stage CatBoost hurdle`
-- bundle id: `bmf_hurdle_catboost_v1`
+- deployed dashboard model: `Random Forest`
 - target: `bound_mass_fraction`
-- feature set: `with_fof_linking_length` plus leakage-safe setup-time physics-derived features
+- feature set: `with_fof_linking_length`
 - grouped validation: by `physical_file`
-- grouped-CV BMF score: `R² = 0.9483205515`
-- grouped-CV BMF MAE: `0.0121695104` (`1.21695` percentage points)
-- grouped-CV BMF RMSE: `0.0211527841`
-- previous deployed benchmark: random forest, `R² = 0.8970378216`, `MAE = 0.0184811442`, `RMSE = 0.0298570889`
-- experimental benchmark retained but not deployed: `Hurdle NGBoost surrogate`
+- grouped-CV BMF score: `R² = 0.897127`
+- grouped-CV BMF MAE: `0.018394` (`1.8394` percentage points)
+- grouped-CV BMF RMSE: `0.029844`
 
-The deployed hurdle architecture is:
+Subsequent model comparison showed that a two-stage CatBoost hurdle model improved grouped held-out `R²` from `0.897` to `0.948` and reduced MAE from `1.84` to `1.22` percentage points.
+
+This means:
+
+- **Scientific/modelling finding:** BMF is better represented as two stages, first whether any material remains bound and then how much is retained, than as one continuous prediction problem.
+- **Future-development finding:** the two-stage CatBoost hurdle model is the preferred candidate to replace the RF dashboard model once it is packaged, tested, and connected properly.
+
+The hurdle architecture used in that comparison was:
 
 1. CatBoost classifier for `BMF > 0`
 2. CatBoost regressor trained only on positive-BMF rows
@@ -191,12 +195,15 @@ The deployed hurdle architecture is:
 
 Supporting files:
 
-- `ml/triage/bmf_hurdle_bundle.pkl`
-- `ml/triage/bmf_hurdle_metrics.json`
-- `ml/triage/bmf_hurdle_oof_predictions.csv`
-- `ml/triage/bmf_hurdle_local_diagnostics.csv`
-- `ml/triage/bmf_hurdle_controlled_slices.csv`
-- `ml/triage/bmf_hurdle_mass_19p5_check.csv`
+- deployed dashboard prototype:
+  `ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl`
+- subsequent CatBoost comparison:
+  `ml/triage/bmf_hurdle_bundle.pkl`
+  `ml/triage/bmf_hurdle_metrics.json`
+  `ml/triage/bmf_hurdle_oof_predictions.csv`
+  `ml/triage/bmf_hurdle_local_diagnostics.csv`
+  `ml/triage/bmf_hurdle_controlled_slices.csv`
+  `ml/triage/bmf_hurdle_mass_19p5_check.csv`
 
 ### Trust rules and caution zones
 
@@ -217,7 +224,7 @@ Current trust inputs in the deployed dashboard:
 - nearby independent SPH run count from the local diagnostics table
 - local grouped held-out absolute error
 - whether predicted `bound_mass_fraction` is borderline around the `0.10` threshold
-- disagreement between the deployed CatBoost hurdle prediction and the random-forest benchmark
+- disagreement between the deployed Random Forest prediction and the gradient-boosting benchmark
 
 Low-confidence / SPH-required cases remain those that are:
 

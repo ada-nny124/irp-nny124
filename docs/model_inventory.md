@@ -17,7 +17,7 @@
 
 | Model name | Performance | Justification | Notes |
 | --- | --- | --- | --- |
-| `Two-stage CatBoost hurdle model` | `R² = 0.948321`, `MAE = 0.012170`, `RMSE = 0.021153` | Captures the zero-heavy BMF target explicitly with a zero-vs-positive classifier and a positive-only regressor while staying leakage-safe. | Current deployed continuous BMF model in the dashboard (`bmf_hurdle_catboost_v1`). |
+| `Two-stage CatBoost hurdle model` | `R² = 0.948321`, `MAE = 0.012170`, `RMSE = 0.021153` | Captures the zero-heavy BMF target explicitly with a zero-vs-positive classifier and a positive-only regressor while staying leakage-safe. | Successful model-comparison result and preferred future deployment candidate, not the current dashboard model. |
 | `Hurdle NGBoost surrogate` | `R² = 0.948477`, `MAE = 0.012689`, `RMSE = 0.021121` | Strong full-target surrogate that remains scientifically relevant as a probabilistic hurdle benchmark. | Experimental benchmark only, not deployed. |
 | `XGBoost regressor` | `R² = 0.937662`, `MAE = 0.013222` | Relevant as a high-performing boosted-tree benchmark that can test whether a strong modern regressor benefits from the same physics-structured inputs. | Strongest single-stage booster. |
 | `Regime-aware mixture of experts` | `R² = 0.931545`, `MAE = 0.015624`, `RMSE = 0.024345` | Relevant because it explicitly models regime-dependent behavior, which is important if the underlying process changes across physical regimes. | Strong regime model, below the hurdle winners. |
@@ -27,8 +27,8 @@
 
 ## Deployment status
 
-- **Deployed continuous BMF model:** `two-stage CatBoost hurdle`, grouped by `physical_file`, bundle id `bmf_hurdle_catboost_v1`
-- **Previous deployed benchmark:** `random forest`, grouped-CV `R² = 0.897038`, `MAE = 0.018481`, `RMSE = 0.029857`
+- **Deployed continuous BMF model:** `random forest`, grouped-CV `R² = 0.897127`, `MAE = 0.018394`, `RMSE = 0.029844`
+- **Future deployment candidate:** `two-stage CatBoost hurdle`, grouped-CV `R² = 0.948321`, `MAE = 0.012170`, `RMSE = 0.021153`
 - **Experimental physics-feature RF:** not deployed because it used `largest_fragment_mass_fraction`, which is only known after the SPH outcome
 - **Experimental NGBoost hurdle:** retained as a benchmark, not deployed
 - **Fragmentation models:** still separate Gradient Boosting artifacts for the fragmentation classifier and largest-remnant regressor

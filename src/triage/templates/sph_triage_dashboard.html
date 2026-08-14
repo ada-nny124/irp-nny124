@@ -342,7 +342,7 @@
   .pill.low{background:rgba(255,141,123,0.14);color:var(--red)}
   .viz-grid{
     display:grid;
-    grid-template-columns:1.08fr 0.92fr;
+    grid-template-columns:1.18fr 0.82fr;
     gap:16px;
     align-items:start;
   }
@@ -355,7 +355,7 @@
   .storyboard-canvas{
     display:block;
     width:100%;
-    min-height:420px;
+    min-height:460px;
     border-radius:14px;
     background:#0f1a2c;
     overflow:hidden;
@@ -393,6 +393,14 @@
     border-radius:18px;
     padding:14px;
     background:var(--soft);
+  }
+  @media (max-width: 1120px){
+    .viz-grid{
+      grid-template-columns:1fr;
+    }
+    .storyboard-canvas{
+      min-height:420px;
+    }
   }
   .story-box > strong{
     display:block;

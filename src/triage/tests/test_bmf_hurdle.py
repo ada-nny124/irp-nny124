@@ -124,8 +124,13 @@ def test_hurdle_predictions_are_deterministic():
 
 
 def test_retention_screen_is_derived_from_predicted_bmf(monkeypatch):
-    bundle = make_dummy_bundle()
-    monkeypatch.setattr(dashboard_app, "load_bmf_bundle", lambda _: bundle)
+    class DummyRfModel:
+        feature_names_in_ = ["mass_log10_kg", "periapsis_Rm", "spin_axis"]
+
+        def predict(self, X):
+            return np.array([0.21])
+
+    monkeypatch.setattr(dashboard_app, "load_rf_bmf_model", lambda: DummyRfModel())
     payload = {
         "case_name": "demo_test",
         "input_mode": "mass",
@@ -157,29 +162,28 @@ def test_retention_screen_is_derived_from_predicted_bmf(monkeypatch):
 def test_dashboard_metadata_reports_catboost_hurdle(monkeypatch):
     monkeypatch.setattr(
         dashboard_app,
-        "load_bmf_metrics",
+        "load_rf_bmf_metrics",
         lambda: {
-            "bundle_id": "bmf_hurdle_catboost_v1",
+            "bundle_id": "rf_dashboard_bmf_v1",
             "feature_set": "with_fof_linking_length",
-            "model_name": "two-stage CatBoost hurdle",
-            "grouped_cv_r2": 0.9483,
-            "grouped_cv_mae_fraction": 0.01217,
-            "grouped_cv_mae_percentage_points": 1.217,
-            "grouped_cv_rmse": 0.02115,
+            "model_name": "Random Forest",
+            "grouped_cv_r2": 0.8971,
+            "grouped_cv_mae_fraction": 0.01839,
+            "grouped_cv_mae_percentage_points": 1.839,
+            "grouped_cv_rmse": 0.02984,
             "rows": 407,
-            "unique_physical_files": 407,
-            "benchmark_model_name": "baseline_random_forest",
-            "benchmark_disagreement_p75_fraction": 0.02,
+            "unique_physical_files": 279,
         },
     )
     monkeypatch.setattr(
         dashboard_app,
-        "load_bmf_local_diagnostics",
-        lambda: pd.DataFrame({"local_grouped_mae": [0.01, 0.015]}),
+        "load_rf_local_diagnostics",
+        lambda: pd.DataFrame({"local_grouped_mae": [0.01, 0.015], "benchmark_disagreement_mean": [0.005, 0.02]}),
     )
     metadata = dashboard_app.build_validation_metadata()
-    assert metadata["bmf_model"]["model_name"] == "two-stage CatBoost hurdle"
-    assert metadata["deployed_bmf_summary"]["grouped_cv_mae_percentage_points"] == pytest.approx(1.217)
+    assert metadata["bmf_model"]["model_name"] == "Random Forest"
+    assert metadata["deployed_bmf_summary"]["grouped_cv_mae_percentage_points"] == pytest.approx(1.839)
+    assert metadata["benchmark_reference"]["future_deployment_candidate"]["model_name"] == "Two-stage CatBoost hurdle"
     assert metadata["consistency_note"].lower().find("case-specific confidence interval") != -1
 
 

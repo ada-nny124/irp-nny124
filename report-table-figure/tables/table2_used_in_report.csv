@@ -1,0 +1,3 @@
+Periapsis,Actual BMF,OOF prediction,Abs. error,Failure
+1.2,0.0913,0.0134,0.0779,Underpredicts
+1.6,0.000204,0.0827,0.0825,Overpredicts

@@ -1,0 +1,2 @@
+fragment_rows,run_rows,extraction_log_rows,successful_log_rows,fragment_bound_count,fragment_unbound_count,fragment_bound_share,fragment_unbound_share,runs_zero_bound_mass_fraction,runs_mixed_bound_mass_fraction,runs_all_unbound_mass_fraction
+189664,407,489,407,39479,150185,0.2081523114560486,0.7918476885439514,182,225,168

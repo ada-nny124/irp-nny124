@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Train requested model-optimization candidates on the BMF surrogate task."""
-
 from __future__ import annotations
 
 import argparse

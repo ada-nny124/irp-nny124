@@ -1,0 +1,16 @@
+model_key,model_label,task_scope,status,r2,mae,rmse,error
+two_stage_hurdle,Two-stage CatBoost hurdle model,full grouped-CV BMF regression,ok,0.948320551493999,0.0121695104451259,0.021152784063661858,
+xgboost,XGBoost regressor,full grouped-CV BMF regression,ok,0.9376616714871558,0.013222377069869156,0.023231977444720144,
+catboost,CatBoost regressor,full grouped-CV BMF regression,ok,0.9301956247329968,0.01501424683934779,0.02458385145226595,
+lightgbm,LightGBM regressor,full grouped-CV BMF regression,ok,0.8126356870868876,0.024666071885949208,0.040276529166979866,
+pysr,PySR symbolic regression,positive-only grouped-CV BMF regression,ok,0.6872880251979392,0.038336744474914,0.050149978590391185,
+tabpfn,TabPFN regressor,full grouped-CV BMF regression,failed,,,,"TabPFNLicenseError | TabPFN requires a one-time license acceptance to download
+model weights for local inference, but no interactive terminal
+is available.
+
+To authenticate in a non-interactive environment:
+  1. Open https://ux.priorlabs.ai in a browser and log in (or register)
+  2. Accept the license on the Licenses tab
+  3. Copy your API Key from https://ux.priorlabs.ai/account
+  4. Set the environment variable: export TABPFN_TOKEN=""<your-api-key>""
+     or in Python (before calling .fit()): import os; os.environ[""TABPFN_TOKEN""] = ""<your-api-key>"""

@@ -1,0 +1,13 @@
+dataset,feature_set,target,model,test_mae,test_rmse,test_r2,difficulty_by_r2,difficulty_by_mae
+clean_subset,with_fof_linking_length,fragment_count_min_particles,gradient_boosting,127.39546799592488,289.94819182578976,0.8719249569515712,1.0,1.0
+clean_subset,with_fof_linking_length,largest_fragment_particle_count,random_forest,261654.61441964968,426186.8278321874,0.8300778815800043,2.0,2.0
+clean_subset,with_fof_linking_length,largest_fragment_mass_kg,gradient_boosting,8.25296606804032e+18,1.3920053896798988e+19,0.8163477394308182,3.0,3.0
+clean_subset,without_fof_linking_length,fragment_count_min_particles,gradient_boosting,127.39546799592485,289.94819182578976,0.8719249569515712,1.0,1.0
+clean_subset,without_fof_linking_length,largest_fragment_particle_count,random_forest,261170.67073034061,425870.98752776615,0.8303296414362927,2.0,2.0
+clean_subset,without_fof_linking_length,largest_fragment_mass_kg,gradient_boosting,8.254951316202414e+18,1.399442130915724e+19,0.8143801857837525,3.0,3.0
+full,with_fof_linking_length,largest_fragment_particle_count,gradient_boosting,208553.9578091623,375799.13545129553,0.9019873295842966,1.0,2.0
+full,with_fof_linking_length,largest_fragment_mass_kg,gradient_boosting,7.154710886347281e+18,1.2178811684098925e+19,0.8849501930288157,2.0,3.0
+full,with_fof_linking_length,fragment_count_min_particles,random_forest,131.5205873191434,277.2701063571621,0.7365385357928225,3.0,1.0
+full,without_fof_linking_length,largest_fragment_particle_count,gradient_boosting,254521.75963513786,609059.0030519138,0.7425520705966988,1.0,2.0
+full,without_fof_linking_length,fragment_count_min_particles,gradient_boosting,206.45356726104987,302.3059865944804,0.6868124435396861,2.0,1.0
+full,without_fof_linking_length,largest_fragment_mass_kg,gradient_boosting,1.099613216749011e+19,2.1025920805989556e+19,0.657085292264199,3.0,3.0

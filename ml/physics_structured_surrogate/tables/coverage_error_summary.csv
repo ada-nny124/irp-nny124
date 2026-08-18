@@ -1,0 +1,2 @@
+occupied_mass_peri_bins,total_mass_peri_bins,occupied_peri_vel_bins,total_peri_vel_bins,mean_error_dense_bins,mean_error_sparse_bins,worst_error_bin_mass_peri,worst_error_bin_peri_vel
+38,105,45,165,0.018360956678792627,0.014456946734714565,"(np.float64(19.5), np.float64(1.6))","(np.float64(2.0), np.float64(1.0))"

@@ -1,0 +1,17 @@
+metric,count,min,median,mean,max,std
+particle_count_total,489,108605,3162280.0,3136715.0163599183,10099885,1428095.5791462047
+n_fof_groups,489,0,255.0,425.67484662576686,6441,871.3596442998562
+fragment_count_min_particles,489,0,255.0,425.67484662576686,6441,871.3596442998562
+largest_fragment_particle_count,489,0,259351.0,873854.2924335378,3922894,1081490.731939555
+largest_fragment_mass_kg,489,0.0,6.3113718751753e+18,2.413360913289776e+19,3.8878763457606785e+20,4.245890555752033e+19
+total_fragment_mass_kg,489,0.0,9.9429210807885e+19,7.891552316860213e+19,9.93482677207414e+20,1.1411711438548402e+20
+fragment_mass_fraction,475,1.0,1.0,1.0,1.0,0.0
+bound_particle_fraction,0,,,,,
+bound_mass_fraction,0,,,,,
+bound_fragment_count_min_particles,0,,,,,
+largest_bound_fragment_mass_kg,0,,,,,
+largest_bound_fragment_particle_count,0,,,,,
+mean_bound_fragment_periapsis_Rm,0,,,,,
+mean_bound_fragment_apoapsis_Rm,0,,,,,
+fof_linking_length,489,0.0001,0.004,0.003601022494887526,0.0126,0.0016530086136956335
+timestep,489,54000,90000.0,88912.26993865031,108000,5705.053551487879

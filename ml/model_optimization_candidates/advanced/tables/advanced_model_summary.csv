@@ -1,0 +1,5 @@
+model_key,model_label,task_scope,status,r2,mae,rmse,error
+hurdle_ngboost,Hurdle NGBoost surrogate,full grouped-CV BMF regression,ok,0.948477161628338,0.01268874674648793,0.021120708896418948,
+mixture_of_experts,Regime-aware mixture of experts,full grouped-CV BMF regression,ok,0.9315449487411942,0.015624078435631994,0.024345088112112466,
+hurdle_beta,Hurdle beta surrogate,full grouped-CV BMF regression,ok,0.907283414458037,0.017283993599116823,0.028332657750480498,
+multitask_gp,Multi-output GP surrogate,full grouped-CV BMF regression using joint targets,ok,0.35481545505112333,0.06244315585342386,0.07473956718017484,

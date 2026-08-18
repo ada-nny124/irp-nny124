@@ -1,34 +1,44 @@
 # Extraction outputs
 extraction_outputs/*
-!extraction_outputs/fof_outcomes.csv
+# file too large
+!extraction_outputs/fof_outcomes.csv 
 !extraction_outputs/bound_outcomes.csv
 
-# Local model training byproducts
-ml/training_artifacts/*
-ml/bound_outcomes/models/*
-
-# Meta data plots and tables 
-ml/physics_structured_surrogate/tables/*
-ml/**/plots/
-ml/model_optimization_candidates/
-ml/model_diagnostics/
-ml/bound_outcomes/notebook_demo/
-ml/bound_outcomes/tables/
-ml/physics_structured_surrogate/
-analysis/
-archived/
-eda/
-report/
-deliverables/*.pptx
-figures/presentation/*.png
-catboost_info/
-ml/triage/bmf_hurdle_fold_assignments.csv
+# Generated model/artifact outputs
+eda/**/plots/*.png
+eda/**/plots/*.svg
+ml/plots/**/*.png
+ml/plots/**/*.svg
+ml/bound_outcomes/plots/**/*.png
+ml/bound_outcomes/plots/**/*.svg
+ml/physics_structured_surrogate/plots/**/*.png
+ml/physics_structured_surrogate/plots/**/*.svg
+report-table-figure/figures/*_used_in_report.png
+ml/model_optimization_candidates/tables/*.json
+ml/model_optimization_candidates/advanced/tables/*.json
+ml/model_optimization_candidates/reports/*.md
+ml/model_optimization_candidates/advanced/reports/*.md
+ml/physics_structured_surrogate/reports/*.md
+ml/physics_structured_surrogate/*.md
+ml/physics_structured_surrogate/tables/*.json
+ml/training_artifacts/**/*.json
+ml/training_artifacts/**/*.tsv
+ml/training_artifacts/**/*.tfevents
+ml/training_artifacts/**/*.tfevents.*
+eda/**/*.txt
 
 # Local logs, scratch space, OS, caches, test tooling, local env, etc
 .DS_Store
+~$*.doc
+~$*.docx
+~$*.xls
+~$*.xlsx
+~$*.ppt
+~$*.pptx
 *.swp
 *.tmp
 *.bak
+*.pkl
 logs/*.out
 logs/*.err
 tmp/
@@ -47,3 +57,4 @@ __pycache__/
 venv/
 configs/paths.yaml
 configs/ssh.yaml
+archived/

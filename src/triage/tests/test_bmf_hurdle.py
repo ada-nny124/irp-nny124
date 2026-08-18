@@ -19,7 +19,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from scripts import app as dashboard_app
-from scripts.train_deployed_bmf_hurdle import safe_feature_columns
+from scripts.eda.train_deployed_bmf_hurdle import safe_feature_columns
 from triage.bmf import LEAKY_FEATURES, load_bmf_bundle, predict_bmf_from_bundle
 
 

@@ -28,7 +28,7 @@ from scripts.eda.train_physics_structured_surrogate import (
 
 
 DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
-OUTPUT_PATH = Path("report/figures/bmf_rf_conditional_profiles_250_linspace.png")
+OUTPUT_PATH = Path("report/figures/bmf_rf_conditional_profiles_250_points_dots.png")
 GRID_POINTS = 250
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
@@ -183,8 +183,7 @@ def render_panel(
     slice_df = frame.loc[spec["mask"]].sort_values(spec["parameter"]).copy()
     base_row = frame.loc[spec["base_selector"]].iloc[0]
     grid = linspace_grid(base_row, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
-    synthetic_predicted = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
-    slice_predicted = np.clip(model.predict(slice_df[feature_columns]), 0.0, 1.0)
+    predicted = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
     observed = np.sort(slice_df[spec["parameter"]].astype(float).unique())
     observed_min = float(observed.min())
     observed_max = float(observed.max())
@@ -197,20 +196,20 @@ def render_panel(
 
     ax.plot(
         grid[spec["parameter"]],
-        synthetic_predicted,
+        predicted,
         color="#2a78c4",
-        linewidth=2.0,
-        label="RF synthetic grid",
+        linewidth=1.8,
+        alpha=0.9,
+        label="RF prediction line",
+        zorder=1,
     )
-    ax.plot(
-        slice_df[spec["parameter"]],
-        slice_predicted,
-        color="#0a4f8a",
-        linewidth=1.5,
-        linestyle="--",
-        marker="s",
-        markersize=4.5,
-        label="RF on SPH rows",
+    ax.scatter(
+        grid[spec["parameter"]],
+        predicted,
+        color="#2a78c4",
+        s=34,
+        label="RF prediction points (250)",
+        zorder=2,
     )
     ax.scatter(
         slice_df[spec["parameter"]],

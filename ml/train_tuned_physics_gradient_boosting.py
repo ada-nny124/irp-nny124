@@ -57,10 +57,10 @@ FEATURE_COLUMNS = RAW_FEATURE_COLUMNS + PHYSICS_FEATURE_COLUMNS
 
 GB_PARAMS = {
     "n_estimators": 500,
-    "learning_rate": 0.03,
-    "max_depth": 2,
+    "learning_rate": 0.08,
+    "max_depth": 3,
     "subsample": 0.8,
-    "min_samples_leaf": 2,
+    "min_samples_leaf": 1,
     "random_state": 42,
 }
 

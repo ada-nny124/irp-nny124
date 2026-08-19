@@ -8,13 +8,11 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "tableA2_used_in_report.csv"
+OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "tableA1_used_in_report.csv"
 
 MODEL_SPECS = [
-    ("Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "gradient_boosting" / "main_bmf_gradient_boosting.pkl"),
-    ("Random Forest", ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf.pkl"),
-    ("Tuned RF", ROOT / "ml" / "trainingartifacts" / "tuned_rf" / "main_bmf_tuned_rf.pkl"),
-    ("RF + derived features", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf.pkl"),
+    ("Random Forest (raw features)", ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf.pkl"),
+    ("Random Forest (raw + physics features)", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf.pkl"),
 ]
 
 
@@ -31,24 +29,19 @@ def load_bundle(path: Path) -> dict[str, object]:
 
 def build_rows() -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    baseline_bundle = load_bundle(ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf.pkl")
-    baseline = baseline_bundle["grouped_cv_metrics"]
-    baseline_r2 = float(baseline["r2"])
-    baseline_mse = float(baseline["mse"])
-    baseline_rmse = float(baseline["rmse"])
-
     for label, path in MODEL_SPECS:
         bundle = load_bundle(path)
         metrics = bundle["grouped_cv_metrics"]
+        feature_columns = bundle["feature_columns"]
         rows.append(
             {
                 "Model": label,
                 "R2": round(float(metrics["r2"]), 4),
-                "MSE": round(float(metrics["mse"]), 4),
+                "MAE": round(float(metrics["mae"]), 4),
                 "RMSE": round(float(metrics["rmse"]), 4),
-                "Delta_R2_vs_RF": round(float(metrics["r2"]) - baseline_r2, 4),
-                "Delta_MSE_vs_RF": round(float(metrics["mse"]) - baseline_mse, 4),
-                "Delta_RMSE_vs_RF": round(float(metrics["rmse"]) - baseline_rmse, 4),
+                "Features": ", ".join(str(column) for column in feature_columns),
+                "Dataset": str(bundle.get("dataset_path", "")),
+                "Evaluation": "Grouped OOF CV",
             }
         )
     return rows

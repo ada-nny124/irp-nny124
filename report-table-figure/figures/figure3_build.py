@@ -28,7 +28,7 @@ from scripts.eda.train_physics_structured_surrogate import (
 
 DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
 OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
-MODEL_PATH = Path("ml/main_bmf_physics_rf.pkl")
+MODEL_PATH = Path("ml/trainingartifacts/physics_rf/main_bmf_physics_rf.pkl")
 GRID_POINTS = 250
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"

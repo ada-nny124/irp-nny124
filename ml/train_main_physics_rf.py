@@ -71,8 +71,8 @@ COMBINED_PHYSICS_FEATURE_COLUMNS = [
 RF_PARAMS = {
     "n_estimators": 500,
     "max_features": 0.8,
-    "min_samples_leaf": 2,
-    "max_depth": None,
+    "min_samples_leaf": 1,
+    "max_depth": 10,
     "random_state": 42,
     "n_jobs": -1,
 }

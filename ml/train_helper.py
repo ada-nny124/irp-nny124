@@ -10,12 +10,15 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 PRIMARY_TARGET = "bound_mass_fraction"
 RANDOM_STATE = 42
+N_SPLITS = 5
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
 MARS_DENSITY_KG_M3 = 3933.5
@@ -208,3 +211,84 @@ def build_regression_pipeline(X: pd.DataFrame, model_name: str, params: dict[str
     else:
         raise ValueError(f"Unsupported model: {model_name}")
     return Pipeline([("preprocessor", preprocessor), ("model", estimator)])
+
+
+def build_or_load_group_folds(
+    frame: pd.DataFrame,
+    output_path: Path,
+    group_column: str = "physical_file",
+) -> pd.DataFrame:
+    if output_path.exists():
+        folds = pd.read_csv(output_path)
+        required = {"row_index", "fold_index", group_column}
+        if required.issubset(folds.columns):
+            return folds
+
+    groups = frame[group_column].astype(str)
+    splitter = GroupKFold(n_splits=min(N_SPLITS, groups.nunique()))
+    fold_assignments = np.full(len(frame), -1, dtype=int)
+    for fold_index, (_, test_idx) in enumerate(splitter.split(frame, groups=groups)):
+        fold_assignments[test_idx] = fold_index
+
+    folds = pd.DataFrame(
+        {
+            "row_index": frame.index.to_numpy(),
+            group_column: groups.to_numpy(),
+            "fold_index": fold_assignments,
+        }
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    folds.to_csv(output_path, index=False)
+    return folds
+
+
+def evaluate_grouped_oof_regression(
+    frame: pd.DataFrame,
+    feature_columns: list[str],
+    model_name: str,
+    params: dict[str, object] | None,
+    fold_assignments: pd.DataFrame,
+    target_column: str = PRIMARY_TARGET,
+) -> tuple[dict[str, float | int], pd.DataFrame]:
+    valid = frame.loc[frame[target_column].notna()].copy()
+    valid = valid.merge(fold_assignments[["row_index", "fold_index"]], left_index=True, right_on="row_index", how="left")
+    X = valid[feature_columns].copy()
+    y = pd.to_numeric(valid[target_column], errors="coerce")
+    oof = np.full(len(valid), np.nan)
+    fold_rows: list[dict[str, float | int]] = []
+
+    for fold_index in sorted(valid["fold_index"].dropna().unique()):
+        train_mask = valid["fold_index"] != fold_index
+        test_mask = valid["fold_index"] == fold_index
+        fitted = build_regression_pipeline(X.loc[train_mask], model_name, params)
+        fitted.fit(X.loc[train_mask], y.loc[train_mask])
+        preds = np.clip(fitted.predict(X.loc[test_mask]), 0.0, 1.0)
+        oof[test_mask.to_numpy()] = preds
+        fold_rows.append(
+            {
+                "fold_index": int(fold_index),
+                "r2": float(r2_score(y.loc[test_mask], preds)),
+                "mae": float(mean_absolute_error(y.loc[test_mask], preds)),
+                "rmse": float(np.sqrt(mean_squared_error(y.loc[test_mask], preds))),
+            }
+        )
+
+    fold_frame = pd.DataFrame(fold_rows)
+    metrics = {
+        "rows": int(len(valid)),
+        "r2": float(r2_score(y, oof)),
+        "mae": float(mean_absolute_error(y, oof)),
+        "mse": float(mean_squared_error(y, oof)),
+        "rmse": float(np.sqrt(mean_squared_error(y, oof))),
+        "fold_r2_mean": float(fold_frame["r2"].mean()),
+        "fold_r2_std": float(fold_frame["r2"].std(ddof=0)),
+        "fold_mae_mean": float(fold_frame["mae"].mean()),
+        "fold_mae_std": float(fold_frame["mae"].std(ddof=0)),
+        "fold_rmse_mean": float(fold_frame["rmse"].mean()),
+        "fold_rmse_std": float(fold_frame["rmse"].std(ddof=0)),
+    }
+    predictions = valid[["physical_file", target_column, "fold_index"] + feature_columns].copy()
+    predictions["predicted_bmf"] = oof
+    predictions["residual"] = predictions[target_column] - predictions["predicted_bmf"]
+    predictions = predictions.rename(columns={target_column: "actual_bmf"})
+    return metrics, predictions.reset_index(drop=True)

@@ -26,8 +26,8 @@ from ml.train_helper import PRIMARY_TARGET, add_physics_features, load_canonical
 
 SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
 FIG_PATH = ROOT / "report-table-figure" / "figures" / "figureA1_used_in_report.png"
-PHYSICS_MODEL_PATH = ROOT / "ml" / "main_bmf_physics_rf.pkl"
-RAW_MODEL_PATH = ROOT / "ml" / "main_bmf_raw_rf.pkl"
+PHYSICS_MODEL_PATH = ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf.pkl"
+RAW_MODEL_PATH = ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf.pkl"
 
 
 def load_bundle(path: Path) -> dict[str, object]:

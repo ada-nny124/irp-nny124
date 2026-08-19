@@ -32,6 +32,7 @@ OUTPUT_PATH = Path("report/figures/bmf_rf_conditional_profiles_250_linspace.png"
 GRID_POINTS = 250
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
+EXCLUDED_PROFILE_FEATURES = {"largest_fragment_mass_fraction"}
 NUMERIC_GRID_COLUMNS = [
     "mass_log10_kg",
     "target_mass_kg",
@@ -51,7 +52,11 @@ NUMERIC_GRID_COLUMNS = [
 
 def fit_random_forest(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str], object]:
     model_frame = add_physics_features(frame.copy())
-    feature_columns = feature_columns_for_set("with_fof_linking_length", include_physics=True)
+    feature_columns = [
+        column
+        for column in feature_columns_for_set("with_fof_linking_length", include_physics=True)
+        if column not in EXCLUDED_PROFILE_FEATURES
+    ]
     valid = model_frame.loc[model_frame[PRIMARY_TARGET].notna()].copy()
     pipeline = build_regression_pipeline(valid[feature_columns], "random_forest")
     fitted = pipeline.fit(valid[feature_columns], pd.to_numeric(valid[PRIMARY_TARGET], errors="coerce"))
@@ -232,7 +237,10 @@ def render_panel(
     ax.text(
         0.5,
         -0.31,
-        f"{spec['fixed_text']}\nlinspace={GRID_POINTS}",
+        (
+            f"{spec['fixed_text']}\nlinspace={GRID_POINTS}"
+            "\nprofile RF excludes largest_fragment_mass_fraction"
+        ),
         transform=ax.transAxes,
         ha="center",
         va="top",

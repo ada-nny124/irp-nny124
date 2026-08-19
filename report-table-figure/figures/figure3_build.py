@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pickle
 import sys
 from pathlib import Path
 
@@ -21,18 +22,16 @@ import pandas as pd
 from scripts.eda.train_physics_structured_surrogate import (
     PRIMARY_TARGET,
     add_physics_features,
-    build_regression_pipeline,
-    feature_columns_for_set,
     load_canonical_dataset,
 )
 
 
 DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
-OUTPUT_PATH = Path("report/figures/bmf_rf_conditional_profiles_250_linspace.png")
+OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
+MODEL_PATH = Path("ml/main_bmf_physics_rf.pkl")
 GRID_POINTS = 250
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
-EXCLUDED_PROFILE_FEATURES = {"largest_fragment_mass_fraction"}
 NUMERIC_GRID_COLUMNS = [
     "mass_log10_kg",
     "target_mass_kg",
@@ -50,17 +49,12 @@ NUMERIC_GRID_COLUMNS = [
 ]
 
 
-def fit_random_forest(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str], object]:
-    model_frame = add_physics_features(frame.copy())
-    feature_columns = [
-        column
-        for column in feature_columns_for_set("with_fof_linking_length", include_physics=True)
-        if column not in EXCLUDED_PROFILE_FEATURES
-    ]
-    valid = model_frame.loc[model_frame[PRIMARY_TARGET].notna()].copy()
-    pipeline = build_regression_pipeline(valid[feature_columns], "random_forest")
-    fitted = pipeline.fit(valid[feature_columns], pd.to_numeric(valid[PRIMARY_TARGET], errors="coerce"))
-    return valid, feature_columns, fitted
+def load_random_forest_bundle(model_path: Path) -> tuple[list[str], object]:
+    with model_path.open("rb") as handle:
+        bundle = pickle.load(handle)
+    feature_columns = list(bundle["feature_columns"])
+    model = bundle["pipeline"]
+    return feature_columns, model
 
 
 def linspace_grid(
@@ -159,7 +153,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
         },
         {
             "parameter": "mass_log10_kg",
-            "title": "Asteroid mass (sparse exact slice)",
+            "title": "Asteroid mass",
             "x_label": r"$\log_{10}(M/\mathrm{kg})$",
             "x_range": (18.0, 21.0),
             "fixed_text": "Fixed: peri=1.2, v_inf=0.0, spin=4.7 h,\naxis=z, n=65",
@@ -189,7 +183,6 @@ def render_panel(
     base_row = frame.loc[spec["base_selector"]].iloc[0]
     grid = linspace_grid(base_row, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
     synthetic_predicted = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
-    slice_predicted = np.clip(model.predict(slice_df[feature_columns]), 0.0, 1.0)
     observed = np.sort(slice_df[spec["parameter"]].astype(float).unique())
     observed_min = float(observed.min())
     observed_max = float(observed.max())
@@ -206,16 +199,6 @@ def render_panel(
         color="#2a78c4",
         linewidth=2.0,
         label="RF synthetic grid",
-    )
-    ax.plot(
-        slice_df[spec["parameter"]],
-        slice_predicted,
-        color="#0a4f8a",
-        linewidth=1.5,
-        linestyle="--",
-        marker="s",
-        markersize=4.5,
-        label="RF on SPH rows",
     )
     ax.scatter(
         slice_df[spec["parameter"]],
@@ -237,10 +220,7 @@ def render_panel(
     ax.text(
         0.5,
         -0.31,
-        (
-            f"{spec['fixed_text']}\nlinspace={GRID_POINTS}"
-            "\nprofile RF excludes largest_fragment_mass_fraction"
-        ),
+        f"{spec['fixed_text']}\nlinspace={GRID_POINTS}",
         transform=ax.transAxes,
         ha="center",
         va="top",
@@ -251,7 +231,9 @@ def render_panel(
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     raw = load_canonical_dataset(DATASET_PATH)
-    frame, feature_columns, model = fit_random_forest(raw)
+    frame = add_physics_features(raw.copy())
+    frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
+    feature_columns, model = load_random_forest_bundle(MODEL_PATH)
     specs = make_slice_specs(frame)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.6, 7.2))
@@ -259,34 +241,7 @@ def main() -> None:
         render_panel(ax, frame, feature_columns, model, spec)
 
     fig.tight_layout(h_pad=3.0, w_pad=2.2)
-    fig.subplots_adjust(bottom=0.14, right=0.78)
-    fig.text(
-        0.865,
-        0.60,
-        "Background guide",
-        ha="left",
-        va="bottom",
-        fontsize=10,
-        fontweight="bold",
-    )
-    fig.text(
-        0.865,
-        0.56,
-        "Blue: interpolation\ninside sampled range",
-        ha="left",
-        va="top",
-        fontsize=9,
-        bbox={"facecolor": INTERPOLATION_COLOR, "edgecolor": "none", "boxstyle": "round,pad=0.35"},
-    )
-    fig.text(
-        0.865,
-        0.44,
-        "Red: extrapolation\noutside sampled range",
-        ha="left",
-        va="top",
-        fontsize=9,
-        bbox={"facecolor": EXTRAPOLATION_COLOR, "edgecolor": "none", "boxstyle": "round,pad=0.35"},
-    )
+    fig.subplots_adjust(bottom=0.14)
     fig.savefig(OUTPUT_PATH, dpi=180)
     plt.close(fig)
     print(OUTPUT_PATH)

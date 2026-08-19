@@ -1,7 +1,0 @@
-Parameter,Coverage range,What it means
-Asteroid mass,"A1800-A2100; A2000 dominates","Mass of the incoming asteroid. For example, A1800 ≈ 10^18 kg and A2100 ≈ 10^21 kg. Its effect on BMF also depends on the other encounter conditions."
-Periapsis,"r11-r30; r12 and r16 common","Closest distance between the asteroid and Mars. For example, r12 = 1.2 R_Mars (Mars-radii). Smaller values mean a closer encounter and stronger tidal forces."
-Encounter speed,"v00-v30; v00 dominates","Speed of the asteroid during the encounter. v00 is the lowest-speed case, while higher v codes represent faster encounters. Higher speeds generally make capture less likely."
-Spin,"none, x, y, z, mz; unevenly sampled","Rotation of the asteroid and the direction of its spin axis: none means no spin, x or y means equatorial spin, z means prograde z-spin, and mz means retrograde z-spin. Spin can change how the asteroid breaks up, but the different spin settings are unevenly sampled."
-Resolution,"n50-n70; n65 dominates","Number of SPH particles used in the simulation. For example, n65 is roughly 10^6.5 particles. This is a numerical setting rather than a physical property of the encounter."
-FoF linking length (post-processing),"0.0001-0.0126; 0.004 common","Maximum distance used to decide whether nearby particles belong to the same fragment. It can change the measured fragments, but it does not change the physical encounter itself."

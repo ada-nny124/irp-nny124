@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
 SPIN_ORDER = ("no spin", "3h z", "4.7h z")
 SPIN_LABELS = {
     "no spin": "No spin",
@@ -39,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--png-out",
-        default="report/figures/regime_dependent_parameter_story.png",
+        default=str(SCRIPT_DIR / "regime_dependent_parameter_story.png"),
         help="PNG output path.",
     )
     return parser.parse_args()

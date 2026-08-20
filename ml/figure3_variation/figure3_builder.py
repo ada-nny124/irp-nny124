@@ -112,9 +112,9 @@ def fit_model(model_key: str, frame: pd.DataFrame):
     return feature_columns, pipeline.fit(frame[feature_columns], target)
 
 
-def linspace_grid(base_row: pd.Series, parameter: str, x_min: float, x_max: float) -> pd.DataFrame:
-    x_values = np.linspace(x_min, x_max, GRID_POINTS)
-    grid = pd.concat([base_row.to_frame().T] * GRID_POINTS, ignore_index=True)
+def linspace_grid(base_row: pd.Series, parameter: str, x_min: float, x_max: float, grid_points: int = GRID_POINTS) -> pd.DataFrame:
+    x_values = np.linspace(x_min, x_max, grid_points)
+    grid = pd.concat([base_row.to_frame().T] * grid_points, ignore_index=True)
     grid[parameter] = x_values
     if parameter == "mass_log10_kg":
         grid["target_mass_kg"] = np.power(10.0, grid[parameter].astype(float))
@@ -160,10 +160,19 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
     ]
 
 
-def render_panel(ax: plt.Axes, frame: pd.DataFrame, feature_columns: list[str], model: object, spec: dict[str, object]) -> None:
+def render_panel(
+    ax: plt.Axes,
+    frame: pd.DataFrame,
+    feature_columns: list[str],
+    model: object,
+    spec: dict[str, object],
+    *,
+    grid_points: int = GRID_POINTS,
+    show_prediction_dots: bool = False,
+) -> None:
     slice_df = frame.loc[spec["mask"]].sort_values(spec["parameter"])
     base_row = frame.loc[spec["base_selector"]].iloc[0]
-    grid = linspace_grid(base_row, spec["parameter"], *spec["x_range"])
+    grid = linspace_grid(base_row, spec["parameter"], *spec["x_range"], grid_points=grid_points)
     predicted = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
     observed = np.sort(slice_df[spec["parameter"]].astype(float).unique())
     observed_min, observed_max = float(observed.min()), float(observed.max())
@@ -172,27 +181,64 @@ def render_panel(ax: plt.Axes, frame: pd.DataFrame, feature_columns: list[str], 
     ax.axvspan(observed_min, observed_max, color=INTERPOLATION_COLOR, alpha=0.25, zorder=0)
     if observed_max < spec["x_range"][1]:
         ax.axvspan(observed_max, spec["x_range"][1], color=EXTRAPOLATION_COLOR, alpha=0.45, zorder=0)
-    ax.plot(grid[spec["parameter"]], predicted, color="#2a78c4", linewidth=2.2, alpha=0.9, zorder=1)
-    ax.scatter(slice_df[spec["parameter"]], slice_df[PRIMARY_TARGET], color="#1f77b4", s=26, zorder=2)
+    ax.plot(
+        grid[spec["parameter"]],
+        predicted,
+        color="#2a78c4",
+        linewidth=2.2,
+        alpha=0.9,
+        zorder=1,
+        label="Prediction line",
+    )
+    if show_prediction_dots:
+        ax.scatter(
+            grid[spec["parameter"]],
+            predicted,
+            color="#2a78c4",
+            s=12,
+            alpha=0.55,
+            zorder=2,
+            label="Prediction dots",
+        )
+    ax.scatter(
+        slice_df[spec["parameter"]],
+        slice_df[PRIMARY_TARGET],
+        color="#d95f02",
+        s=26,
+        zorder=3,
+        label="SPH results",
+    )
     ax.set_title(spec["title"])
     ax.set_xlabel(spec["x_label"])
     ax.set_ylabel("BMF")
     ax.set_xlim(*spec["x_range"])
     ax.set_ylim(-0.02, 0.30)
     ax.grid(True, alpha=0.25)
-    ax.text(0.5, -0.22, f"{spec['fixed_text']}\nlinspace={GRID_POINTS}", transform=ax.transAxes, ha="center", va="top", fontsize=8)
+    ax.legend(frameon=False, fontsize=8, loc="best")
+    footer = f"{spec['fixed_text']}\nlinspace={grid_points}"
+    if show_prediction_dots:
+        footer += " | prediction dots shown"
+    ax.text(0.5, -0.22, footer, transform=ax.transAxes, ha="center", va="top", fontsize=8)
 
 
-def make_figure(model_key: str) -> Path:
+def make_figure(model_key: str, *, suffix: str = "", grid_points: int = GRID_POINTS, show_prediction_dots: bool = False) -> Path:
     raw = load_canonical_dataset(DATASET_PATH)
     frame = add_physics_features(raw.copy())
     frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
     feature_columns, model = fit_model(model_key, frame)
     fig, axes = plt.subplots(2, 2, figsize=(10.8, 7.4))
     for ax, spec in zip(axes.flat, make_slice_specs(frame)):
-        render_panel(ax, frame, feature_columns, model, spec)
+        render_panel(
+            ax,
+            frame,
+            feature_columns,
+            model,
+            spec,
+            grid_points=grid_points,
+            show_prediction_dots=show_prediction_dots,
+        )
     fig.tight_layout(h_pad=2.6, w_pad=2.2)
-    output_path = OUTPUT_DIR / f"figure3_{model_key}.png"
+    output_path = OUTPUT_DIR / f"figure3_{model_key}{suffix}.png"
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
     return output_path
@@ -201,6 +247,9 @@ def make_figure(model_key: str) -> Path:
 def main() -> None:
     for model_key in MODEL_CONFIGS:
         print(make_figure(model_key))
+    print(make_figure("gb_tuned", suffix="_dots250", grid_points=250, show_prediction_dots=True))
+    print(make_figure("gb_tuned", suffix="_dots50", grid_points=50, show_prediction_dots=True))
+    print(make_figure("gb_tuned", suffix="_dots20", grid_points=20, show_prediction_dots=True))
     print(f"Created {len(MODEL_CONFIGS)} figure variants in {OUTPUT_DIR}")
 
 

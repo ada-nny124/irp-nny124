@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import os
 from collections import defaultdict
@@ -21,6 +22,7 @@ SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
 OUTPUT_DIR = ROOT / "eda" / "bound_eda" / "plots"
 OUTPUT_PATH = OUTPUT_DIR / "figure1_mass20_only_temp.png"
 MASS_CODE = "A2000"
+TITLE_MASS_TEXT = r"10^{20}"
 PERI_RANGE = (1.1, 3.0)
 PERI_TICKS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0]
 SPIN_MARKERS = {
@@ -55,6 +57,19 @@ VELOCITY_COLORS = {
     2.0: "#111111",
 }
 
+MASS_LABELS = {
+    "A1900": r"10^{19}",
+    "A1950": r"10^{19.5}",
+    "A2000": r"10^{20}",
+}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mass-code", default=MASS_CODE)
+    parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
+    return parser.parse_args()
+
 
 def parse_code(value: str, prefix: str, scale: float) -> float | None:
     if not value or not value.startswith(prefix):
@@ -85,12 +100,12 @@ def spin_orientation(spin_code: str) -> str:
     return "no_spin"
 
 
-def load_rows() -> list[dict[str, object]]:
+def load_rows(mass_code: str) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     with SOURCE_PATH.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         for raw in reader:
-            if raw.get("mass_code") != MASS_CODE:
+            if raw.get("mass_code") != mass_code:
                 continue
             periapsis = parse_code(raw.get("periapsis_code", ""), "r", 10.0)
             velocity = parse_code(raw.get("velocity_code", ""), "v", 10.0)
@@ -117,7 +132,7 @@ def in_peri_range(value: float | None) -> bool:
     return value is not None and PERI_RANGE[0] <= value <= PERI_RANGE[1]
 
 
-def draw_panel_a(ax: plt.Axes, rows: list[dict[str, object]]) -> list[dict[str, object]]:
+def draw_panel_a(ax: plt.Axes, rows: list[dict[str, object]], mass_text: str) -> list[dict[str, object]]:
     panel = [
         row
         for row in rows
@@ -138,7 +153,7 @@ def draw_panel_a(ax: plt.Axes, rows: list[dict[str, object]]) -> list[dict[str, 
         zorder=2,
     )
 
-    ax.set_title(r"Fragment count vs periapsis ($10^{20}$ kg only)", fontsize=12)
+    ax.set_title(rf"Fragment count vs periapsis (${mass_text}$ kg only)", fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
     ax.set_ylabel("Number of FoF fragments")
     ax.set_xlim(*PERI_RANGE)
@@ -176,7 +191,7 @@ def build_grouped_panel_b(rows: list[dict[str, object]]) -> list[dict[str, float
     return grouped_rows
 
 
-def draw_panel_b(ax: plt.Axes, grouped_rows: list[dict[str, float | str | int]]) -> None:
+def draw_panel_b(ax: plt.Axes, grouped_rows: list[dict[str, float | str | int]], mass_text: str) -> None:
     series: dict[tuple[float, str], list[dict[str, float | str | int]]] = defaultdict(list)
     for row in grouped_rows:
         series[(float(row["v_inf_kms"]), str(row["spin_orientation"]))].append(row)
@@ -210,7 +225,7 @@ def draw_panel_b(ax: plt.Axes, grouped_rows: list[dict[str, float | str | int]])
             zorder=3,
         )
 
-    ax.set_title(r"Bound Mass Fraction vs Periapsis ($10^{20}$ kg only)", fontsize=12)
+    ax.set_title(rf"Bound Mass Fraction vs Periapsis (${mass_text}$ kg only)", fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
     ax.set_ylabel("Bound Mass Fraction")
     ax.set_xlim(*PERI_RANGE)
@@ -263,20 +278,22 @@ def add_legends(ax: plt.Axes, grouped_rows: list[dict[str, float | str | int]]) 
 
 
 def main() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    rows = load_rows()
+    args = parse_args()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    mass_text = MASS_LABELS.get(args.mass_code, args.mass_code)
+    rows = load_rows(args.mass_code)
 
     fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.9), dpi=220)
-    panel_a_rows = draw_panel_a(axes[0], rows)
+    panel_a_rows = draw_panel_a(axes[0], rows, mass_text)
     grouped_rows = build_grouped_panel_b(rows)
-    draw_panel_b(axes[1], grouped_rows)
+    draw_panel_b(axes[1], grouped_rows, mass_text)
     add_legends(axes[1], grouped_rows)
     fig.tight_layout(rect=(0.02, 0.04, 0.98, 0.98))
-    fig.savefig(OUTPUT_PATH, bbox_inches="tight")
+    fig.savefig(args.output, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"Saved {OUTPUT_PATH}")
-    print(f"Mass filter: {MASS_CODE}")
+    print(f"Saved {args.output}")
+    print(f"Mass filter: {args.mass_code}")
     print(f"Panel A rows: {len(panel_a_rows)}")
     print(f"Panel B grouped cells: {len(grouped_rows)}")
 

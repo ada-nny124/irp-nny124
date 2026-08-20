@@ -58,3 +58,4 @@ venv/
 configs/paths.yaml
 configs/ssh.yaml
 archived/
+pyproject.toml

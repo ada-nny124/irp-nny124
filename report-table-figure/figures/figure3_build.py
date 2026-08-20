@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import os
-import pickle
 import sys
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -19,19 +18,44 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.eda.train_physics_structured_surrogate import (
+from ml.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
+    build_regression_pipeline,
     load_canonical_dataset,
 )
 
 
 DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
 OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
-MODEL_PATH = Path("ml/trainingartifacts/physics_rf/main_bmf_physics_rf.pkl")
-GRID_POINTS = 250
+GRID_POINTS = 500
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
+FEATURE_COLUMNS = [
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "spin_axis",
+    "resolution_value",
+    "fof_linking_length",
+    "v_inf_squared",
+    "periapsis_inverse",
+    "angular_momentum_proxy",
+    "spin_frequency_hr_inv",
+    "asteroid_radius_km",
+    "encounter_eccentricity_proxy",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
+]
+GB_PARAMS = {
+    "n_estimators": 500,
+    "learning_rate": 0.08,
+    "max_depth": 3,
+    "subsample": 0.8,
+    "min_samples_leaf": 1,
+    "random_state": 42,
+}
 NUMERIC_GRID_COLUMNS = [
     "mass_log10_kg",
     "target_mass_kg",
@@ -49,12 +73,11 @@ NUMERIC_GRID_COLUMNS = [
 ]
 
 
-def load_random_forest_bundle(model_path: Path) -> tuple[list[str], object]:
-    with model_path.open("rb") as handle:
-        bundle = pickle.load(handle)
-    feature_columns = list(bundle["feature_columns"])
-    model = bundle["pipeline"]
-    return feature_columns, model
+def train_model(frame: pd.DataFrame) -> tuple[list[str], object]:
+    pipeline = build_regression_pipeline(frame[FEATURE_COLUMNS], "gradient_boosting", GB_PARAMS)
+    target = pd.to_numeric(frame[PRIMARY_TARGET], errors="coerce")
+    model = pipeline.fit(frame[FEATURE_COLUMNS], target)
+    return FEATURE_COLUMNS, model
 
 
 def linspace_grid(
@@ -198,14 +221,14 @@ def render_panel(
         synthetic_predicted,
         color="#2a78c4",
         linewidth=2.0,
-        label="RF synthetic grid",
+        label="ML syntehic grid",
     )
     ax.scatter(
         slice_df[spec["parameter"]],
         slice_df[PRIMARY_TARGET],
         color="#1f77b4",
         s=26,
-        label="SPH slice",
+        label="SPH results",
         zorder=3,
     )
     ax.set_title(spec["title"])
@@ -233,7 +256,7 @@ def main() -> None:
     raw = load_canonical_dataset(DATASET_PATH)
     frame = add_physics_features(raw.copy())
     frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
-    feature_columns, model = load_random_forest_bundle(MODEL_PATH)
+    feature_columns, model = train_model(frame)
     specs = make_slice_specs(frame)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.6, 7.2))

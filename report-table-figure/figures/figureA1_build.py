@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import os
+import sys
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
@@ -12,20 +12,114 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from ml.helper_functions_ml import (
+    PRIMARY_TARGET,
+    add_physics_features,
+    build_or_load_group_folds,
+    evaluate_grouped_oof_regression,
+    load_canonical_dataset,
+)
+
+
+SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
 FIG_PATH = ROOT / "report-table-figure" / "figures" / "figureA1_used_in_report.png"
-FEATURE_CONTRIBUTION_PATH = ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf_feature_contribution.json"
+FOLDS_PATH = ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "grouped_cv_fold_assignments.csv"
+
+RAW_FEATURE_COLUMNS = [
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "spin_axis",
+    "resolution_value",
+    "fof_linking_length",
+]
+PHYSICS_FEATURE_COLUMNS = [
+    "v_inf_squared",
+    "periapsis_inverse",
+    "angular_momentum_proxy",
+    "spin_frequency_hr_inv",
+    "asteroid_radius_km",
+    "encounter_eccentricity_proxy",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
+]
+SIMPLE_FEATURE_COLUMNS = [
+    "v_inf_squared",
+    "periapsis_inverse",
+    "spin_frequency_hr_inv",
+    "asteroid_radius_km",
+]
+COMBINED_PHYSICS_FEATURE_COLUMNS = [
+    "angular_momentum_proxy",
+    "encounter_eccentricity_proxy",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
+]
+GB_PARAMS = {
+    "n_estimators": 500,
+    "learning_rate": 0.08,
+    "max_depth": 3,
+    "subsample": 0.8,
+    "min_samples_leaf": 1,
+    "random_state": 42,
+}
 
 
-def load_metrics(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+def load_frame() -> pd.DataFrame:
+    frame = load_canonical_dataset(SOURCE_PATH)
+    frame = add_physics_features(frame.copy())
+    frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
+    return frame
+
+
+def evaluate_feature_contribution(frame: pd.DataFrame) -> dict[str, object]:
+    folds = build_or_load_group_folds(frame, FOLDS_PATH)
+    feature_sets = {
+        "Raw": RAW_FEATURE_COLUMNS,
+        "Raw + simple": RAW_FEATURE_COLUMNS + SIMPLE_FEATURE_COLUMNS,
+        "Raw + physics": RAW_FEATURE_COLUMNS + COMBINED_PHYSICS_FEATURE_COLUMNS,
+        "All": RAW_FEATURE_COLUMNS + PHYSICS_FEATURE_COLUMNS,
+    }
+    simple_checks = {
+        r"v_inf^2": RAW_FEATURE_COLUMNS + ["v_inf_squared"],
+        "1/r_p": RAW_FEATURE_COLUMNS + ["periapsis_inverse"],
+        "f_spin": RAW_FEATURE_COLUMNS + ["spin_frequency_hr_inv"],
+        "radius": RAW_FEATURE_COLUMNS + ["asteroid_radius_km"],
+        "all simple": RAW_FEATURE_COLUMNS + SIMPLE_FEATURE_COLUMNS,
+    }
+
+    set_metrics: dict[str, dict[str, float | int]] = {}
+    for label, columns in feature_sets.items():
+        metrics, _ = evaluate_grouped_oof_regression(frame, columns, "gradient_boosting", GB_PARAMS, folds)
+        set_metrics[label] = metrics
+
+    simple_metrics: dict[str, dict[str, float | int]] = {}
+    for label, columns in simple_checks.items():
+        metrics, _ = evaluate_grouped_oof_regression(frame, columns, "gradient_boosting", GB_PARAMS, folds)
+        simple_metrics[label] = metrics
+
+    baseline_r2 = float(set_metrics["Raw"]["r2"])
+    top = {label: float(metrics["r2"]) - baseline_r2 for label, metrics in set_metrics.items()}
+    bottom = {label: float(metrics["r2"]) - baseline_r2 for label, metrics in simple_metrics.items()}
+    return {
+        "baseline_r2": baseline_r2,
+        "top": top,
+        "bottom": bottom,
+        "top_absolute_r2": {label: float(metrics["r2"]) for label, metrics in set_metrics.items()},
+        "bottom_absolute_r2": {label: float(metrics["r2"]) for label, metrics in simple_metrics.items()},
+    }
 
 
 def remake_plot(output_path: Path = FIG_PATH, metrics: dict[str, object] | None = None) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    metrics = metrics or load_metrics(FEATURE_CONTRIBUTION_PATH)
+    metrics = metrics or evaluate_feature_contribution(load_frame())
 
     top_metrics = metrics["top"]
     bottom_metrics = metrics["bottom"]
@@ -49,14 +143,14 @@ def remake_plot(output_path: Path = FIG_PATH, metrics: dict[str, object] | None 
     ax.tick_params(axis="x", which="major", pad=8)
     ax.set_ylabel(r"Change in grouped held-out $R^2$ vs raw baseline")
     ax.set_title("Contribution of Physics-Derived Features")
-    ax.set_ylim(0.0, max(0.025, max(top_values) * 1.1 if top_values else 0.025))
+    ax.set_ylim(min(-0.025, min(top_values) * 1.2 if top_values else -0.025), max(0.025, max(top_values) * 1.1 if top_values else 0.025))
 
     for rect, value, color in zip(top_bars, top_values, top_colors):
         cx = rect.get_x() + rect.get_width() / 2.0
-        h = rect.get_height()
-        text_color = "white" if color == "#33a02c" else "black"
-        y = max(h * 0.5, 0.001)
-        ax.text(cx, y, f"{value:+.3f}", ha="center", va="center", fontsize=10, fontweight="semibold", color=text_color)
+        y = value * 0.5 if abs(value) > 0.003 else value + (0.002 if value >= 0 else -0.002)
+        va = "center" if abs(value) > 0.003 else ("bottom" if value >= 0 else "top")
+        text_color = "white" if color in {"#33a02c", "#e31a1c"} and abs(value) > 0.003 else "black"
+        ax.text(cx, y, f"{value:+.3f}", ha="center", va=va, fontsize=10, fontweight="semibold", color=text_color)
 
     ax2 = axes[1]
     bottom_labels = ["Raw", r"v_inf^2", "1/r_p", "f_spin", "radius", "all simple"]
@@ -74,15 +168,26 @@ def remake_plot(output_path: Path = FIG_PATH, metrics: dict[str, object] | None 
 
     for rect, value in zip(bottom_bars, bottom_values):
         cx = rect.get_x() + rect.get_width() / 2.0
-        if value >= 0:
-            y = max(value * 0.55, 0.0015)
-            va = "center"
-        else:
+        if abs(value) > 0.003:
             y = value * 0.5
             va = "center"
-        ax2.text(cx, y, f"{value:+.3f}", ha="center", va=va, fontsize=10, fontweight="semibold", color="white")
+            color = "white"
+        else:
+            y = value + (0.002 if value >= 0 else -0.002)
+            va = "bottom" if value >= 0 else "top"
+            color = "black"
+        ax2.text(cx, y, f"{value:+.3f}", ha="center", va=va, fontsize=10, fontweight="semibold", color=color)
 
-    plt.subplots_adjust(hspace=0.45, top=0.92)
+    fig.suptitle("Gradient Boosting Feature-Engineering Gains for BMF", fontsize=18, y=0.97)
+    fig.text(
+        0.5,
+        0.035,
+        "Scores use grouped held-out evaluation on the canonical 407-row BMF table with the tuned gradient boosting configuration.",
+        ha="center",
+        fontsize=10,
+        color="#444444",
+    )
+    plt.subplots_adjust(hspace=0.45, top=0.91, bottom=0.08)
     fig.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 

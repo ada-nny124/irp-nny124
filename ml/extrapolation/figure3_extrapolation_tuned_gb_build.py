@@ -29,8 +29,8 @@ from ml.helper_functions_ml import (
 DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
 OUTPUT_FIGURE_PATH = Path("ml/extrapolation/far_extrapolation_tuned_gb_figure.png")
 OUTPUT_TABLE_PATH = Path("ml/extrapolation/far_extrapolation_tuned_gb_predictions.csv")
-GRID_POINTS = 900
-DOT_POINTS = 60
+GRID_POINTS = 20
+DOT_POINTS = 20
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
 FEATURE_COLUMNS = [
@@ -223,7 +223,8 @@ def render_panel(
         linewidth=2.0,
         label="Prediction line",
     )
-    dot_indices = np.linspace(0, len(grid) - 1, DOT_POINTS, dtype=int)
+    dot_count = min(DOT_POINTS, len(grid))
+    dot_indices = np.linspace(0, len(grid) - 1, dot_count, dtype=int)
     dot_grid = grid.iloc[dot_indices]
     ax.scatter(
         dot_grid[spec["parameter"]],

@@ -11,25 +11,13 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "tableA2_used_in_report.csv"
 
-METRIC_OVERRIDES = {
-    "Gradient Boosting": {"r2": 0.9142, "mse": 0.0007, "rmse": 0.0272},
-    "Tuned Gradient Boosting": {"r2": 0.9234, "mse": 0.0007, "rmse": 0.0257},
-    "Random Forest": {"r2": 0.8977, "mse": 0.0009, "rmse": 0.0298},
-    "Tuned RF": {"r2": 0.9171, "mse": 0.0007, "rmse": 0.0268},
-    "RF + derived features": {"r2": 0.9101, "mse": 0.0008, "rmse": 0.0279},
-    "GB + derived features": {"r2": 0.9240, "mse": 0.0007, "rmse": 0.0257},
-    "XGBoost regressor": {"r2": 0.9377, "mse": 0.0005, "rmse": 0.0232},
-    "Two-stage CatBoost hurdle": {"r2": 0.9483, "mse": 0.0004, "rmse": 0.0212},
-    "Hurdle NGBoost surrogate": {"r2": 0.9485, "mse": 0.0004, "rmse": 0.0211},
-}
-
 MODEL_SPECS = [
-    ("Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "gradient_boosting" / "main_bmf_gradient_boosting.pkl"),
-    ("Tuned Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting.pkl"),
-    ("Random Forest", ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf.pkl"),
-    ("Tuned RF", ROOT / "ml" / "trainingartifacts" / "tuned_rf" / "main_bmf_tuned_rf.pkl"),
-    ("RF + derived features", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf.pkl"),
-    ("GB + derived features", ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "main_bmf_tuned_physics_gradient_boosting.pkl"),
+    ("Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "gradient_boosting" / "main_bmf_gradient_boosting_metrics.json"),
+    ("Tuned Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting_metrics.json"),
+    ("Random Forest", ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf_metrics.json"),
+    ("Tuned RF", ROOT / "ml" / "trainingartifacts" / "tuned_rf" / "main_bmf_tuned_rf_metrics.json"),
+    ("RF + derived features", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf_metrics.json"),
+    ("GB + derived features", ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "main_bmf_tuned_physics_gradient_boosting_metrics.json"),
     ("XGBoost regressor", ROOT / "ml" / "model_optimization_candidates" / "tables" / "candidate_model_summary.csv", "xgboost"),
     ("Two-stage CatBoost hurdle", ROOT / "ml" / "triage" / "bmf_hurdle_metrics.json", "two_stage_hurdle"),
     ("Hurdle NGBoost surrogate", ROOT / "ml" / "model_optimization_candidates" / "advanced" / "tables" / "advanced_model_summary.csv", "hurdle_ngboost"),
@@ -63,13 +51,17 @@ def load_fallback_metrics(source_path: Path, lookup_key: str | None = None) -> d
         if row.empty:
             raise ValueError(f"No summary row for {key!r} in {source_path}")
         row = row.iloc[0]
-        rmse = float(row["rmse"])
-        return {"r2": float(row["r2"]), "mse": rmse * rmse, "rmse": rmse}
+        return {"r2": float(row["r2"]), "mae": float(row["mae"]), "rmse": float(row["rmse"])}
 
     if source_path.suffix == ".json":
         payload = json.loads(source_path.read_text(encoding="utf-8"))
-        rmse = float(payload["grouped_cv_rmse"])
-        return {"r2": float(payload["grouped_cv_r2"]), "mse": rmse * rmse, "rmse": rmse}
+        if {"r2", "mae", "rmse"} <= payload.keys():
+            return {"r2": float(payload["r2"]), "mae": float(payload["mae"]), "rmse": float(payload["rmse"])}
+        return {
+            "r2": float(payload["grouped_cv_r2"]),
+            "mae": float(payload["grouped_cv_mae_fraction"]),
+            "rmse": float(payload["grouped_cv_rmse"]),
+        }
 
     if source_path.suffix == ".pkl":
         raise ValueError(f"Legacy .pkl model bundle is incompatible with the current sklearn version: {source_path}")
@@ -84,9 +76,7 @@ def build_rows() -> list[dict[str, object]]:
         path = item[1]
         lookup_key = item[2] if len(item) > 2 else None
 
-        if label in METRIC_OVERRIDES:
-            metrics = METRIC_OVERRIDES[label]
-        elif path.exists() and path.suffix == ".pkl":
+        if path.exists() and path.suffix == ".pkl":
             bundle = load_bundle(path)
             if bundle is None or "grouped_cv_metrics" not in bundle:
                 raise ValueError(f"No compatible metrics available for {label!r} at {path}")
@@ -98,7 +88,7 @@ def build_rows() -> list[dict[str, object]]:
             {
                 "Model": label,
                 "R2": round(float(metrics["r2"]), 4),
-                "MSE": round(float(metrics["mse"]), 4),
+                "MAE": round(float(metrics["mae"]), 4),
                 "RMSE": round(float(metrics["rmse"]), 4),
             }
         )

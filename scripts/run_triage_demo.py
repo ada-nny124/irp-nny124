@@ -77,7 +77,10 @@ def main() -> None:
 
     artifacts = load_artifacts(args.model_dir)
     if artifacts is None:
-        raise SystemExit("Model artifacts are missing. Run `python scripts/train_triage_models.py` first.")
+        raise SystemExit(
+            "Model artifacts are missing. The legacy trainer is archived at "
+            "`archived/cleanup_junk/scripts/train_triage_models.py`."
+        )
 
     classifier, regressor, training_domain = artifacts
     cases = load_cases(args.input)

@@ -1,5 +1,0 @@
-row_parameter,column_parameter,occupied_bins,total_bins,missing_error_bins,worst_error_bin,worst_error_value
-mass_log10_kg,v_inf_kms,22,77,55,"(np.float64(19.5), np.float64(0.0))",0.08020599995870145
-mass_log10_kg,fof_linking_length,37,154,117,"(np.float64(19.5), np.float64(0.0027))",0.08317116615113855
-periapsis_Rm,v_inf_kms,45,165,120,"(np.float64(2.0), np.float64(1.0))",0.03424212675043155
-mass_log10_kg,spin_axis,15,35,20,"(np.float64(19.5), 'none')",0.08020599995870145

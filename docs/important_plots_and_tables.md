@@ -6,17 +6,17 @@ This file lists the plots and tables kept in Git and used in slides.
 
 | Plot | Why it matters | Location |
 | --- | --- | --- |
-| Dataset coverage heatmap | Shows uneven sampling and justifies the clean subset. Used in the data coverage slide. | `eda/raw_data_overview/plots/heatmap_mass_vs_periapsis_count.png` |
-| Fragment count vs periapsis | Main fragmentation trend: close encounters enable stronger disruption. | `eda/outcome_eda/plots/fragment_count_vs_periapsis.png` |
-| Largest fragment vs FoF linking length | Raw scatter only. It mixes many physical scenarios, so use it as a confounding check rather than a clean FoF-sensitivity result. See the matched-scenario diagnostics and note in `eda/outcome_eda/plots/fof_linking_length_diagnostic_note.md`. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_linking_length.png` |
-| Largest fragment vs FoF linking length, single matched scenario | Controlled FoF-sensitivity check within one fixed physical scenario. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_single_scenario.png` |
-| Largest fragment vs FoF linking length, matched scenarios | Multi-line comparison across several fixed physical scenarios. | `eda/outcome_eda/plots/largest_fragment_particles_vs_fof_multiscenario.png` |
-| Largest fragment fraction vs FoF linking length, matched scenarios | Normalized version that reduces total-particle-count scale effects across scenarios. | `eda/outcome_eda/plots/largest_fragment_fraction_vs_fof_multiscenario.png` |
-| Bound mass fraction heatmap | Main retention overview across periapsis and velocity. | `eda/bound_eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png` |
-| Bound mass fraction vs periapsis, full | Main retained-mass trend used for the bound-retention story. | `eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_full.png` |
-| Bound mass fraction vs periapsis, spin effect | Supports the spin interpretation without making it the main claim. | `eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png` |
+| Dataset coverage heatmap | Shows uneven sampling and justifies the clean subset. Used in the data coverage slide. | `eda/plots/heatmap_mass_vs_periapsis_count.png` |
+| Fragment count vs periapsis | Main fragmentation trend: close encounters enable stronger disruption. | `eda/plots/fragment_count_vs_periapsis.png` |
+| Largest fragment vs FoF linking length | Raw scatter only. It mixes many physical scenarios, so use it as a confounding check rather than a clean FoF-sensitivity result. See the matched-scenario diagnostics in `eda/outcome_eda/tables/fof_linking_length_scenario_summary.csv`. | `eda/plots/largest_fragment_particles_vs_fof_linking_length.png` |
+| Largest fragment vs FoF linking length, single matched scenario | Controlled FoF-sensitivity check within one fixed physical scenario. | `eda/plots/largest_fragment_particles_vs_fof_single_scenario.png` |
+| Largest fragment vs FoF linking length, matched scenarios | Multi-line comparison across several fixed physical scenarios. | `eda/plots/largest_fragment_particles_vs_fof_multiscenario.png` |
+| Largest fragment fraction vs FoF linking length, matched scenarios | Normalized version that reduces total-particle-count scale effects across scenarios. | `eda/plots/largest_fragment_fraction_vs_fof_multiscenario.png` |
+| Bound mass fraction heatmap | Main retention overview across periapsis and velocity. | `eda/plots/bound_mass_fraction_heatmap_periapsis_velocity.png` |
+| Bound mass fraction vs periapsis, full | Main retained-mass trend used for the bound-retention story. | `eda/plots/bmf_vs_periapsis_full.png` |
+| Bound mass fraction vs periapsis, spin effect | Supports the spin interpretation without making it the main claim. | `eda/plots/bmf_vs_periapsis_spin_effect.png` |
 | Matched-family spin spread and low/high periapsis panels | Cleanest spin-regime figure: each point is one matched family and the bottom panels show raw BMF separation for a common spin trio. | `report/figures/spin_argument_matched_families.svg` |
-| Eccentricity vs bound mass fraction | Main eccentricity result: retention collapses at higher eccentricity proxy. | `eda/eccentricity_eda/plots/eccentricity_vs_bound_mass_fraction.png` |
+| Eccentricity vs bound mass fraction | Main eccentricity result: retention collapses at higher eccentricity proxy. | `eda/plots/eccentricity_vs_bound_mass_fraction.png` |
 | Best fragment-count regression plot | Representative ML fit for the hardest fragmentation target that still works reasonably well. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png` |
 | Best largest-fragment-particle regression plot | Strongest evidence that dominant-remnant size is predictable. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__largest_fragment_particle_count__gradient_boosting__actual_vs_predicted.png` |
 | Best largest-fragment-mass regression plot | Main regression result for physically interpretable fragment mass. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__largest_fragment_mass_kg__gradient_boosting__actual_vs_predicted.png` |

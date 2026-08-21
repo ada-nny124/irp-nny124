@@ -29,7 +29,7 @@ Each entry describes what AI generated or changed. "Initial implementation"
 means the first working draft of that part was written by AI and subsequently
 reviewed, modified and tested by me.
 
-### `scripts/train_bound_models.py`
+### `archived/cleanup_junk/scripts/train_bound_models.py`
 
 - Filename parser and feature engineering (`parse_simulation_filename`, run-level feature table): initial implementation.
 - Preprocessing utilities (median impute, one-hot encoding, scaling) and model factories: initial implementation.
@@ -39,7 +39,7 @@ reviewed, modified and tested by me.
 - CLI wiring and metrics/report outputs: initial implementation.
 - Later changes: target-spec generalisation, `average_bound_fragment_mass` target, script regrouping (June 2026), AI-assisted edits, reviewed by me.
 
-### `scripts/eda/train_physics_structured_surrogate.py`
+### `eda/scripts/train_physics_structured_surrogate.py`
 
 - Canonical dataset construction (physics-derived feature frame): initial implementation.
 - Grouped baseline evaluation (random forest and gradient boosting with scaled preprocessors): initial implementation.
@@ -54,7 +54,7 @@ reviewed, modified and tested by me.
 - Packaging outputs and staged CLI dispatcher: initial implementation.
 - Later changes: Mars-proximity physics features (July 2026), coverage-diagnostics EDA, notebook consolidation fix (August 2026), AI-assisted edits, reviewed by me.
 
-### `scripts/train_model_optimization_candidates.py`, `scripts/train_baseline_models.py`, `scripts/train_triage_models.py`
+### `scripts/train_model_optimization_candidates.py`, `archived/cleanup_junk/scripts/train_baseline_models.py`, `archived/cleanup_junk/scripts/train_triage_models.py`
 
 - Training and optimisation-candidate evaluation scripts: initial implementation, subsequently edited (import fixes, candidate evaluation) with AI assistance and reviewed by me.
 
@@ -73,13 +73,13 @@ reviewed, modified and tested by me.
 
 ### Extraction and data-processing scripts
 
-- `scripts/extract_fof_outcomes.py`, `scripts/extract_bound_unbound_outcomes.py`: HDF5 schema inspection, FoF filename/group-id variant handling, bound/unbound outcome extraction. Initial implementation, with manual debugging by me against HPC outputs.
-- `scripts/make_manifest.py`, `scripts/inspect_hdf5_schema.py`, `scripts/deduplicate_outcomes.py`: manifest building, schema audit, duplicate-outcome handling. Initial implementation, verified against extraction outputs by me.
+- `extraction_outputs/scripts/extract_fof_outcomes.py`, `extraction_outputs/scripts/extract_bound_unbound_outcomes.py`: HDF5 schema inspection, FoF filename/group-id variant handling, bound/unbound outcome extraction. Initial implementation, with manual debugging by me against HPC outputs.
+- `extraction_outputs/scripts/make_manifest.py`, `extraction_outputs/scripts/inspect_hdf5_schema.py`, `extraction_outputs/scripts/deduplicate_outcomes.py`: manifest building, schema audit, duplicate-outcome handling. Initial implementation, verified against extraction outputs by me.
 
 ### EDA, plotting and analysis scripts
 
-- `scripts/eda/` (large batch of exploratory, plotting, surrogate-analysis, and presentation-support scripts): initial implementations were AI-assisted. This includes raw-data overview, outcome EDA, bound-mass EDA, eccentricity EDA, retained-mass plots, confusion/ROC plots, regime-aware/global-importance plots, spin-importance plots, interpolation/trust diagnostics, Kegerreis-style figure regeneration, and presentation/report support scripts. Plot choices, filters, thresholds, figure selection, and scientific framing were specified and verified by me.
-- `scripts/eda/analyze_dense_region_velocity_trend.py`, `scripts/eda/analyze_sparse_region_velocity_contrast.py`: matched dense/sparse-region velocity-sweep analysis (matched-group monotonicity checks, support counts, markdown summaries). Initial implementation; analysis questions and thresholds set by me.
+- `eda/scripts/` (large batch of exploratory, plotting, surrogate-analysis, and presentation-support scripts): initial implementations were AI-assisted. This includes raw-data overview, outcome EDA, bound-mass EDA, eccentricity EDA, retained-mass plots, confusion/ROC plots, regime-aware/global-importance plots, spin-importance plots, interpolation/trust diagnostics, Kegerreis-style figure regeneration, and presentation/report support scripts. Plot choices, filters, thresholds, figure selection, and scientific framing were specified and verified by me.
+- `eda/scripts/analyze_dense_region_velocity_trend.py`, `eda/scripts/analyze_sparse_region_velocity_contrast.py`: matched dense/sparse-region velocity-sweep analysis (matched-group monotonicity checks, support counts, markdown summaries). Initial implementation; analysis questions and thresholds set by me.
 
 ### `report-table-figure/`
 

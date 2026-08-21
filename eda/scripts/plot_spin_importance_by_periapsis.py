@@ -47,17 +47,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bound-table",
-        default="extraction_outputs/bound_outcomes.csv",
+        default="extraction-outputs/tables/bound_outcomes.csv",
         help="Path to the extracted bound-outcomes CSV.",
     )
     parser.add_argument(
         "--svg-out",
-        default="report/figures/spin_argument_matched_families.svg",
+        default="eda/plots/spin_argument_matched_families.svg",
         help="Output SVG path.",
     )
     parser.add_argument(
         "--summary-out",
-        default="report/tables/spin_argument_matched_families.csv",
+        default="eda/tables/spin_argument_matched_families.csv",
         help="Output CSV summary path.",
     )
     parser.add_argument(

@@ -12,7 +12,7 @@ from statistics import median
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 
-SOURCE_CSV = "outputs/bound_outcomes.csv"
+SOURCE_CSV = "extraction-outputs/tables/bound_outcomes.csv"
 OUTPUT_DIR = "outputs/plots"
 
 SPIN_ORDER = ["no_spin", "prograde_z", "equatorial", "retrograde_z"]

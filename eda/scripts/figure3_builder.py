@@ -18,14 +18,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ml.main.helper_functions_ml import (
+from ml.model_training_scripts.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
     build_regression_pipeline,
     load_canonical_dataset,
 )
 
-DATASET_PATH = REPO_ROOT / "extraction_outputs/bound_outcomes.csv"
+DATASET_PATH = REPO_ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 OUTPUT_DIR = Path(__file__).resolve().parent
 GRID_POINTS = 250
 INTERPOLATION_COLOR = "#dbe8ff"

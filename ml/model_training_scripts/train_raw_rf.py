@@ -25,7 +25,7 @@ from ml.train_helper import (
 )
 
 
-DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
+DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 ARTIFACT_DIR = Path("ml/trainingartifacts/raw_rf")
 MODEL_PATH = ARTIFACT_DIR / "main_bmf_raw_rf.pkl"
 FOLDS_PATH = ARTIFACT_DIR / "grouped_cv_fold_assignments.csv"

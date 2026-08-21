@@ -12,7 +12,7 @@ from extract_fof_outcomes import MANIFEST_FIELDS, build_manifest_rows, select_hd
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", required=True, help="Directory containing FoF HDF5 files.")
-    parser.add_argument("--output", default="outputs/manifest.csv", help="Manifest CSV path.")
+    parser.add_argument("--output", default="extraction-outputs/tables/manifest.csv", help="Manifest CSV path.")
     parser.add_argument("--limit", type=int, default=None, help="Only include the first N files after sorting.")
     return parser.parse_args()
 

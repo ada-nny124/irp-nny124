@@ -26,8 +26,8 @@ if str(SRC) not in sys.path:
 from triage import add_derived_features, check_training_domain, get_artifact_status, load_artifacts, predict_cases
 
 MODEL_DIR = ROOT / "ml" / "triage"
-BOUND_MODELS_DIR = ROOT / "ml" / "bound_outcomes" / "models"
-BOUND_TABLES_DIR = ROOT / "ml" / "bound_outcomes" / "tables"
+BOUND_MODELS_DIR = ROOT / "archived" / "ml" / "bound_outcomes" / "models"
+BOUND_TABLES_DIR = ROOT / "archived" / "ml" / "bound_outcomes" / "tables"
 SURROGATE_TABLES_DIR = ROOT / "ml" / "physics_structured_surrogate" / "tables"
 RF_BMF_MODEL_PATH = (
     BOUND_MODELS_DIR / "all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl"
@@ -35,7 +35,7 @@ RF_BMF_MODEL_PATH = (
 GB_BMF_MODEL_PATH = (
     BOUND_MODELS_DIR / "all_successful_runs__with_fof_linking_length__bound_mass_fraction__gradient_boosting_regressor.pkl"
 )
-DATASET_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
+DATASET_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 HTML_PATH = ROOT / "src" / "triage" / "templates" / "sph_triage_dashboard.html"
 
 MARS_MU_KM3_S2 = 4.282837e4
@@ -152,7 +152,7 @@ def load_rf_bmf_metrics() -> dict[str, object]:
         & (metrics["model"] == "random_forest_regressor")
     ]
     if row.empty:
-        raise FileNotFoundError("Could not find baseline RF BMF regression metrics in ml/bound_outcomes/tables.")
+        raise FileNotFoundError("Could not find baseline RF BMF regression metrics in archived/ml/bound_outcomes/tables.")
     selected = row.iloc[0]
     return {
         "bundle_id": "rf_dashboard_bmf_v1",

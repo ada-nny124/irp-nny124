@@ -380,7 +380,7 @@ def fig_spin_period(df: pd.DataFrame, out: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--outcomes", default="outputs/bound_outcomes_dedup.csv")
+    p.add_argument("--outcomes", default="extraction-outputs/tables/bound_outcomes_dedup.csv")
     p.add_argument("--out-dir",  default="eda/plots")
     return p.parse_args()
 

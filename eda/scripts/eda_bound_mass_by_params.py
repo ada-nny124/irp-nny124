@@ -252,7 +252,7 @@ def make_combined_subplot(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--outcomes", default="outputs/bound_outcomes.csv")
+    p.add_argument("--outcomes", default="extraction-outputs/tables/bound_outcomes.csv")
     p.add_argument("--eda-dir",  default="eda/bound_eda")
     return p.parse_args()
 

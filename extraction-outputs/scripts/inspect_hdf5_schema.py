@@ -12,7 +12,11 @@ from extract_fof_outcomes import SCHEMA_FIELDS, select_hdf5_files, summarize_hdf
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", required=True, help="Directory containing FoF HDF5 files.")
-    parser.add_argument("--output", default="outputs/hdf5_schema_summary.csv", help="Schema summary CSV path.")
+    parser.add_argument(
+        "--output",
+        default="extraction-outputs/tables/hdf5_schema_summary.csv",
+        help="Schema summary CSV path.",
+    )
     parser.add_argument("--limit", type=int, default=3, help="Number of HDF5 files to sample.")
     return parser.parse_args()
 

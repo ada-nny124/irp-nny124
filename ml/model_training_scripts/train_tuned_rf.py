@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from ml.main.helper_functions_ml import (
+from ml.model_training_scripts.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
     build_or_load_group_folds,
@@ -25,7 +25,7 @@ from ml.main.helper_functions_ml import (
 )
 
 
-DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
+DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 ARTIFACT_DIR = Path("ml/trainingartifacts/tuned_rf")
 MODEL_PATH = ARTIFACT_DIR / "main_bmf_tuned_rf.pkl"
 FOLDS_PATH = ARTIFACT_DIR / "grouped_cv_fold_assignments.csv"

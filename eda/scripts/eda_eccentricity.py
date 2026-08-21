@@ -22,14 +22,22 @@ MARS_RADIUS_KM = 3389.5
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fof-outcomes", default="outputs/fof_outcomes.csv", help="Path to fof_outcomes.csv")
-    parser.add_argument("--bound-outcomes", default="outputs/bound_outcomes.csv", help="Path to bound_outcomes.csv")
+    parser.add_argument(
+        "--fof-outcomes",
+        default="extraction-outputs/tables/fof_outcomes.csv",
+        help="Path to fof_outcomes.csv",
+    )
+    parser.add_argument(
+        "--bound-outcomes",
+        default="extraction-outputs/tables/bound_outcomes.csv",
+        help="Path to bound_outcomes.csv",
+    )
     parser.add_argument(
         "--fragment-orbits",
         default="outputs/fragment_orbital_catalog.csv",
         help="Optional path to fragment_orbital_catalog.csv or equivalent orbital fragment catalog",
     )
-    parser.add_argument("--eda-dir", default="eda/eccentricity_eda", help="Output directory for EDA artifacts")
+    parser.add_argument("--eda-dir", default="eda", help="Output directory for EDA artifacts")
     return parser.parse_args()
 
 

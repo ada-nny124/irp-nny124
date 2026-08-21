@@ -17,7 +17,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = Path(__file__).resolve().parent
-SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
+SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 OUTPUT_PATH = SCRIPT_DIR / "figure1_used_in_report.png"
 
 PERI_RANGE = (1.1, 3.0)

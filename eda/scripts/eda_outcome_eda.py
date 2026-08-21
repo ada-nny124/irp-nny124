@@ -40,22 +40,26 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run outcome EDA using FoF outcomes and fragment catalogs."
     )
-    parser.add_argument("--outcomes", required=True, help="Path to outputs/fof_outcomes.csv")
-    parser.add_argument("--fragments", required=True, help="Path to outputs/fragment_catalog.csv")
+    parser.add_argument(
+        "--outcomes",
+        default="extraction-outputs/tables/fof_outcomes.csv",
+        help="Path to fof_outcomes.csv",
+    )
+    parser.add_argument("--fragments", required=True, help="Path to fragment_catalog.csv")
     parser.add_argument(
         "--errors",
-        default="outputs/extraction_errors.csv",
+        default="extraction-outputs/tables/extraction_errors.csv",
         help="Optional path to extraction_errors.csv",
     )
     parser.add_argument(
         "--bound-outcomes",
-        default="outputs/bound_outcomes.csv",
-        help="Optional path to outputs/bound_outcomes.csv",
+        default="extraction-outputs/tables/bound_outcomes.csv",
+        help="Optional path to bound_outcomes.csv",
     )
-    parser.add_argument("--eda-dir", required=True, help="Output directory for EDA artifacts")
+    parser.add_argument("--eda-dir", default="eda", help="Output directory for EDA artifacts")
     parser.add_argument(
         "--report-dir",
-        default="report/figures",
+        default="report-table-figure/figures",
         help="Optional report figure output directory",
     )
     return parser.parse_args()

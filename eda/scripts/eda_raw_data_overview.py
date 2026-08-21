@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--eda-dir", required=True, help="Output directory for EDA artifacts")
     parser.add_argument(
         "--report-dir",
-        default="report/figures",
+        default="eda",
         help="Optional report figure output directory",
     )
     return parser.parse_args()

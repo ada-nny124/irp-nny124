@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ml.helper_functions_ml import (
+from ml.model_training_scripts.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
     build_or_load_group_folds,
@@ -27,7 +27,7 @@ from ml.helper_functions_ml import (
 )
 
 
-SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
+SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 FIG_PATH = ROOT / "report-table-figure" / "figures" / "figureA1_used_in_report.png"
 FOLDS_PATH = ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "grouped_cv_fold_assignments.csv"
 

@@ -20,7 +20,7 @@ One theory for the formation of Mars's moons, Phobos and Deimos, is that close c
 - `docs/`
   Written project documentation, figure references, and supporting notes.
 
-- `extraction_outputs/`
+- `extraction-outputs/`
   Canonical SPH-derived tables that feed the downstream modelling and screening pipeline.
 
 - `deliverables/`

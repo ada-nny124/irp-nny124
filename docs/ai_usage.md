@@ -79,7 +79,7 @@ reviewed, modified and tested by me.
 ### EDA, plotting and analysis scripts
 
 - `eda/scripts/` (large batch of exploratory, plotting, surrogate-analysis, and presentation-support scripts): initial implementations were AI-assisted. This includes raw-data overview, outcome EDA, bound-mass EDA, eccentricity EDA, retained-mass plots, confusion/ROC plots, regime-aware/global-importance plots, spin-importance plots, interpolation/trust diagnostics, Kegerreis-style figure regeneration, and presentation/report support scripts. Plot choices, filters, thresholds, figure selection, and scientific framing were specified and verified by me.
-- `eda/scripts/analyze_dense_region_velocity_trend.py`, `eda/scripts/analyze_sparse_region_velocity_contrast.py`: matched dense/sparse-region velocity-sweep analysis (matched-group monotonicity checks, support counts, markdown summaries). Initial implementation; analysis questions and thresholds set by me.
+- `archived/eda/scripts/analyze_dense_region_velocity_trend.py`, `archived/eda/scripts/analyze_sparse_region_velocity_contrast.py`: matched dense/sparse-region velocity-sweep analysis (matched-group monotonicity checks, support counts, markdown summaries). Initial implementation; analysis questions and thresholds set by me.
 
 ### `report-table-figure/`
 

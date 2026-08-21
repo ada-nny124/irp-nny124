@@ -51,12 +51,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bound-table",
-        default="extraction_outputs/bound_outcomes.csv",
+        default="extraction-outputs/tables/bound_outcomes.csv",
         help="Path to the extracted bound-outcomes CSV.",
     )
     parser.add_argument(
         "--png-out",
-        default="report/figures/regime_dependent_parameter_story.png",
+        default="report-table-figure/figures/regime_dependent_parameter_story.png",
         help="PNG output path.",
     )
     return parser.parse_args()

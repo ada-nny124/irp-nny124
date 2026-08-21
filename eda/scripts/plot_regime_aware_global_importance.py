@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-OUT_PNG = Path("report/figures/physics_feature_importance_inputs_only.png")
-OUT_SVG = Path("report/figures/physics_feature_importance_inputs_only.svg")
+OUT_PNG = Path("eda/plots/physics_feature_importance_inputs_only.png")
+OUT_SVG = Path("eda/plots/physics_feature_importance_inputs_only.svg")
 
 # Source: ml/physics_structured_surrogate/reports/physical_parameter_importance_report.md
 GLOBAL_DELTA_R2 = {

@@ -56,7 +56,7 @@ class ModelResult:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, default=Path("extraction_outputs/bound_outcomes.csv"))
+    parser.add_argument("--dataset", type=Path, default=Path("extraction-outputs/tables/bound_outcomes.csv"))
     return parser.parse_args()
 
 
@@ -463,7 +463,7 @@ def write_summary(results: list[ModelResult]) -> None:
         "# Advanced Model Summary",
         "",
         "- Date run: `2026-07-29`",
-        "- Dataset: `extraction_outputs/bound_outcomes.csv`",
+        "- Dataset: `extraction-outputs/tables/bound_outcomes.csv`",
         "- Scope: advanced zero-inflated, probabilistic, GP, and expert-routing surrogates",
         "",
         "| Model | Scope | Status | R² | MAE | RMSE |",

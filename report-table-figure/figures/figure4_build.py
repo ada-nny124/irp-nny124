@@ -35,7 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bound-table",
-        default="extraction_outputs/bound_outcomes.csv",
+        default="extraction-outputs/tables/bound_outcomes.csv",
         help="Path to the extracted bound-outcomes CSV.",
     )
     parser.add_argument(

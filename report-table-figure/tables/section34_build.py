@@ -12,10 +12,14 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ml.helper_functions_ml import add_physics_features, evaluate_grouped_oof_regression, load_canonical_dataset
+from ml.model_training_scripts.helper_functions_ml import (
+    add_physics_features,
+    evaluate_grouped_oof_regression,
+    load_canonical_dataset,
+)
 
 
-DATASET_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
+DATASET_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 MODEL_BUNDLE_PATH = ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting.pkl"
 OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "section34_used_in_report.csv"
 

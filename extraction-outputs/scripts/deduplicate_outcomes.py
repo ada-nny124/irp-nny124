@@ -10,12 +10,12 @@ This script:
      (the highest resolution by default, or specified via --keep).
   3. Also deduplicates rows with the same physical_file but different
      fof_linking_length by keeping one preferred linking length.
-    4. Writes the result to extraction_outputs/tables/bound_outcomes_dedup.csv.
+    4. Writes the result to extraction-outputs/tables/bound_outcomes_dedup.csv.
 
 Run:
-        python extraction_outputs/scripts/deduplicate_outcomes.py \
-            --outcomes  extraction_outputs/bound_outcomes.csv \
-            --out       extraction_outputs/tables/bound_outcomes_dedup.csv \
+        python extraction-outputs/scripts/deduplicate_outcomes.py \
+            --outcomes  extraction-outputs/tables/bound_outcomes.csv \
+            --out       extraction-outputs/tables/bound_outcomes_dedup.csv \
       --keep      highest_resolution \
       --ll-mode   most_common
 """
@@ -55,8 +55,8 @@ def parse_filename(filename: str) -> dict:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--outcomes", default="outputs/bound_outcomes.csv")
-    p.add_argument("--out",      default="outputs/bound_outcomes_dedup.csv")
+    p.add_argument("--outcomes", default="extraction-outputs/tables/bound_outcomes.csv")
+    p.add_argument("--out",      default="extraction-outputs/tables/bound_outcomes_dedup.csv")
     p.add_argument(
         "--keep",
         choices=["highest_resolution", "lowest_resolution", "first"],

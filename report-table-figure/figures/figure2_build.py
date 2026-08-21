@@ -22,8 +22,16 @@ DEFAULT_PLOTS_DIR = SCRIPT_DIR
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fof-outcomes", default="outputs/fof_outcomes.csv", help="Path to fof_outcomes.csv")
-    parser.add_argument("--bound-outcomes", default="outputs/bound_outcomes.csv", help="Path to bound_outcomes.csv")
+    parser.add_argument(
+        "--fof-outcomes",
+        default="extraction-outputs/tables/fof_outcomes.csv",
+        help="Path to fof_outcomes.csv",
+    )
+    parser.add_argument(
+        "--bound-outcomes",
+        default="extraction-outputs/tables/bound_outcomes.csv",
+        help="Path to bound_outcomes.csv",
+    )
     parser.add_argument(
         "--fragment-orbits",
         default="outputs/fragment_orbital_catalog.csv",
@@ -399,8 +407,8 @@ Outputs:
 
 ```bash
 python eda/scripts/eda_eccentricity.py \
-  --fof-outcomes outputs/fof_outcomes.csv \
-  --bound-outcomes outputs/bound_outcomes.csv \
+  --fof-outcomes extraction-outputs/tables/fof_outcomes.csv \
+  --bound-outcomes extraction-outputs/tables/bound_outcomes.csv \
   --fragment-orbits outputs/fragment_orbital_catalog.csv \
   --eda-dir eda/eccentricity_eda
 ```

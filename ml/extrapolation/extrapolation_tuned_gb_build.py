@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ml.helper_functions_ml import (
+from ml.model_training_scripts.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
     build_regression_pipeline,
@@ -26,7 +26,7 @@ from ml.helper_functions_ml import (
 )
 
 
-DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
+DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 OUTPUT_FIGURE_PATH = Path("ml/extrapolation/far_extrapolation_tuned_gb_figure.png")
 OUTPUT_TABLE_PATH = Path("ml/extrapolation/far_extrapolation_tuned_gb_predictions.csv")
 GRID_POINTS = 20

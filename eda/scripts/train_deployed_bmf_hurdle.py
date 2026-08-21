@@ -48,7 +48,7 @@ FOLDS_PATH = MODEL_DIR / "bmf_hurdle_fold_assignments.csv"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, default=ROOT / "extraction_outputs" / "bound_outcomes.csv")
+    parser.add_argument("--dataset", type=Path, default=ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv")
     return parser.parse_args()
 
 

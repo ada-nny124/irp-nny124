@@ -1,31 +1,14 @@
-# Extraction outputs
+# Extraction outputs (file too large)
 extraction_outputs/*
-# file too large
+## these 2 are small enough so I exclude them from ignore list:
 !extraction_outputs/fof_outcomes.csv 
 !extraction_outputs/bound_outcomes.csv
 
-# Generated model/artifact outputs
-eda/**/plots/*.png
-eda/**/plots/*.svg
-ml/plots/**/*.png
-ml/plots/**/*.svg
-ml/bound_outcomes/plots/**/*.png
-ml/bound_outcomes/plots/**/*.svg
-ml/physics_structured_surrogate/plots/**/*.png
-ml/physics_structured_surrogate/plots/**/*.svg
-report-table-figure/figures/*_used_in_report.png
-ml/model_optimization_candidates/tables/*.json
-ml/model_optimization_candidates/advanced/tables/*.json
-ml/model_optimization_candidates/reports/*.md
-ml/model_optimization_candidates/advanced/reports/*.md
-ml/physics_structured_surrogate/reports/*.md
-ml/physics_structured_surrogate/*.md
-ml/physics_structured_surrogate/tables/*.json
-ml/training_artifacts/**/*.json
-ml/training_artifacts/**/*.tsv
-ml/training_artifacts/**/*.tfevents
-ml/training_artifacts/**/*.tfevents.*
-eda/**/*.txt
+# Generated model/artifact outputs that are exploratory only
+eda/plots/*
+eda/tables/*
+*.pkl
+## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
 # Local logs, scratch space, OS, caches, test tooling, local env, etc
 .DS_Store
@@ -38,7 +21,6 @@ eda/**/*.txt
 *.swp
 *.tmp
 *.bak
-*.pkl
 logs/*.out
 logs/*.err
 tmp/

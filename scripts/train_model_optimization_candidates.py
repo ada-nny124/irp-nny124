@@ -70,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default=Path("extraction_outputs/bound_outcomes.csv"),
+        default=Path("extraction-outputs/tables/bound_outcomes.csv"),
         help="Canonical bound outcomes table.",
     )
     return parser.parse_args()
@@ -545,7 +545,7 @@ def write_summary(results: list[ModelResult], feature_columns: list[str]) -> Non
         "# Model Optimization Candidate Summary",
         "",
         "- Date run: `2026-07-29`",
-        f"- Dataset: `extraction_outputs/bound_outcomes.csv`",
+        f"- Dataset: `extraction-outputs/tables/bound_outcomes.csv`",
         f"- Full-target feature columns: `{', '.join(feature_columns)}`",
         "- Leakage guard: `largest_fragment_mass_fraction` was excluded because it is outcome-derived.",
         "",

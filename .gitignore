@@ -8,6 +8,7 @@ extraction_outputs/*
 eda/plots/*
 eda/tables/*
 *.pkl
+*.json
 ## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
 # Local logs, scratch space, OS, caches, test tooling, local env, etc

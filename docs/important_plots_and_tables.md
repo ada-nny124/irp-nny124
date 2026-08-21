@@ -17,10 +17,10 @@ This file lists the plots and tables kept in Git and used in slides.
 | Bound mass fraction vs periapsis, spin effect | Supports the spin interpretation without making it the main claim. | `eda/bound_eda/plots/kegerreis_bmf_vs_periapsis_spin_effect.png` |
 | Matched-family spin spread and low/high periapsis panels | Cleanest spin-regime figure: each point is one matched family and the bottom panels show raw BMF separation for a common spin trio. | `report/figures/spin_argument_matched_families.svg` |
 | Eccentricity vs bound mass fraction | Main eccentricity result: retention collapses at higher eccentricity proxy. | `eda/eccentricity_eda/plots/eccentricity_vs_bound_mass_fraction.png` |
-| Best fragment-count regression plot | Representative ML fit for the hardest fragmentation target that still works reasonably well. | `ml/plots/random_forest/with_fof_linking_length/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png` |
-| Best largest-fragment-particle regression plot | Strongest evidence that dominant-remnant size is predictable. | `ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_particle_count__gradient_boosting__actual_vs_predicted.png` |
-| Best largest-fragment-mass regression plot | Main regression result for physically interpretable fragment mass. | `ml/plots/gradient_boosting/with_fof_linking_length/full__with_fof_linking_length__largest_fragment_mass_kg__gradient_boosting__actual_vs_predicted.png` |
-| Combined ROC panel | Best compact appendix view for bound-retention classifiers. | `ml/bound_outcomes/plots/roc_four_targets/roc_combined_four_targets.png` |
+| Best fragment-count regression plot | Representative ML fit for the hardest fragmentation target that still works reasonably well. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__fragment_count_min_particles__random_forest__actual_vs_predicted.png` |
+| Best largest-fragment-particle regression plot | Strongest evidence that dominant-remnant size is predictable. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__largest_fragment_particle_count__gradient_boosting__actual_vs_predicted.png` |
+| Best largest-fragment-mass regression plot | Main regression result for physically interpretable fragment mass. | `ml/plots/report_reference/fragmentation/full__with_fof_linking_length__largest_fragment_mass_kg__gradient_boosting__actual_vs_predicted.png` |
+| Combined ROC panel | Best compact appendix view for bound-retention classifiers. | `ml/plots/report_reference/bound/roc_combined_four_targets.png` |
 
 ## Tier 1: core tables used in slides
 

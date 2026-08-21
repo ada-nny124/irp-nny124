@@ -1,0 +1,138 @@
+{
+  "baseline_r2": 0.9168417787568812,
+  "bottom": {
+    "1/r_p": -0.003019846365979739,
+    "all simple": -0.006136229840702168,
+    "f_spin": -0.0022143843648464445,
+    "radius": -0.0033577190657079203,
+    "v_inf^2": -0.002235994348092074
+  },
+  "bottom_absolute_r2": {
+    "1/r_p": 0.9138219323909015,
+    "all simple": 0.910705548916179,
+    "f_spin": 0.9146273943920348,
+    "radius": 0.9134840596911733,
+    "v_inf^2": 0.9146057844087891
+  },
+  "feature_sets": {
+    "All": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "v_inf_squared",
+      "periapsis_inverse",
+      "angular_momentum_proxy",
+      "spin_frequency_hr_inv",
+      "asteroid_radius_km",
+      "encounter_eccentricity_proxy",
+      "time_within_2_mars_radii_hr",
+      "time_within_tidal_disruption_hr"
+    ],
+    "Raw": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length"
+    ],
+    "Raw + physics": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "angular_momentum_proxy",
+      "encounter_eccentricity_proxy",
+      "time_within_2_mars_radii_hr",
+      "time_within_tidal_disruption_hr"
+    ],
+    "Raw + simple": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "v_inf_squared",
+      "periapsis_inverse",
+      "spin_frequency_hr_inv",
+      "asteroid_radius_km"
+    ]
+  },
+  "simple_feature_sets": {
+    "1/r_p": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "periapsis_inverse"
+    ],
+    "all simple": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "v_inf_squared",
+      "periapsis_inverse",
+      "spin_frequency_hr_inv",
+      "asteroid_radius_km"
+    ],
+    "f_spin": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "spin_frequency_hr_inv"
+    ],
+    "radius": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "asteroid_radius_km"
+    ],
+    "v_inf^2": [
+      "mass_log10_kg",
+      "periapsis_Rm",
+      "v_inf_kms",
+      "spin_period_hr",
+      "spin_axis",
+      "resolution_value",
+      "fof_linking_length",
+      "v_inf_squared"
+    ]
+  },
+  "top": {
+    "All": -0.006590601480744196,
+    "Raw": 0.0,
+    "Raw + physics": -0.002189000690484666,
+    "Raw + simple": -0.006136229840702168
+  },
+  "top_absolute_r2": {
+    "All": 0.910251177276137,
+    "Raw": 0.9168417787568812,
+    "Raw + physics": 0.9146527780663966,
+    "Raw + simple": 0.910705548916179
+  }
+}

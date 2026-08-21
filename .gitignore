@@ -42,3 +42,4 @@ configs/paths.yaml
 configs/ssh.yaml
 archived/
 pyproject.toml
+src/mars_flyby_explorer.egg-info

@@ -5,50 +5,39 @@ Demo model inventory
 - Training script: ml/model_training_scripts/train_tuned_gradient_boosting.py
 - Used in demo as: predicted_bmf
 - Target: bound_mass_fraction
-- Model family: tuned Gradient Boosting regressor
-- Maps directly to trainingartifacts: yes
+- Model: tuned Gradient Boosting regressor (main model)
 
 2. BMF threshold screen
 - Artifact: derived at runtime from predicted_bmf
 - Training script: none; rule applied in demo-scripts/app.py
-- Used in demo as: bound_mass_fraction_ge_0p1
+- Used in demo as: bound_mass_fraction_ge_0p1 (greater than or qual to 0.1)
 - Target: bound_mass_fraction >= 0.1
-- Model family: threshold rule, not a separate model
-- Maps directly to trainingartifacts: derived from the tuned Gradient Boosting BMF model
+- Threshold rule, not a separate model (derived from the tuned Gradient Boosting BMF model)
 
 3. Fragmentation probability
 - Artifact: ml/triage/fragmentation_classifier.pkl
 - Training script: ml/model_training_scripts/train_triage_fragmentation_models.py
 - Used in demo as: fragmentation_probability
 - Target: is_fragmented_proxy
-- Model family: selected automatically between Random Forest and Gradient Boosting using grouped validation
-- Maps directly to trainingartifacts: no
+- Model: selected automatically between Random Forest and Gradient Boosting using grouped validation
 
 4. Largest fragment mass
 - Artifact: ml/triage/fragmentation_regressor.pkl
 - Training script: ml/model_training_scripts/train_triage_fragmentation_models.py
 - Used in demo as: predicted_largest_fragment_mass_kg
 - Target: largest_fragment_mass_kg
-- Model family: selected automatically between Random Forest and Gradient Boosting using grouped validation
-- Maps directly to trainingartifacts: no
+- Model: selected automatically between Random Forest and Gradient Boosting using grouped validation
 
 5. Largest remnant fraction
 - Artifact: derived at runtime from predicted_largest_fragment_mass_kg and parent_mass_kg
 - Training script: ml/model_training_scripts/train_triage_fragmentation_models.py
 - Used in demo as: predicted_largest_fragment_mass_fraction
 - Target: derived quantity, not a separately loaded model
-- Model family: derived from the largest-fragment-mass regressor
-- Maps directly to trainingartifacts: no
+- Derived from the largest-fragment-mass regressor
 
 6. Model spread / disagreement benchmark
 - Artifact: ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl
 - Training script: ml/model_training_scripts/train_raw_rf.py
 - Used in demo as: bmf_model_spread, model_spread_fraction, model_spread_percentage_points
 - Target: bound_mass_fraction
-- Model family: Random Forest regressor used only as a secondary comparison model
-- Maps directly to trainingartifacts: yes
-
-Notes
-- `ge_0p1` means "greater than or equal to 0.1". Since BMF is a fraction on 0 to 1, `bound_mass_fraction_ge_0p1` means "is the predicted BMF at least 10%?"
-- The main deployed BMF model in the demo is the tuned Gradient Boosting artifact above.
-- The Random Forest BMF artifact is not the main prediction. It is only used to estimate cross-model disagreement. If you want a strictly GB-only demo, this benchmark can be removed and the support logic can rely on domain checks, local grouped error, and sparsity only.
+- Model: Random Forest regressor used only as a secondary comparison model (needed to estimate cross-model disagreement)

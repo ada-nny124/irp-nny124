@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="840" viewBox="0 0 1100 840">
+<rect x="0" y="0" width="1100" height="840" fill="white"/>
+<text x="550.00" y="40" font-size="30" text-anchor="middle" fill="#111">Bound Mass Fraction vs Spin vs Velocity</text>
+<rect x="150.00" y="80.00" width="76.36" height="157.50" fill="#abd0ee" stroke="white" stroke-width="1.5"/>
+<text x="188.18" y="165.75" font-size="16" text-anchor="middle" fill="#111">0.086</text>
+<rect x="226.36" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="302.73" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="379.09" y="80.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="417.27" y="165.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="455.45" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="531.82" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="608.18" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="684.55" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="760.91" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="837.27" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="913.64" y="80.00" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="150.00" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="188.18" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="226.36" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="264.55" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="302.73" y="237.50" width="76.36" height="157.50" fill="#d6e9f8" stroke="white" stroke-width="1.5"/>
+<text x="340.91" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.036</text>
+<rect x="379.09" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="417.27" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="455.45" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="493.64" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="531.82" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="570.00" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="608.18" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="646.36" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="684.55" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="722.73" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="760.91" y="237.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="837.27" y="237.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="875.45" y="323.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="913.64" y="237.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="150.00" y="395.00" width="76.36" height="157.50" fill="#abd0ee" stroke="white" stroke-width="1.5"/>
+<text x="188.18" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.071</text>
+<rect x="226.36" y="395.00" width="76.36" height="157.50" fill="#1557a1" stroke="white" stroke-width="1.5"/>
+<text x="264.55" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.221</text>
+<rect x="302.73" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="340.91" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.016</text>
+<rect x="379.09" y="395.00" width="76.36" height="157.50" fill="#abd0ee" stroke="white" stroke-width="1.5"/>
+<text x="417.27" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.081</text>
+<rect x="455.45" y="395.00" width="76.36" height="157.50" fill="#d6e9f8" stroke="white" stroke-width="1.5"/>
+<text x="493.64" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.044</text>
+<rect x="531.82" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="570.00" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.006</text>
+<rect x="608.18" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="646.36" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="684.55" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="722.73" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="760.91" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="799.09" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="837.27" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="875.45" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="913.64" y="395.00" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="951.82" y="480.75" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="150.00" y="552.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="188.18" y="638.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="226.36" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="302.73" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="379.09" y="552.50" width="76.36" height="157.50" fill="#f7fbff" stroke="white" stroke-width="1.5"/>
+<text x="417.27" y="638.25" font-size="16" text-anchor="middle" fill="#111">0.000</text>
+<rect x="455.45" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="531.82" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="608.18" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="684.55" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="760.91" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="837.27" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="913.64" y="552.50" width="76.36" height="157.50" fill="#f3f4f6" stroke="white" stroke-width="1.5"/>
+<rect x="150" y="80" width="840" height="630" fill="none" stroke="#111" stroke-width="2"/>
+<text x="188.18" y="744" font-size="18" text-anchor="middle" fill="#222">0</text>
+<text x="264.55" y="744" font-size="18" text-anchor="middle" fill="#222">0.2</text>
+<text x="340.91" y="744" font-size="18" text-anchor="middle" fill="#222">0.4</text>
+<text x="417.27" y="744" font-size="18" text-anchor="middle" fill="#222">0.6</text>
+<text x="493.64" y="744" font-size="18" text-anchor="middle" fill="#222">0.8</text>
+<text x="570.00" y="744" font-size="18" text-anchor="middle" fill="#222">1</text>
+<text x="646.36" y="744" font-size="18" text-anchor="middle" fill="#222">1.2</text>
+<text x="722.73" y="744" font-size="18" text-anchor="middle" fill="#222">1.4</text>
+<text x="799.09" y="744" font-size="18" text-anchor="middle" fill="#222">1.5</text>
+<text x="875.45" y="744" font-size="18" text-anchor="middle" fill="#222">1.6</text>
+<text x="951.82" y="744" font-size="18" text-anchor="middle" fill="#222">2</text>
+<text x="138" y="164.75" font-size="18" text-anchor="end" fill="#222">Equatorial spin</text>
+<text x="138" y="322.25" font-size="18" text-anchor="end" fill="#222">No spin</text>
+<text x="138" y="479.75" font-size="18" text-anchor="end" fill="#222">Prograde z-spin</text>
+<text x="138" y="637.25" font-size="18" text-anchor="end" fill="#222">Retrograde z-spin</text>
+<text x="570.00" y="812" font-size="26" text-anchor="middle" fill="#111">Velocity at infinity (km/s)</text>
+<text x="34" y="395.00" font-size="26" text-anchor="middle" fill="#111" transform="rotate(-90 34 395.00)">Spin orientation</text>
+</svg>

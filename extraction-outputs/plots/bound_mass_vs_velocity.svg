@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="760" viewBox="0 0 1100 760">
+<rect x="0" y="0" width="1100" height="760" fill="white"/>
+<text x="550.00" y="38" font-size="30" text-anchor="middle" fill="#111">Bound Mass Fraction vs Velocity</text>
+<rect x="110" y="70" width="930" height="580" fill="none" stroke="#111" stroke-width="2"/>
+<line x1="110.00" y1="70" x2="110.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="110.00" y="684" font-size="20" text-anchor="middle" fill="#222">0</text>
+<line x1="203.00" y1="70" x2="203.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="203.00" y="684" font-size="20" text-anchor="middle" fill="#222">0.2</text>
+<line x1="296.00" y1="70" x2="296.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="296.00" y="684" font-size="20" text-anchor="middle" fill="#222">0.4</text>
+<line x1="389.00" y1="70" x2="389.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="389.00" y="684" font-size="20" text-anchor="middle" fill="#222">0.6</text>
+<line x1="482.00" y1="70" x2="482.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="482.00" y="684" font-size="20" text-anchor="middle" fill="#222">0.8</text>
+<line x1="575.00" y1="70" x2="575.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="575.00" y="684" font-size="20" text-anchor="middle" fill="#222">1</text>
+<line x1="668.00" y1="70" x2="668.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="668.00" y="684" font-size="20" text-anchor="middle" fill="#222">1.2</text>
+<line x1="761.00" y1="70" x2="761.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="761.00" y="684" font-size="20" text-anchor="middle" fill="#222">1.4</text>
+<line x1="807.50" y1="70" x2="807.50" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="807.50" y="684" font-size="20" text-anchor="middle" fill="#222">1.5</text>
+<line x1="854.00" y1="70" x2="854.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="854.00" y="684" font-size="20" text-anchor="middle" fill="#222">1.6</text>
+<line x1="1040.00" y1="70" x2="1040.00" y2="650" stroke="#e5e5e5" stroke-width="1"/>
+<text x="1040.00" y="684" font-size="20" text-anchor="middle" fill="#222">2</text>
+<line x1="110" y1="650.00" x2="1040" y2="650.00" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="657.00" font-size="20" text-anchor="end" fill="#222">0</text>
+<line x1="110" y1="456.67" x2="1040" y2="456.67" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="463.67" font-size="20" text-anchor="end" fill="#222">0.1</text>
+<line x1="110" y1="263.33" x2="1040" y2="263.33" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="270.33" font-size="20" text-anchor="end" fill="#222">0.2</text>
+<line x1="110" y1="70.00" x2="1040" y2="70.00" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="77.00" font-size="20" text-anchor="end" fill="#222">0.3</text>
+<path d="M 110.00 553.95 L 203.00 379.53 L 296.00 618.93 L 389.00 649.91 L 482.00 641.38 L 575.00 650.00 L 668.00 650.00 L 761.00 650.00 L 807.50 650.00 L 854.00 650.00 L 1040.00 650.00" fill="none" stroke="#2e8b57" stroke-width="3"/>
+<circle cx="110.00" cy="553.95" r="6" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="203.00" cy="379.53" r="6" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="296.00" cy="618.93" r="6" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="389.00" cy="649.91" r="6" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="482.00" cy="641.38" r="5" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="575.00" cy="650.00" r="5" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="668.00" cy="650.00" r="4" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="761.00" cy="650.00" r="4" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="807.50" cy="650.00" r="4" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="854.00" cy="650.00" r="4" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<circle cx="1040.00" cy="650.00" r="4" fill="#2e8b57" stroke="white" stroke-width="1.2"/>
+<text x="575.00" y="734" font-size="26" text-anchor="middle" fill="#111">Velocity at infinity (km/s)</text>
+<text x="32" y="360.00" font-size="26" text-anchor="middle" fill="#111" transform="rotate(-90 32 360.00)">Bound Mass Fraction</text>
+</svg>

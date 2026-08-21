@@ -13,10 +13,10 @@ The outcome tables in this repo are useful **screening and comparison products**
 
 The main tracked result tables are:
 
-- `outputs/manifest.csv`: parsed simulation metadata
-- `outputs/fof_outcomes.csv`: FoF-derived fragmentation outcomes
-- `outputs/bound_outcomes.csv`: bound vs unbound post-processed outcomes
-- `outputs/hdf5_schema_summary.csv`: compact schema audit for sampled HDF5 files
+- `extraction_outputs/tables/manifest.csv`: parsed simulation metadata
+- `extraction_outputs/tables/fof_outcomes.csv`: FoF-derived fragmentation outcomes
+- `extraction_outputs/tables/bound_outcomes.csv`: bound vs unbound post-processed outcomes
+- `extraction_outputs/tables/hdf5_schema_summary.csv`: compact schema audit for sampled HDF5 files
 
 ## Dataset coverage
 
@@ -97,7 +97,7 @@ Interpretation:
 
 The repository now includes a dedicated next-phase surrogate workflow under:
 
-- `scripts/train_physics_structured_surrogate.py`
+- `ml/train_tuned_gradient_boosting.py`
 - `ml/physics_structured_surrogate/`
 - `model_training.ipynb`
 
@@ -196,7 +196,7 @@ The hurdle architecture used in that comparison was:
 Supporting files:
 
 - deployed dashboard prototype:
-  `ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl`
+  `ml/triage/bmf_hurdle_bundle.pkl`
 - subsequent CatBoost comparison:
   `ml/triage/bmf_hurdle_bundle.pkl`
   `ml/triage/bmf_hurdle_metrics.json`
@@ -244,10 +244,12 @@ The upgraded phase now produces:
 - target-transform comparison tables for the secondary targets
 - a dedicated model card and notebook stub for the new surrogate phase
 
-Key outputs are under:
+Key report outputs are under:
 
-- `ml/physics_structured_surrogate/tables/`
-- `ml/physics_structured_surrogate/plots/`
+- `report-table-figure/figures/`
+- `report-table-figure/tables/`
+- `ml/tables/`
+- `ml/plots/`
 
 ## What the notebook delivers
 

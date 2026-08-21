@@ -144,8 +144,8 @@ def test_fragmentation_predictions_still_work_with_separate_models():
     assert result.loc[result.index[0], "fragmentation_probability"] == pytest.approx(1.0)
 
 
-def test_artifact_status_reports_catboost_bmf_bundle():
+def test_artifact_status_reports_fragmentation_artifacts():
     labels = {item["label"] for item in get_artifact_status(PROJECT_ROOT / "ml" / "triage")}
     assert "fragmentation_classifier.pkl" in labels
     assert "fragmentation_regressor.pkl" in labels
-    assert "bmf_hurdle_bundle.pkl" in labels
+    assert "training_domain.json" in labels

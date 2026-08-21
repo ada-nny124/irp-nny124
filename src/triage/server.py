@@ -9,7 +9,7 @@ from types import ModuleType
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_PATH = ROOT / "scripts" / "app.py"
+SCRIPT_PATH = ROOT / "demo-scripts" / "app.py"
 
 
 @lru_cache(maxsize=1)

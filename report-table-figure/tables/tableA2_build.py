@@ -18,9 +18,8 @@ MODEL_SPECS = [
     ("Tuned RF", ROOT / "ml" / "trainingartifacts" / "tuned_rf" / "main_bmf_tuned_rf_metrics.json"),
     ("RF + derived features", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf_metrics.json"),
     ("GB + derived features", ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "main_bmf_tuned_physics_gradient_boosting_metrics.json"),
-    ("XGBoost regressor", ROOT / "ml" / "model_optimization_candidates" / "tables" / "candidate_model_summary.csv", "xgboost"),
-    ("Two-stage CatBoost hurdle", ROOT / "ml" / "triage" / "bmf_hurdle_metrics.json", "two_stage_hurdle"),
-    ("Hurdle NGBoost surrogate", ROOT / "ml" / "model_optimization_candidates" / "advanced" / "tables" / "advanced_model_summary.csv", "hurdle_ngboost"),
+    ("XGBoost regressor", ROOT / "archived" / "ml" / "model_optimization_candidates" / "tables" / "candidate_model_summary.csv", "xgboost"),
+    ("Hurdle NGBoost surrogate", ROOT / "archived" / "ml" / "model_optimization_candidates" / "advanced" / "tables" / "advanced_model_summary.csv", "hurdle_ngboost"),
 ]
 
 

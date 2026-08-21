@@ -18,7 +18,7 @@ if str(SRC) not in sys.path:
 from triage.predict import load_artifacts, predict_cases
 
 
-DEFAULT_TEMPLATE = ROOT / "templates" / "triage_case_template.json"
+DEFAULT_TEMPLATE = ROOT / "src" / "triage" / "templates" / "triage_case_template.json"
 DEFAULT_MODEL_DIR = ROOT / "ml" / "triage"
 DEFAULT_OUTPUT = ROOT / "outputs" / "triage_demo_predictions.csv"
 

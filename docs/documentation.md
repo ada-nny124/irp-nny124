@@ -97,8 +97,8 @@ Interpretation:
 
 The repository now includes a dedicated next-phase surrogate workflow under:
 
-- `ml/train_tuned_gradient_boosting.py`
-- `ml/physics_structured_surrogate/`
+- `ml/main_models/train_tuned_gradient_boosting.py`
+- `ml/main_models/helper_functions_ml.py`
 - `model_training.ipynb`
 
 This upgraded phase keeps the scientific framing unchanged:

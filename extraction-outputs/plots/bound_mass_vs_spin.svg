@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="760" viewBox="0 0 1100 760">
+<rect x="0" y="0" width="1100" height="760" fill="white"/>
+<text x="550.00" y="38" font-size="30" text-anchor="middle" fill="#111">Bound Mass Fraction vs Spin</text>
+<rect x="110" y="70" width="930" height="560" fill="none" stroke="#111" stroke-width="2"/>
+<line x1="110" y1="630.00" x2="1040" y2="630.00" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="637.00" font-size="20" text-anchor="end" fill="#222">0</text>
+<line x1="110" y1="443.33" x2="1040" y2="443.33" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="450.33" font-size="20" text-anchor="end" fill="#222">0.1</text>
+<line x1="110" y1="256.67" x2="1040" y2="256.67" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="263.67" font-size="20" text-anchor="end" fill="#222">0.2</text>
+<line x1="110" y1="70.00" x2="1040" y2="70.00" stroke="#e5e5e5" stroke-width="1"/>
+<text x="96" y="77.00" font-size="20" text-anchor="end" fill="#222">0.3</text>
+<rect x="161.15" y="571.10" width="130.20" height="58.90" fill="#b6a400" opacity="0.9"/>
+<text x="226.25" y="670" font-size="18" text-anchor="middle" fill="#222">Equatorial spin</text>
+<text x="226.25" y="561.10" font-size="15" text-anchor="middle" fill="#444">n=48</text>
+<rect x="393.65" y="630.00" width="130.20" height="0.00" fill="#1f4ed8" opacity="0.9"/>
+<text x="458.75" y="670" font-size="18" text-anchor="middle" fill="#222">No spin</text>
+<text x="458.75" y="620.00" font-size="15" text-anchor="middle" fill="#444">n=227</text>
+<rect x="626.15" y="534.34" width="130.20" height="95.66" fill="#2e8b57" opacity="0.9"/>
+<text x="691.25" y="670" font-size="18" text-anchor="middle" fill="#222">Prograde z-spin</text>
+<text x="691.25" y="524.34" font-size="15" text-anchor="middle" fill="#444">n=119</text>
+<rect x="858.65" y="630.00" width="130.20" height="0.00" fill="#e24a33" opacity="0.9"/>
+<text x="923.75" y="670" font-size="18" text-anchor="middle" fill="#222">Retrograde z-spin</text>
+<text x="923.75" y="620.00" font-size="15" text-anchor="middle" fill="#444">n=13</text>
+<text x="575.00" y="730" font-size="26" text-anchor="middle" fill="#111">Spin orientation</text>
+<text x="32" y="350.00" font-size="26" text-anchor="middle" fill="#111" transform="rotate(-90 32 350.00)">Bound Mass Fraction</text>
+</svg>

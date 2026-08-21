@@ -1,7 +1,0 @@
-periapsis_Rm,mass_log10_kg,actual_bmf,oof_predicted_bmf,abs_error,is_target_mass_19_5,anchor_case
-1.2,19.0,0.0,0.012264107022383295,0.012264107022383295,False,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"
-1.2,19.5,0.0913295640798362,0.011748179121517727,0.07958138495831847,True,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"
-1.2,20.0,0.2355118998968633,0.19982547920883142,0.03568642068803188,False,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"
-1.6,19.0,0.0,-0.002621820427291481,0.002621820427291481,False,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"
-1.6,19.5,0.000204120820913,0.07047410490006291,0.0702699840791499,True,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"
-1.6,20.0,0.2078090985771832,0.1523900927145449,0.05541900586263829,False,"{""fof_linking_length"": 0.002, ""resolution_value"": 65, ""special_case_code"": ""none"", ""spin_axis"": ""none"", ""timestep"": 90000, ""v_inf_kms"": 0.0}"

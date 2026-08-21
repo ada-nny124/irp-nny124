@@ -1,9 +1,0 @@
-Feature,Type,Why it was added
-v_inf^2,Simple derived feature,"Speed appears squared in kinetic-energy terms, so this gives the model an energy-related form of encounter speed."
-1/r_p,Simple derived feature,"Makes close encounters have larger values, helping the model distinguish the strongest close-approach cases."
-r_p x v_inf,Combined input,"Combines distance and speed so the model can distinguish cases such as close/slow and close/fast encounters rather than treating periapsis and speed separately."
-1/P_spin,Simple derived feature,"Converts spin period into spin frequency, so faster rotation gives a larger value and is easier to compare directly."
-Asteroid radius,Simple derived feature,"Mass tells how much material the asteroid contains, while radius gives its physical size. Using the assumed density, mass can therefore be expressed as an approximate asteroid size."
-Encounter eccentricity,Combined physics feature,"Combines periapsis and speed into one description of the encounter orbit, helping distinguish near-parabolic from more hyperbolic fly-bys."
-Time within 2 R_Mars,Combined physics feature,"Estimates how long the asteroid remains close to Mars, because two encounters with similar closest approaches can still spend different amounts of time near the planet."
-Time within tidal-disruption radius,Combined physics feature,"Estimates how long the asteroid stays in the region where Martian tides may be strong enough to disrupt it."

@@ -15,24 +15,46 @@ import pandas as pd
 
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_TABLES_DIR = SCRIPT_DIR.parent / "tables"
+DEFAULT_PLOTS_DIR = SCRIPT_DIR
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fof-outcomes", default="outputs/fof_outcomes.csv", help="Path to fof_outcomes.csv")
-    parser.add_argument("--bound-outcomes", default="outputs/bound_outcomes.csv", help="Path to bound_outcomes.csv")
+    parser.add_argument(
+        "--fof-outcomes",
+        default="extraction-outputs/tables/fof_outcomes.csv",
+        help="Path to fof_outcomes.csv",
+    )
+    parser.add_argument(
+        "--bound-outcomes",
+        default="extraction-outputs/tables/bound_outcomes.csv",
+        help="Path to bound_outcomes.csv",
+    )
     parser.add_argument(
         "--fragment-orbits",
         default="outputs/fragment_orbital_catalog.csv",
         help="Optional path to fragment_orbital_catalog.csv or equivalent orbital fragment catalog",
     )
-    parser.add_argument("--eda-dir", default="eda/eccentricity_eda", help="Output directory for EDA artifacts")
+    parser.add_argument(
+        "--eda-dir",
+        default=None,
+        help="Deprecated compatibility option. If set, the script uses <eda-dir>/tables and <eda-dir>/plots.",
+    )
+    parser.add_argument("--tables-dir", default=str(DEFAULT_TABLES_DIR), help="Directory for CSV/text outputs")
+    parser.add_argument("--plots-dir", default=str(DEFAULT_PLOTS_DIR), help="Directory for PNG outputs")
     return parser.parse_args()
 
 
-def ensure_dirs(base_dir: Path) -> tuple[Path, Path]:
-    tables_dir = base_dir / "tables"
-    plots_dir = base_dir / "plots"
+def resolve_output_dirs(args: argparse.Namespace) -> tuple[Path, Path]:
+    if args.eda_dir:
+        base_dir = Path(args.eda_dir)
+        tables_dir = base_dir / "tables"
+        plots_dir = base_dir / "plots"
+    else:
+        tables_dir = Path(args.tables_dir)
+        plots_dir = Path(args.plots_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)
     plots_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, plots_dir
@@ -384,9 +406,9 @@ Outputs:
 ## Re-run
 
 ```bash
-python scripts/eda/eda_eccentricity.py \
-  --fof-outcomes outputs/fof_outcomes.csv \
-  --bound-outcomes outputs/bound_outcomes.csv \
+python eda/scripts/eda_eccentricity.py \
+  --fof-outcomes extraction-outputs/tables/fof_outcomes.csv \
+  --bound-outcomes extraction-outputs/tables/bound_outcomes.csv \
   --fragment-orbits outputs/fragment_orbital_catalog.csv \
   --eda-dir eda/eccentricity_eda
 ```
@@ -396,8 +418,7 @@ python scripts/eda/eda_eccentricity.py \
 
 def main() -> None:
     args = parse_args()
-    base_dir = Path(args.eda_dir)
-    tables_dir, plots_dir = ensure_dirs(base_dir)
+    tables_dir, plots_dir = resolve_output_dirs(args)
 
     fof_outcomes = load_csv(Path(args.fof_outcomes))
     bound_outcomes_path = Path(args.bound_outcomes)
@@ -421,8 +442,8 @@ def main() -> None:
     plot_threshold_scan(threshold_df, plots_dir)
     plot_bound_mass(run_frame, plots_dir)
 
-    write_summary(run_frame, fragment_frame, base_dir)
-    write_readme(base_dir)
+    write_summary(run_frame, fragment_frame, tables_dir)
+    write_readme(tables_dir)
 
 
 if __name__ == "__main__":

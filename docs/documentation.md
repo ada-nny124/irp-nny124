@@ -13,10 +13,10 @@ The outcome tables in this repo are useful **screening and comparison products**
 
 The main tracked result tables are:
 
-- `outputs/manifest.csv`: parsed simulation metadata
-- `outputs/fof_outcomes.csv`: FoF-derived fragmentation outcomes
-- `outputs/bound_outcomes.csv`: bound vs unbound post-processed outcomes
-- `outputs/hdf5_schema_summary.csv`: compact schema audit for sampled HDF5 files
+- `extraction_outputs/tables/manifest.csv`: parsed simulation metadata
+- `extraction_outputs/tables/fof_outcomes.csv`: FoF-derived fragmentation outcomes
+- `extraction_outputs/tables/bound_outcomes.csv`: bound vs unbound post-processed outcomes
+- `extraction_outputs/tables/hdf5_schema_summary.csv`: compact schema audit for sampled HDF5 files
 
 ## Dataset coverage
 
@@ -57,6 +57,8 @@ At run level:
 
 Grouped validation is done by `physical_file` to reduce leakage across related runs.
 
+All active model files used by the current repo are included in the repository under `ml/triage/` and `ml/trainingartifacts/`. The main deployed bound-mass model is the tuned Gradient Boosting BMF artifact at `ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl`.
+
 ### Best fragmentation regressions
 
 - `fragment_count_min_particles`: gradient boosting on the `clean_subset`, `R² = 0.872`
@@ -70,15 +72,14 @@ Interpretation:
 
 ### Best bound-retention regressions
 
-- `bound_mass_fraction`: Random Forest used for the evaluated dashboard prototype, grouped `R² = 0.8971`, `MAE = 0.01839`, `RMSE = 0.02984`
-- `bound_mass_fraction` subsequent model-comparison result: two-stage CatBoost hurdle, grouped `R² = 0.9483`, `MAE = 0.01217`, `RMSE = 0.02115`
+- `bound_mass_fraction`: tuned Gradient Boosting used as the current main deployed BMF model, grouped `R² = 0.9217`, `MAE = 0.0159`, `RMSE = 0.0260`
 - `largest_bound_fragment_mass_kg`: random forest on all successful runs with FoF length, `R² = 0.824`
 - `average_bound_fragment_mass_kg`: random forest with FoF length, `R² = 0.569`
 - `bound_fragment_count`: random forest with FoF length, `R² = 0.496`
 
 Interpretation:
 
-- continuous retained mass is predicted substantially better by the deployed hurdle surrogate than by the previous random-forest benchmark
+- continuous retained mass in the active demo/report path is predicted with the tuned Gradient Boosting surrogate
 - the visible `BMF >= 10%` retention screen remains a transparent threshold applied to the continuous deployed BMF prediction
 - fragment-count style bound targets are materially harder than retained-mass targets
 
@@ -97,8 +98,8 @@ Interpretation:
 
 The repository now includes a dedicated next-phase surrogate workflow under:
 
-- `scripts/train_physics_structured_surrogate.py`
-- `ml/physics_structured_surrogate/`
+- `ml/main_models/train_tuned_gradient_boosting.py`
+- `ml/main_models/helper_functions_ml.py`
 - `model_training.ipynb`
 
 This upgraded phase keeps the scientific framing unchanged:
@@ -169,41 +170,17 @@ This result is **not** the deployed surrogate because that feature set included 
 
 ### Dashboard prototype model and follow-up comparison
 
-The Random Forest was used for the evaluated dashboard prototype.
+The current active dashboard/report BMF path uses tuned Gradient Boosting.
 
-- deployed dashboard model: `Random Forest`
+- deployed dashboard BMF model: `tuned Gradient Boosting`
+- artifact: `ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl`
 - target: `bound_mass_fraction`
-- feature set: `with_fof_linking_length`
 - grouped validation: by `physical_file`
-- grouped-CV BMF score: `R² = 0.897127`
-- grouped-CV BMF MAE: `0.018394` (`1.8394` percentage points)
-- grouped-CV BMF RMSE: `0.029844`
+- grouped-CV BMF score: `R² = 0.9217`
+- grouped-CV BMF MAE: `0.0159` (`1.59` percentage points)
+- grouped-CV BMF RMSE: `0.0260`
 
-Subsequent model comparison showed that a two-stage CatBoost hurdle model improved grouped held-out `R²` from `0.897` to `0.948` and reduced MAE from `1.84` to `1.22` percentage points.
-
-This means:
-
-- **Scientific/modelling finding:** BMF is better represented as two stages, first whether any material remains bound and then how much is retained, than as one continuous prediction problem.
-- **Future-development finding:** the two-stage CatBoost hurdle model is the preferred candidate to replace the RF dashboard model once it is packaged, tested, and connected properly.
-
-The hurdle architecture used in that comparison was:
-
-1. CatBoost classifier for `BMF > 0`
-2. CatBoost regressor trained only on positive-BMF rows
-3. final prediction `predicted_bmf = P(BMF > 0) × predicted_positive_bmf`
-4. final value clipped to `[0, 1]`
-
-Supporting files:
-
-- deployed dashboard prototype:
-  `ml/bound_outcomes/models/all_successful_runs__with_fof_linking_length__bound_mass_fraction__random_forest_regressor.pkl`
-- subsequent CatBoost comparison:
-  `ml/triage/bmf_hurdle_bundle.pkl`
-  `ml/triage/bmf_hurdle_metrics.json`
-  `ml/triage/bmf_hurdle_oof_predictions.csv`
-  `ml/triage/bmf_hurdle_local_diagnostics.csv`
-  `ml/triage/bmf_hurdle_controlled_slices.csv`
-  `ml/triage/bmf_hurdle_mass_19p5_check.csv`
+The active triage/demo path keeps this tuned BMF artifact as the main continuous bound-mass model.
 
 ### Trust rules and caution zones
 
@@ -224,7 +201,7 @@ Current trust inputs in the deployed dashboard:
 - nearby independent SPH run count from the local diagnostics table
 - local grouped held-out absolute error
 - whether predicted `bound_mass_fraction` is borderline around the `0.10` threshold
-- disagreement between the deployed Random Forest prediction and the gradient-boosting benchmark
+- disagreement between the deployed tuned-Gradient-Boosting prediction and a secondary Random Forest benchmark
 
 Low-confidence / SPH-required cases remain those that are:
 
@@ -238,16 +215,18 @@ Low-confidence / SPH-required cases remain those that are:
 
 The upgraded phase now produces:
 
-- controlled periapsis / velocity / mass / spin slices from the deployed hurdle bundle
+- controlled periapsis / velocity / mass / spin slices from the retained benchmark and validation outputs
 - parameter coverage heatmaps
 - coverage-vs-error heatmaps
 - target-transform comparison tables for the secondary targets
 - a dedicated model card and notebook stub for the new surrogate phase
 
-Key outputs are under:
+Key report outputs are under:
 
-- `ml/physics_structured_surrogate/tables/`
-- `ml/physics_structured_surrogate/plots/`
+- `report-table-figure/figures/`
+- `report-table-figure/tables/`
+- `ml/tables/`
+- `ml/plots/`
 
 ## What the notebook delivers
 

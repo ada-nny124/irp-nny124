@@ -6,7 +6,7 @@ from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -18,21 +18,44 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.eda.train_physics_structured_surrogate import (
+from ml.model_training_scripts.helper_functions_ml import (
     PRIMARY_TARGET,
     add_physics_features,
     build_regression_pipeline,
-    feature_columns_for_set,
     load_canonical_dataset,
 )
 
 
-DATASET_PATH = Path("extraction_outputs/bound_outcomes.csv")
-OUTPUT_PATH = Path("report/figures/bmf_rf_conditional_profiles_250_linspace.png")
-GRID_POINTS = 250
+DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
+OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
+GRID_POINTS = 500
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
-EXCLUDED_PROFILE_FEATURES = {"largest_fragment_mass_fraction"}
+FEATURE_COLUMNS = [
+    "mass_log10_kg",
+    "periapsis_Rm",
+    "v_inf_kms",
+    "spin_period_hr",
+    "spin_axis",
+    "resolution_value",
+    "fof_linking_length",
+    "v_inf_squared",
+    "periapsis_inverse",
+    "angular_momentum_proxy",
+    "spin_frequency_hr_inv",
+    "asteroid_radius_km",
+    "encounter_eccentricity_proxy",
+    "time_within_2_mars_radii_hr",
+    "time_within_tidal_disruption_hr",
+]
+GB_PARAMS = {
+    "n_estimators": 500,
+    "learning_rate": 0.08,
+    "max_depth": 3,
+    "subsample": 0.8,
+    "min_samples_leaf": 1,
+    "random_state": 42,
+}
 NUMERIC_GRID_COLUMNS = [
     "mass_log10_kg",
     "target_mass_kg",
@@ -50,17 +73,11 @@ NUMERIC_GRID_COLUMNS = [
 ]
 
 
-def fit_random_forest(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str], object]:
-    model_frame = add_physics_features(frame.copy())
-    feature_columns = [
-        column
-        for column in feature_columns_for_set("with_fof_linking_length", include_physics=True)
-        if column not in EXCLUDED_PROFILE_FEATURES
-    ]
-    valid = model_frame.loc[model_frame[PRIMARY_TARGET].notna()].copy()
-    pipeline = build_regression_pipeline(valid[feature_columns], "random_forest")
-    fitted = pipeline.fit(valid[feature_columns], pd.to_numeric(valid[PRIMARY_TARGET], errors="coerce"))
-    return valid, feature_columns, fitted
+def train_model(frame: pd.DataFrame) -> tuple[list[str], object]:
+    pipeline = build_regression_pipeline(frame[FEATURE_COLUMNS], "gradient_boosting", GB_PARAMS)
+    target = pd.to_numeric(frame[PRIMARY_TARGET], errors="coerce")
+    model = pipeline.fit(frame[FEATURE_COLUMNS], target)
+    return FEATURE_COLUMNS, model
 
 
 def linspace_grid(
@@ -159,7 +176,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
         },
         {
             "parameter": "mass_log10_kg",
-            "title": "Asteroid mass (sparse exact slice)",
+            "title": "Asteroid mass",
             "x_label": r"$\log_{10}(M/\mathrm{kg})$",
             "x_range": (18.0, 21.0),
             "fixed_text": "Fixed: peri=1.2, v_inf=0.0, spin=4.7 h,\naxis=z, n=65",
@@ -189,7 +206,6 @@ def render_panel(
     base_row = frame.loc[spec["base_selector"]].iloc[0]
     grid = linspace_grid(base_row, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
     synthetic_predicted = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
-    slice_predicted = np.clip(model.predict(slice_df[feature_columns]), 0.0, 1.0)
     observed = np.sort(slice_df[spec["parameter"]].astype(float).unique())
     observed_min = float(observed.min())
     observed_max = float(observed.max())
@@ -205,24 +221,14 @@ def render_panel(
         synthetic_predicted,
         color="#2a78c4",
         linewidth=2.0,
-        label="RF synthetic grid",
-    )
-    ax.plot(
-        slice_df[spec["parameter"]],
-        slice_predicted,
-        color="#0a4f8a",
-        linewidth=1.5,
-        linestyle="--",
-        marker="s",
-        markersize=4.5,
-        label="RF on SPH rows",
+        label="ML syntehic grid",
     )
     ax.scatter(
         slice_df[spec["parameter"]],
         slice_df[PRIMARY_TARGET],
         color="#1f77b4",
         s=26,
-        label="SPH slice",
+        label="SPH results",
         zorder=3,
     )
     ax.set_title(spec["title"])
@@ -237,10 +243,7 @@ def render_panel(
     ax.text(
         0.5,
         -0.31,
-        (
-            f"{spec['fixed_text']}\nlinspace={GRID_POINTS}"
-            "\nprofile RF excludes largest_fragment_mass_fraction"
-        ),
+        f"{spec['fixed_text']}\nlinspace={GRID_POINTS}",
         transform=ax.transAxes,
         ha="center",
         va="top",
@@ -251,7 +254,9 @@ def render_panel(
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     raw = load_canonical_dataset(DATASET_PATH)
-    frame, feature_columns, model = fit_random_forest(raw)
+    frame = add_physics_features(raw.copy())
+    frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
+    feature_columns, model = train_model(frame)
     specs = make_slice_specs(frame)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.6, 7.2))
@@ -259,34 +264,7 @@ def main() -> None:
         render_panel(ax, frame, feature_columns, model, spec)
 
     fig.tight_layout(h_pad=3.0, w_pad=2.2)
-    fig.subplots_adjust(bottom=0.14, right=0.78)
-    fig.text(
-        0.865,
-        0.60,
-        "Background guide",
-        ha="left",
-        va="bottom",
-        fontsize=10,
-        fontweight="bold",
-    )
-    fig.text(
-        0.865,
-        0.56,
-        "Blue: interpolation\ninside sampled range",
-        ha="left",
-        va="top",
-        fontsize=9,
-        bbox={"facecolor": INTERPOLATION_COLOR, "edgecolor": "none", "boxstyle": "round,pad=0.35"},
-    )
-    fig.text(
-        0.865,
-        0.44,
-        "Red: extrapolation\noutside sampled range",
-        ha="left",
-        va="top",
-        fontsize=9,
-        bbox={"facecolor": EXTRAPOLATION_COLOR, "edgecolor": "none", "boxstyle": "round,pad=0.35"},
-    )
+    fig.subplots_adjust(bottom=0.14)
     fig.savefig(OUTPUT_PATH, dpi=180)
     plt.close(fig)
     print(OUTPUT_PATH)

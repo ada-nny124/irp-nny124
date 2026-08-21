@@ -15,10 +15,10 @@ import numpy as np
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parent.parent
-SOURCE_PATH = ROOT / "extraction_outputs" / "bound_outcomes.csv"
-FIG_DIR = ROOT / "report" / "figures"
-NOTES_PATH = ROOT / "report" / "figure1_regeneration_notes.md"
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = Path(__file__).resolve().parent
+SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
+OUTPUT_PATH = SCRIPT_DIR / "figure1_used_in_report.png"
 
 PERI_RANGE = (1.1, 3.0)
 PERI_TICKS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0]
@@ -53,6 +53,10 @@ VELOCITY_COLORS = {
     1.5: "#9c755f",
     1.6: "#17becf",
     2.0: "#111111",
+}
+MASS_LABELS = {
+    "A1900": r"10^{19}",
+    "A2000": r"10^{20}",
 }
 
 
@@ -116,16 +120,18 @@ def draw_panel_a(ax: plt.Axes, frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
     return panel, median_by_peri
 
 
-def draw_panel_b(ax: plt.Axes, frame: pd.DataFrame) -> pd.DataFrame:
+def build_grouped_bmf_panel(frame: pd.DataFrame, mass_code: str | None = None) -> pd.DataFrame:
     panel = frame.loc[
         frame["periapsis_Rm"].between(*PERI_RANGE, inclusive="both")
         & frame["bound_mass_fraction"].notna()
         & frame["v_inf_kms"].notna()
     ].copy()
+    if mass_code is not None:
+        panel = panel.loc[panel["mass_code"] == mass_code].copy()
     panel["bound_mass_fraction"] = pd.to_numeric(panel["bound_mass_fraction"], errors="coerce")
     panel = panel.dropna(subset=["bound_mass_fraction", "periapsis_Rm", "v_inf_kms"])
 
-    grouped = (
+    return (
         panel.groupby(["periapsis_Rm", "v_inf_kms", "spin_orientation"], as_index=False)
         .agg(
             bound_mass_fraction_median=("bound_mass_fraction", "median"),
@@ -134,6 +140,15 @@ def draw_panel_b(ax: plt.Axes, frame: pd.DataFrame) -> pd.DataFrame:
         .sort_values(["v_inf_kms", "spin_orientation", "periapsis_Rm"])
     )
 
+
+def draw_panel_b(
+    ax: plt.Axes,
+    grouped: pd.DataFrame,
+    title: str,
+    *,
+    y_max: float,
+    show_legends: bool = False,
+) -> None:
     for (velocity, spin_name), subset in grouped.groupby(["v_inf_kms", "spin_orientation"], sort=True):
         color = VELOCITY_COLORS[float(velocity)]
         marker = SPIN_MARKERS.get(spin_name, "o")
@@ -160,15 +175,16 @@ def draw_panel_b(ax: plt.Axes, frame: pd.DataFrame) -> pd.DataFrame:
             zorder=3,
             )
 
-    ax.set_title("Bound Mass Fraction vs Periapsis", fontsize=12)
+    ax.set_title(title, fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
     ax.set_ylabel("Bound Mass Fraction")
     ax.set_xlim(*PERI_RANGE)
     ax.set_xticks(PERI_TICKS)
     ax.tick_params(axis="x", labelsize=9, pad=4)
-    ax.set_ylim(0.0, max(0.32, grouped["bound_mass_fraction_median"].max() * 1.08))
+    ax.set_ylim(0.0, y_max)
     style_axes(ax)
-    return grouped
+    if show_legends:
+        add_legends(ax)
 
 
 def add_legends(ax: plt.Axes) -> None:
@@ -211,104 +227,47 @@ def add_legends(ax: plt.Axes) -> None:
     )
 
 
-def write_notes(panel_a_points: pd.DataFrame, panel_b_groups: pd.DataFrame) -> None:
-    text = "\n".join(
-        [
-            "# Figure 1 Regeneration Notes",
-            "",
-            "## Source file",
-            f"- `{SOURCE_PATH.relative_to(ROOT)}`",
-            "",
-            "## Derived source columns",
-            "- `periapsis_Rm` from `periapsis_code` using `r11 -> 1.1`, ..., `r30 -> 3.0`",
-            "- `v_inf_kms` from `velocity_code` using `v00 -> 0.0`, ..., `v20 -> 2.0`",
-            "- `spin_orientation` from `spin_code` with categories `no_spin`, `equatorial`, `prograde_z`, `retrograde_z`",
-            "",
-            "## Panel 1a columns used",
-            "- `periapsis_code -> periapsis_Rm`",
-            "- `n_fragments`",
-            "- `velocity_code -> v_inf_kms`",
-            "- `spin_code -> spin_orientation`",
-            "",
-            "## Panel 1a filters",
-            "- kept rows with non-null `periapsis_Rm`, `n_fragments`, and `v_inf_kms`",
-            "- kept periapsis range `1.1 <= periapsis_Rm <= 3.0`",
-            "- no additional mass / velocity / spin filtering; all available cases included",
-            f"- plotted raw FoF rows: `{len(panel_a_points):,}`",
-            "",
-            "## Panel 1b columns used",
-            "- `periapsis_code -> periapsis_Rm`",
-            "- `bound_mass_fraction`",
-            "- `velocity_code -> v_inf_kms`",
-            "- `spin_code -> spin_orientation`",
-            "",
-            "## Panel 1b filters",
-            "- kept rows with non-null `periapsis_Rm`, `bound_mass_fraction`, and `v_inf_kms`",
-            "- kept periapsis range `1.1 <= periapsis_Rm <= 3.0`",
-            "- no additional mass / velocity / spin filtering; all available cases included",
-            "- grouped medians by `(periapsis_Rm, v_inf_kms, spin_orientation)` from raw FoF rows",
-            f"- plotted grouped median cells: `{len(panel_b_groups):,}`",
-            "",
-            "## Interpretation note",
-            "- Connecting and trend lines are visual guides across sampled periapsis bins only; they must not be interpreted as physical trajectories.",
-        ]
-    )
-    NOTES_PATH.write_text(text + "\n", encoding="utf-8")
-
-
-def save_figure(fig: plt.Figure, stem: str) -> None:
-    for suffix in [".png", ".svg", ".pdf"]:
-        fig.savefig(FIG_DIR / f"{stem}{suffix}", bbox_inches="tight")
-
-
 def main() -> None:
-    FIG_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     frame = load_frame()
+    panel_b_all_groups = build_grouped_bmf_panel(frame)
+    panel_b_mass19_groups = build_grouped_bmf_panel(frame, mass_code="A1900")
+    panel_b_mass20_groups = build_grouped_bmf_panel(frame, mass_code="A2000")
+    shared_bmf_ymax = max(
+        0.32,
+        panel_b_all_groups["bound_mass_fraction_median"].max() * 1.08,
+        panel_b_mass19_groups["bound_mass_fraction_median"].max() * 1.08 if not panel_b_mass19_groups.empty else 0.0,
+        panel_b_mass20_groups["bound_mass_fraction_median"].max() * 1.08 if not panel_b_mass20_groups.empty else 0.0,
+    )
 
-    fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.9), dpi=220)
-    panel_a_points, panel_a_medians = draw_panel_a(axes[0], frame)
-    panel_b_groups = draw_panel_b(axes[1], frame)
-    add_legends(axes[1])
-    fig.tight_layout(rect=(0.02, 0.04, 0.98, 0.98))
-
-    save_figure(fig, "figure1_periapsis_regenerated")
+    fig, axes = plt.subplots(2, 2, figsize=(12.2, 9.2), dpi=220)
+    axes_flat = axes.flat
+    draw_panel_a(next(axes_flat), frame)
+    draw_panel_b(
+        next(axes_flat),
+        panel_b_all_groups,
+        "Bound Mass Fraction vs Periapsis",
+        y_max=shared_bmf_ymax,
+        show_legends=True,
+    )
+    draw_panel_b(
+        next(axes_flat),
+        panel_b_mass19_groups,
+        r"Bound Mass Fraction vs Periapsis ($10^{19}$ kg only)",
+        y_max=shared_bmf_ymax,
+        show_legends=True,
+    )
+    draw_panel_b(
+        next(axes_flat),
+        panel_b_mass20_groups,
+        r"Bound Mass Fraction vs Periapsis ($10^{20}$ kg only)",
+        y_max=shared_bmf_ymax,
+        show_legends=True,
+    )
+    fig.tight_layout(rect=(0.02, 0.03, 0.98, 0.98), h_pad=2.4, w_pad=2.0)
+    fig.savefig(OUTPUT_PATH, bbox_inches="tight")
     plt.close(fig)
-
-    panel_fig_a, panel_ax_a = plt.subplots(1, 1, figsize=(7.0, 5.6), dpi=220)
-    draw_panel_a(panel_ax_a, frame)
-    panel_fig_a.tight_layout()
-    save_figure(panel_fig_a, "figure1a_fragment_count_vs_periapsis_regenerated")
-    plt.close(panel_fig_a)
-
-    panel_fig_b, panel_ax_b = plt.subplots(1, 1, figsize=(7.4, 5.6), dpi=220)
-    draw_panel_b(panel_ax_b, frame)
-    velocity_handles = [
-        Line2D([0], [0], color=VELOCITY_COLORS[v], linewidth=2.0, label=f"{v:g}")
-        for v in VELOCITY_VALUES
-    ]
-    spin_handles = [
-        Line2D(
-            [0],
-            [0],
-            color="#666666",
-            linestyle=SPIN_LINESTYLES[name],
-            marker=SPIN_MARKERS[name],
-            markerfacecolor="white",
-            markeredgecolor="#666666",
-            markersize=6,
-            linewidth=1.6,
-            label=SPIN_LABELS[name],
-        )
-        for name in ["no_spin", "equatorial", "prograde_z", "retrograde_z"]
-    ]
-    leg1 = panel_ax_b.legend(handles=velocity_handles, loc="upper right", frameon=True, title="v∞ (km s$^{-1}$)")
-    panel_ax_b.add_artist(leg1)
-    panel_ax_b.legend(handles=spin_handles, loc="upper right", bbox_to_anchor=(1.0, 0.38), frameon=True, title="spin")
-    panel_fig_b.tight_layout()
-    save_figure(panel_fig_b, "figure1b_bmf_vs_periapsis_regenerated")
-    plt.close(panel_fig_b)
-
-    write_notes(panel_a_points, panel_b_groups)
+    print(OUTPUT_PATH)
 
 
 if __name__ == "__main__":

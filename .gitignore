@@ -12,6 +12,13 @@ eda/plots/*
 eda/tables/*
 *.pkl
 *.json
+!ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl
+!ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl
+!ml/triage/fragmentation_classifier.pkl
+!ml/triage/fragmentation_regressor.pkl
+!ml/triage/training_domain.json
+!ml/triage/metrics.json
+!ml/triage/largest_fragment_mass_kg_metrics.json
 ml/triage/*.csv
 ## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 

@@ -1,14 +1,26 @@
-# Extraction outputs (file too large)
-extraction_outputs/*
-## these 2 are small enough so I exclude them from ignore list:
-!extraction_outputs/fof_outcomes.csv 
-!extraction_outputs/bound_outcomes.csv
+# Extraction outputs
+extraction-outputs/plots/*
+extraction-outputs/tables/*
+!extraction-outputs/scripts/
+!extraction-outputs/scripts/**
+!extraction-outputs/tables/manifest.csv
+!extraction-outputs/tables/fof_outcomes.csv
+!extraction-outputs/tables/bound_outcomes.csv
 
 # Generated model/artifact outputs that are exploratory only
 eda/plots/*
 eda/tables/*
 *.pkl
 *.json
+!ml/triage/fragmentation_classifier.pkl
+!ml/triage/fragmentation_regressor.pkl
+!ml/triage/training_domain.json
+!ml/triage/metrics.json
+!ml/triage/largest_fragment_mass_kg_metrics.json
+ml/triage/*_eval_predictions.csv
+ml/triage/*_model.pkl
+ml/triage/is_fragmented_proxy_metrics.json
+ml/triage/largest_fragment_mass_fraction_metrics.json
 ## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
 # Local logs, scratch space, OS, caches, test tooling, local env, etc

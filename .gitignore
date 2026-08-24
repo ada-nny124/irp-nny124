@@ -12,18 +12,9 @@ eda/plots/*
 eda/tables/*
 *.pkl
 *.json
-!ml/triage/fragmentation_classifier.pkl
-!ml/triage/fragmentation_regressor.pkl
-!ml/triage/training_domain.json
-!ml/triage/metrics.json
-!ml/triage/largest_fragment_mass_kg_metrics.json
-ml/triage/*_eval_predictions.csv
-ml/triage/*_model.pkl
-ml/triage/is_fragmented_proxy_metrics.json
-ml/triage/largest_fragment_mass_fraction_metrics.json
 ## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
-# Local logs, scratch space, OS, caches, test tooling, local env, etc
+# Local logs, scratch space, OS, caches, test tooling, local env, junk files, etc
 .DS_Store
 ~$*.doc
 ~$*.docx
@@ -53,5 +44,6 @@ venv/
 configs/paths.yaml
 configs/ssh.yaml
 archived/
+docs/list_plots_and_tables.md
 pyproject.toml
 src/mars_flyby_explorer.egg-info

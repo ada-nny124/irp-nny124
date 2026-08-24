@@ -12,6 +12,7 @@ eda/plots/*
 eda/tables/*
 *.pkl
 *.json
+ml/triage/*.csv
 ## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
 # Local logs, scratch space, OS, caches, test tooling, local env, junk files, etc

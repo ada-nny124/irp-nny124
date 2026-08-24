@@ -8,9 +8,26 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import sklearn
 
 from .decision import check_training_domain, make_sph_recommendation
 from .features import add_derived_features, prepare_features
+
+
+def _load_pickle_artifact(path: Path):
+    try:
+        with path.open("rb") as handle:
+            return pickle.load(handle)
+    except ModuleNotFoundError as exc:
+        if exc.name == "_loss":
+            raise RuntimeError(
+                "Incompatible scikit-learn model artifact at "
+                f"{path}. The current runtime uses scikit-learn {sklearn.__version__}, "
+                "but this pickle was created with a different version. "
+                "Regenerate ml/triage artifacts with the same interpreter that will run the dashboard, "
+                "for example: `.venv/bin/python ml/model_training_scripts/train_triage_fragmentation_models.py`."
+            ) from exc
+        raise
 
 
 def load_artifacts(model_dir: str | Path) -> tuple[object, object, dict[str, object]] | None:
@@ -22,10 +39,8 @@ def load_artifacts(model_dir: str | Path) -> tuple[object, object, dict[str, obj
     if not classifier_path.exists() or not regressor_path.exists() or not domain_path.exists():
         return None
 
-    with classifier_path.open("rb") as handle:
-        classifier = pickle.load(handle)
-    with regressor_path.open("rb") as handle:
-        regressor = pickle.load(handle)
+    classifier = _load_pickle_artifact(classifier_path)
+    regressor = _load_pickle_artifact(regressor_path)
     training_domain = json.loads(domain_path.read_text())
     return classifier, regressor, training_domain
 

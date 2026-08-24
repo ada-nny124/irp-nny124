@@ -15,7 +15,7 @@ if str(SRC) not in sys.path:
 
 from triage.decision import check_training_domain, make_sph_recommendation
 from triage.features import add_derived_features, prepare_features, validate_required_columns
-from triage.predict import add_severity_from_predictions, get_artifact_status, predict_cases
+from triage.predict import add_severity_from_predictions, get_artifact_status, load_artifacts, predict_cases
 
 
 def test_prepare_features_adds_expected_columns():
@@ -149,3 +149,22 @@ def test_artifact_status_reports_fragmentation_artifacts():
     assert "fragmentation_classifier.pkl" in labels
     assert "fragmentation_regressor.pkl" in labels
     assert "training_domain.json" in labels
+
+
+def test_load_artifacts_raises_clear_error_for_incompatible_sklearn_pickle(tmp_path, monkeypatch):
+    model_dir = tmp_path / "triage"
+    model_dir.mkdir()
+    for name in ("fragmentation_classifier.pkl", "fragmentation_regressor.pkl"):
+        (model_dir / name).write_bytes(b"placeholder")
+    (model_dir / "training_domain.json").write_text("{}", encoding="utf-8")
+
+    def fake_load(handle):
+        path = Path(handle.name)
+        if path.name == "fragmentation_regressor.pkl":
+            raise ModuleNotFoundError("No module named '_loss'", name="_loss")
+        return object()
+
+    monkeypatch.setattr("triage.predict.pickle.load", fake_load)
+
+    with pytest.raises(RuntimeError, match="Incompatible scikit-learn model artifact"):
+        load_artifacts(model_dir)

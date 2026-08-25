@@ -26,7 +26,7 @@ from ml.model_training_scripts.helper_functions_ml import (
 
 
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
-OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
+OUTPUT_PATH = Path("report-table-figure/figures/figureA1_used_in_report.png")
 GRID_POINTS = 20
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
@@ -43,7 +43,6 @@ FEATURE_COLUMNS = [
     "resolution_value",
     "fof_linking_length",
 ]
-SIMULATION_SETTING_COLUMNS = ["resolution_value", "fof_linking_length"]
 GB_PARAMS = {
     "n_estimators": 500,
     "learning_rate": 0.08,
@@ -106,7 +105,6 @@ def linspace_grid(
     for column in NUMERIC_GRID_COLUMNS:
         if column in grid.columns:
             grid[column] = pd.to_numeric(grid[column], errors="coerce")
-
     grid[parameter] = x_values
     return grid
 
@@ -131,10 +129,7 @@ def build_prediction_grid(
 def collapse_observed_slice(slice_df: pd.DataFrame, parameter: str) -> pd.DataFrame:
     return (
         slice_df.groupby(parameter, as_index=False)
-        .agg(
-            observed_bmf=(PRIMARY_TARGET, "mean"),
-            run_count=(PRIMARY_TARGET, "size"),
-        )
+        .agg(observed_bmf=(PRIMARY_TARGET, "mean"), run_count=(PRIMARY_TARGET, "size"))
         .sort_values(parameter)
     )
 
@@ -169,7 +164,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "periapsis_Rm",
             "title": "Periapsis",
             "x_label": r"Periapsis ($R_{\mathrm{Mars}}$)",
-            "x_range": (1.0, 3.1),
+            "x_range": (0.5, 6.0),
             "fixed_text": "Fixed: mass = $10^{20}$ kg, $v_\\infty$ = 0 km s$^{-1}$,\nz-axis spin, period = 4.7 h",
             "mask": peri_mask,
             "base_selector": peri_mask & (frame["periapsis_Rm"] == 1.2),
@@ -178,8 +173,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "v_inf_kms",
             "title": "Encounter velocity",
             "x_label": r"$v_\infty$ (km s$^{-1}$)",
-            "x_range": (0.0, 1.8),
-            "physical_min": 0.0,
+            "x_range": (0.0, 5.0),
             "fixed_text": "Fixed: mass = $10^{20}$ kg, periapsis = 1.2 $R_{\\mathrm{Mars}}$,\nno spin",
             "mask": vel_mask,
             "base_selector": vel_mask & (frame["v_inf_kms"] == 0.0),
@@ -188,7 +182,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "mass_log10_kg",
             "title": "Asteroid mass",
             "x_label": "Asteroid mass (kg)",
-            "x_range": (17.8, 21.2),
+            "x_range": (16.0, 24.0),
             "fixed_text": "Fixed: periapsis = 1.2 $R_{\\mathrm{Mars}}$, $v_\\infty$ = 0 km s$^{-1}$,\nno spin",
             "mask": mass_mask,
             "base_selector": mass_mask & (frame["mass_log10_kg"] == 20.0),
@@ -197,7 +191,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "spin_period_hr",
             "title": "Spin period (z-axis)",
             "x_label": "Spin period (h)",
-            "x_range": (2.5, 18.0),
+            "x_range": (0.5, 40.0),
             "fixed_text": "Fixed: mass = $10^{20}$ kg, periapsis = 1.2 $R_{\\mathrm{Mars}}$,\n$v_\\infty$ = 0 km s$^{-1}$, z-axis spin",
             "mask": spin_mask,
             "base_selector": spin_mask & (frame["spin_period_hr"] == 4.7),
@@ -218,11 +212,8 @@ def render_panel(
     grid = build_prediction_grid(base_rows, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
     grid["predicted_bmf"] = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
     collapsed = collapse_observed_slice(slice_df, spec["parameter"])
-    synthetic_curve = (
-        grid.groupby("grid_x", as_index=False)["predicted_bmf"]
-        .mean()
-        .sort_values("grid_x")
-    )
+    synthetic_curve = grid.groupby("grid_x", as_index=False)["predicted_bmf"].mean().sort_values("grid_x")
+
     observed = np.sort(collapsed[spec["parameter"]].astype(float).unique())
     observed_min = float(observed.min())
     observed_max = float(observed.max())
@@ -260,10 +251,8 @@ def render_panel(
     ax.set_xlabel(spec["x_label"])
     ax.set_ylabel("BMF")
     ax.set_xlim(*spec["x_range"])
-    if spec["parameter"] == "v_inf_kms":
-        ax.set_xlim(left=max(0.0, spec["x_range"][0]))
     if spec["parameter"] == "mass_log10_kg":
-        ticks = np.arange(18.0, 21.1, 0.5)
+        ticks = np.arange(16.0, 24.1, 2.0)
         ax.set_xticks(ticks)
         ax.set_xticklabels([fr"$10^{{{tick:g}}}$" for tick in ticks])
     ax.set_ylim(-0.02, 0.30)
@@ -301,4 +290,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-PANEL_LABELS = ["(a)", "(b)", "(c)", "(d)"]

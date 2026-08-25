@@ -26,7 +26,7 @@ from ml.model_training_scripts.helper_functions_ml import (
 
 
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
-OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
+OUTPUT_PATH = Path("report-table-figure/figures/figure3_nospin_variation.png")
 GRID_POINTS = 20
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
@@ -43,7 +43,6 @@ FEATURE_COLUMNS = [
     "resolution_value",
     "fof_linking_length",
 ]
-SIMULATION_SETTING_COLUMNS = ["resolution_value", "fof_linking_length"]
 GB_PARAMS = {
     "n_estimators": 500,
     "learning_rate": 0.08,
@@ -97,11 +96,6 @@ def linspace_grid(
     elif parameter == "v_inf_kms":
         grid["velocity_value"] = np.round(grid["v_inf_kms"].astype(float) * 10.0).astype(int)
         grid["velocity_code"] = grid["velocity_value"].map(lambda value: f"v{value:02d}")
-    elif parameter == "spin_period_hr":
-        spin_values = np.round(grid["spin_period_hr"].astype(float) * 10.0).astype(int)
-        axis = str(base_row["spin_axis"])
-        grid["spin_value"] = spin_values
-        grid["spin_code"] = spin_values.map(lambda value: f"s{value:03d}{axis}")
 
     for column in NUMERIC_GRID_COLUMNS:
         if column in grid.columns:
@@ -141,22 +135,9 @@ def collapse_observed_slice(slice_df: pd.DataFrame, parameter: str) -> pd.DataFr
 
 def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
     no_spin = (frame["spin_axis"] == "none") & (frame["spin_period_hr"].isna())
-    peri_mask = (
-        (frame["mass_log10_kg"] == 20.0)
-        & (frame["v_inf_kms"] == 0.0)
-        & (frame["spin_axis"] == "z")
-        & (frame["spin_period_hr"] == 4.7)
-    )
-    vel_mask = (
-        (frame["mass_log10_kg"] == 20.0)
-        & (frame["periapsis_Rm"] == 1.2)
-        & no_spin
-    )
-    mass_mask = (
-        (frame["periapsis_Rm"] == 1.2)
-        & (frame["v_inf_kms"] == 0.0)
-        & no_spin
-    )
+    peri_mask = (frame["mass_log10_kg"] == 20.0) & (frame["v_inf_kms"] == 0.0) & no_spin
+    vel_mask = (frame["mass_log10_kg"] == 20.0) & (frame["periapsis_Rm"] == 1.2) & no_spin
+    mass_mask = (frame["periapsis_Rm"] == 1.2) & (frame["v_inf_kms"] == 0.0) & no_spin
     spin_mask = (
         (frame["mass_log10_kg"] == 20.0)
         & (frame["periapsis_Rm"] == 1.2)
@@ -169,8 +150,8 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "periapsis_Rm",
             "title": "Periapsis",
             "x_label": r"Periapsis ($R_{\mathrm{Mars}}$)",
-            "x_range": (1.0, 3.1),
-            "fixed_text": "Fixed: mass = $10^{20}$ kg, $v_\\infty$ = 0 km s$^{-1}$,\nz-axis spin, period = 4.7 h",
+            "x_range": (1.0, 3.0),
+            "fixed_text": "Fixed: mass = $10^{20}$ kg, $v_\\infty$ = 0 km s$^{-1}$,\nno spin",
             "mask": peri_mask,
             "base_selector": peri_mask & (frame["periapsis_Rm"] == 1.2),
         },
@@ -179,7 +160,6 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "title": "Encounter velocity",
             "x_label": r"$v_\infty$ (km s$^{-1}$)",
             "x_range": (0.0, 1.8),
-            "physical_min": 0.0,
             "fixed_text": "Fixed: mass = $10^{20}$ kg, periapsis = 1.2 $R_{\\mathrm{Mars}}$,\nno spin",
             "mask": vel_mask,
             "base_selector": vel_mask & (frame["v_inf_kms"] == 0.0),
@@ -197,7 +177,7 @@ def make_slice_specs(frame: pd.DataFrame) -> list[dict[str, object]]:
             "parameter": "spin_period_hr",
             "title": "Spin period (z-axis)",
             "x_label": "Spin period (h)",
-            "x_range": (2.5, 18.0),
+            "x_range": (2.5, 17.5),
             "fixed_text": "Fixed: mass = $10^{20}$ kg, periapsis = 1.2 $R_{\\mathrm{Mars}}$,\n$v_\\infty$ = 0 km s$^{-1}$, z-axis spin",
             "mask": spin_mask,
             "base_selector": spin_mask & (frame["spin_period_hr"] == 4.7),
@@ -218,11 +198,8 @@ def render_panel(
     grid = build_prediction_grid(base_rows, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
     grid["predicted_bmf"] = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
     collapsed = collapse_observed_slice(slice_df, spec["parameter"])
-    synthetic_curve = (
-        grid.groupby("grid_x", as_index=False)["predicted_bmf"]
-        .mean()
-        .sort_values("grid_x")
-    )
+    synthetic_curve = grid.groupby("grid_x", as_index=False)["predicted_bmf"].mean().sort_values("grid_x")
+
     observed = np.sort(collapsed[spec["parameter"]].astype(float).unique())
     observed_min = float(observed.min())
     observed_max = float(observed.max())
@@ -260,8 +237,6 @@ def render_panel(
     ax.set_xlabel(spec["x_label"])
     ax.set_ylabel("BMF")
     ax.set_xlim(*spec["x_range"])
-    if spec["parameter"] == "v_inf_kms":
-        ax.set_xlim(left=max(0.0, spec["x_range"][0]))
     if spec["parameter"] == "mass_log10_kg":
         ticks = np.arange(18.0, 21.1, 0.5)
         ax.set_xticks(ticks)
@@ -272,7 +247,7 @@ def render_panel(
     ax.text(0.0, 1.03, panel_label, transform=ax.transAxes, ha="left", va="bottom", fontsize=10, fontweight="bold")
     ax.text(
         0.5,
-        -0.31,
+        -0.28,
         spec["fixed_text"],
         transform=ax.transAxes,
         ha="center",
@@ -283,13 +258,14 @@ def render_panel(
 
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    raw = load_canonical_dataset(DATASET_PATH)
-    frame = raw.loc[raw[PRIMARY_TARGET].notna()].copy()
+    frame = load_canonical_dataset(DATASET_PATH)
+    frame = frame.loc[frame[PRIMARY_TARGET].notna()].copy()
     feature_columns, model = train_model(frame)
     specs = make_slice_specs(frame)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.6, 7.2))
-    for ax, spec, panel_label in zip(axes.flat, specs, PANEL_LABELS):
+    flat_axes = axes.flat
+    for ax, spec, panel_label in zip(flat_axes, specs, PANEL_LABELS):
         render_panel(ax, frame, feature_columns, model, spec, panel_label)
 
     fig.tight_layout(h_pad=3.0, w_pad=2.2)
@@ -301,4 +277,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-PANEL_LABELS = ["(a)", "(b)", "(c)", "(d)"]

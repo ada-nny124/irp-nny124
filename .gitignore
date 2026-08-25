@@ -54,6 +54,5 @@ venv/
 configs/paths.yaml
 configs/ssh.yaml
 archived/
-docs/list_plots_and_tables.md
 pyproject.toml
 src/mars_flyby_explorer.egg-info

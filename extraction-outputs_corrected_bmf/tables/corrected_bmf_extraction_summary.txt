@@ -1,0 +1,50 @@
+Corrected BMF extraction summary
+
+Exact formulas
+f_bnd_parent = bound_mass_kg / target_mass_kg
+f_capt_parent = captured_mass_kg / target_mass_kg
+
+Extraction level
+Paper-style mass fractions are particle-level from raw physical HDF5 snapshots.
+FoF-grouped diagnostics are not regenerated from raw data in this pass because FoF HDF5 catalogues are not available locally.
+
+Bound/capture classification
+Bound if specific orbital energy epsilon = v^2 / 2 - G M_Mars / r is negative in the Mars-centric frame.
+Apoapsis computed for bound particles as Q = a (1 + e), with a = -G M_Mars / (2 epsilon).
+Capture requires bound orbit and Q < R_Hill, using R_Hill = 1.080000e+09 m.
+
+Material accounting
+Denominator: all asteroid particles in each raw physical snapshot.
+Numerator for f_bnd_parent: all asteroid particles with negative Mars-centric orbital energy.
+Numerator for f_capt_parent: all asteroid particles with negative Mars-centric orbital energy and apoapsis below the Mars Hill radius.
+Unresolved/background/unassigned particles: included for the particle-level metrics because the raw physical snapshots contain the asteroid particles directly and no FoF filtering is applied.
+
+Approximation status
+Paper-style parent-normalized bound/captured fractions are an exact particle-level reconstruction under the raw-snapshot assumptions above.
+FoF-level fragment columns in corrected bound_outcomes.csv and corrected fof_outcomes.csv remain inherited approximations from the existing CSV pipeline because FoF HDF5 group catalogues were not available for re-extraction.
+
+Row counts
+paper_metric_rows=284
+corrected_bound_outcome_rows=407
+corrected_fof_outcome_rows=489
+validation_rows_total=27
+validation_rows_matched_to_archive=27
+
+Missing-data counts
+paper_metric_missing_bound_mass_rows=3
+paper_metric_missing_captured_mass_rows=3
+bound_outcome_rows_missing_raw_match=0
+fof_outcome_rows_missing_raw_match=81
+
+Validation
+validation_mean_signed_difference_f_bnd=0.083332
+validation_mean_signed_difference_f_capt=0.019844
+validation_max_abs_difference_f_bnd=0.566699
+validation_max_abs_difference_f_capt=0.166149
+fiducial_case_scenario=A2000_n65_r16_v00_no_spin
+fiducial_paper_f_bnd=0.466
+fiducial_our_f_bnd_parent=0.44605825519449555
+fiducial_difference_f_bnd=-0.01994174480550448
+fiducial_paper_f_capt=0.368
+fiducial_our_f_capt_parent=0.40376677474172656
+fiducial_difference_f_capt=0.03576677474172657

@@ -1,0 +1,14 @@
+physical_file=Ma_xp_A2000_n65_r16_v00_90000.hdf5
+target_mass_kg=9.996273753160096e+19
+resolved_fof_mass_kg=
+background_unresolved_mass_kg=0.0
+bound_mass_kg=4.458920428781124e+19
+captured_mass_kg=4.036163212748826e+19
+f_bnd_parent=0.44605825519449555
+paper_f_bnd=0.466
+f_capt_parent=0.40376677474172656
+paper_f_capt=0.368
+fof_regenerated=False
+unresolved_handling=No FoF background discarded; all raw particles contribute to denominator and orbit tests.
+assumptions=Particle-level parent-mass accounting from raw snapshots; no regenerated FoF catalogue available in this corrected HPC-only pass.
+reference_case_reproduced=NO

@@ -1,0 +1,8 @@
+simulations_processed=1
+simulations_failed=0
+reference_case_reproduced=NO
+full_corrected_extraction_completed=NO
+stop_reason=Reference-case discrepancy remains material and FoF was not regenerated from the raw-only archive.
+unresolved_background_handling=No FoF background discarded; all raw particles contribute to denominator and orbit tests.
+fof_regenerated=NO
+assumptions=Particle-level parent-mass accounting from raw snapshots using Mars-centered orbital energy and Hill-radius capture criterion.

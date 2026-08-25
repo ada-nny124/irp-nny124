@@ -1,0 +1,16 @@
+fof_file,particle_index,x,y,z,vx,vy,vz,speed,is_zero_speed
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,270549,125.08488286736608,67.15803715491937,169.47588643135305,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,308699,126.17051276148845,68.11960257699336,169.47213256060664,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,512580,128.53455619503134,70.29080119952043,169.4812312128602,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,638760,129.20593906759146,70.94543966320326,169.47667774440148,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,853025,132.03802999489636,73.6123362131277,169.46972138311776,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,1625548,128.00947395806173,70.32509939888455,169.46499301657153,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,1958029,129.4622443584737,71.73139028680212,169.46594425857307,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,2096107,128.93786548190374,71.21920906708702,169.47394976606975,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,2624976,134.16976437974492,76.05904516268252,169.46228071668799,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,2946085,136.90674244650626,78.62430934360064,169.47759309951994,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,895190,119.58037176145211,63.68047018831621,169.47343651702374,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,1807239,126.65280907576357,70.08758705177974,169.46762328968396,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,2165384,126.6360889341522,70.08781654732235,169.4718812531474,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,2633324,130.2177597803155,73.18520675709789,169.47990677473246,0.0,0.0,0.0,0.0,True
+/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,3018124,134.47483344459204,77.14545559484962,169.45178653042746,0.0,0.0,0.0,0.0,True

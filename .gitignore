@@ -37,6 +37,7 @@ ml/triage/*.csv
 *.bak
 logs/*.out
 logs/*.err
+.log
 tmp/
 temp/
 .scratch/
@@ -56,3 +57,8 @@ configs/ssh.yaml
 archived/
 pyproject.toml
 src/mars_flyby_explorer.egg-info
+.html
+.html.1
+
+# hdf5 files, sph-related files in ssh hpc
+*.hdf5

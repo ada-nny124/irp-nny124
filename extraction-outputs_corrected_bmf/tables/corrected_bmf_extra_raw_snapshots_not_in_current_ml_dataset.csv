@@ -1,0 +1,6 @@
+physical_file,raw_hdf5_path,raw_hdf5_size_bytes,expected_in_current_ml_dataset
+Ma_xp_A1900_n65_r12_v25_90000.hdf5,/rds/general/user/nny124/home/irp-nny124/martian_moon_data/Ma_xp_A1900_n65_r12_v25_90000.hdf5,21284304,False
+Ma_xp_A1900_n65_r12_v30_90000.hdf5,/rds/general/user/nny124/home/irp-nny124/martian_moon_data/Ma_xp_A1900_n65_r12_v30_90000.hdf5,21284304,False
+Ma_xp_A1900_s086y_n65_r12_v00_90000.hdf5,/rds/general/user/nny124/home/irp-nny124/martian_moon_data/Ma_xp_A1900_s086y_n65_r12_v00_90000.hdf5,201647364,False
+Ma_xp_A2000_s030z_n65_r16_v04_90000.hdf5,/rds/general/user/nny124/home/irp-nny124/martian_moon_data/Ma_xp_A2000_s030z_n65_r16_v04_90000.hdf5,307564488,False
+Ma_xp_A2000c30_n65_r16_v08_90000.hdf5,/rds/general/user/nny124/home/irp-nny124/martian_moon_data/Ma_xp_A2000c30_n65_r16_v08_90000.hdf5,307564504,False

@@ -58,6 +58,7 @@ MASS_LABELS = {
     "A1900": r"10^{19}",
     "A2000": r"10^{20}",
 }
+PANEL_LABELS = ["(a)", "(b)", "(c)", "(d)"]
 
 
 def parse_numeric_code(series: pd.Series, pattern: str, scale: float = 1.0) -> pd.Series:
@@ -242,7 +243,8 @@ def main() -> None:
 
     fig, axes = plt.subplots(2, 2, figsize=(12.2, 9.2), dpi=220)
     axes_flat = axes.flat
-    draw_panel_a(next(axes_flat), frame)
+    first_ax = next(axes_flat)
+    draw_panel_a(first_ax, frame)
     draw_panel_b(
         next(axes_flat),
         panel_b_all_groups,
@@ -264,6 +266,10 @@ def main() -> None:
         y_max=shared_bmf_ymax,
         show_legends=True,
     )
+
+    for ax, panel_label in zip(axes.flat, PANEL_LABELS):
+        ax.text(0.0, 1.03, panel_label, transform=ax.transAxes, ha="left", va="bottom", fontsize=10, fontweight="bold")
+
     fig.tight_layout(rect=(0.02, 0.03, 0.98, 0.98), h_pad=2.4, w_pad=2.0)
     fig.savefig(OUTPUT_PATH, bbox_inches="tight")
     plt.close(fig)

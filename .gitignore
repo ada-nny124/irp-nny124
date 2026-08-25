@@ -8,10 +8,14 @@ extraction-outputs/tables/*
 !extraction-outputs/tables/bound_outcomes.csv
 
 # Generated model/artifact outputs that are exploratory only
-eda/plots/*
-eda/tables/*
+## excluding all the figures I use in report (moved to folder report-table-figure/)
+eda/**/*.png
+eda/**/*.csv
+ml/triage/*.csv
 *.pkl
 *.json
+
+# these are still included for reproducibility (so anyone who clones the repo can run the demo right away)
 !ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl
 !ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl
 !ml/triage/fragmentation_classifier.pkl
@@ -19,8 +23,6 @@ eda/tables/*
 !ml/triage/training_domain.json
 !ml/triage/metrics.json
 !ml/triage/largest_fragment_mass_kg_metrics.json
-ml/triage/*.csv
-## exlcuing all the figures I use in report (moved to folder report-table-figure/)
 
 # Local logs, scratch space, OS, caches, test tooling, local env, junk files, etc
 .DS_Store

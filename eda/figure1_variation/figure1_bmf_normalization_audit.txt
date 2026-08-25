@@ -1,0 +1,47 @@
+Figure 1 BMF diagnostic audit
+============================
+
+Current stored training/report metric in bound_outcomes.csv:
+bound_mass_fraction = bound_mass_kg / total_fragment_mass_kg
+where total_fragment_mass_kg is the mass in resolved FoF fragments only.
+
+Parent-normalized diagnostic used here:
+f_bnd_parent = bound_mass_kg / target_mass_kg
+
+Saved fof_outcomes.csv capture-capable columns present locally: no
+The local saved fof_outcomes.csv does not preserve apoapsis/Hill-sphere capture columns, so exact f_capt_parent cannot be reconstructed from saved outputs alone.
+
+Resolved-fragment mass vs target mass summary:
+count    407.000000
+mean       0.933771
+std        0.234719
+min        0.000000
+25%        0.994183
+50%        0.998707
+75%        0.999399
+95%        1.000205
+99%        1.000837
+max        1.001613
+within 1% of target mass: 0.840
+within 5% of target mass: 0.914
+
+Current metric minus parent-normalized diagnostic for matched fiducial Table 2 rows:
+count    27.000000
+mean      0.000097
+std       0.000101
+min       0.000000
+25%       0.000000
+50%       0.000084
+75%       0.000189
+max       0.000270
+
+Largest fragment-to-target mismatches in saved bound_outcomes.csv:
+mass_code resolution_code periapsis_code velocity_code spin_code  fof_linking_length  total_fragment_mass_kg  target_mass_kg  fragment_to_target_mass_ratio  bound_mass_fraction  f_bnd_parent
+    A1800             n60            r12           v00       NaN              0.0001                     0.0    1.000000e+18                            0.0                  0.0           0.0
+    A2000             n65            r14           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r22           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r24           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r19           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r18           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r17           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0
+    A2000             n65            r16           v00       NaN              0.0010                     0.0    1.000000e+20                            0.0                  0.0           0.0

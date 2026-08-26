@@ -482,7 +482,7 @@ def build_summary(paper_rows, bound_rows, fof_rows, validation):
     fiducial = next((row for row in validation if row["scenario"] == "A2000_n65_r16_v00_no_spin"), None)
 
     lines = [
-        "Corrected BMF extraction summary",
+        "Mass fraction extraction summary",
         "",
         "Exact formulas",
         "f_bnd_parent = bound_mass_kg / target_mass_kg",
@@ -598,25 +598,25 @@ def main() -> int:
         if field not in fof_output_fields:
             fof_output_fields.append(field)
 
-    write_csv(output_dir / "corrected_bmf_paper_metrics.csv", paper_rows, paper_fields)
+    write_csv(output_dir / "paper_metrics.csv", paper_rows, paper_fields)
     write_csv(output_dir / "bound_outcomes.csv", corrected_bound, bound_output_fields)
     write_csv(output_dir / "fof_outcomes.csv", corrected_fof, fof_output_fields)
     write_csv(
-        output_dir / "corrected_bmf_validation_cases.csv",
+        output_dir / "validation_cases.csv",
         validation,
         ["scenario", "paper_f_bnd", "our_f_bnd_parent", "difference_f_bnd", "paper_f_capt", "our_f_capt_parent", "difference_f_capt"],
     )
-    (output_dir / "corrected_bmf_extraction_summary.txt").write_text(
+    (output_dir / "extraction_summary.txt").write_text(
         build_summary(paper_rows, corrected_bound, corrected_fof, validation),
         encoding="utf-8",
     )
 
     print(f"Processed raw snapshots: {len(raw_files)}")
-    print(f"Wrote: {output_dir / 'corrected_bmf_paper_metrics.csv'}")
+    print(f"Wrote: {output_dir / 'paper_metrics.csv'}")
     print(f"Wrote: {output_dir / 'bound_outcomes.csv'}")
     print(f"Wrote: {output_dir / 'fof_outcomes.csv'}")
-    print(f"Wrote: {output_dir / 'corrected_bmf_validation_cases.csv'}")
-    print(f"Wrote: {output_dir / 'corrected_bmf_extraction_summary.txt'}")
+    print(f"Wrote: {output_dir / 'validation_cases.csv'}")
+    print(f"Wrote: {output_dir / 'extraction_summary.txt'}")
     return 0
 
 

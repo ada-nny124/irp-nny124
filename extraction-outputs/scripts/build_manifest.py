@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Match current ML physical simulations to raw HDF5 snapshots for corrected BMF extraction."""
+"""Match current ML physical simulations to raw HDF5 snapshots for extraction."""
 
 import csv
 from pathlib import Path
@@ -66,10 +66,10 @@ def main() -> int:
         if path.name not in expected_names
     ]
 
-    manifest_path = OUTPUT_DIR / "corrected_bmf_raw_snapshot_manifest.csv"
-    missing_path = OUTPUT_DIR / "corrected_bmf_missing_expected_raw_snapshots.csv"
-    extra_path = OUTPUT_DIR / "corrected_bmf_extra_raw_snapshots_not_in_current_ml_dataset.csv"
-    summary_path = OUTPUT_DIR / "corrected_bmf_manifest_summary.txt"
+    manifest_path = OUTPUT_DIR / "raw_snapshot_manifest.csv"
+    missing_path = OUTPUT_DIR / "missing_expected_raw_snapshots.csv"
+    extra_path = OUTPUT_DIR / "extra_raw_snapshots_not_in_current_ml_dataset.csv"
+    summary_path = OUTPUT_DIR / "manifest_summary.txt"
 
     manifest_fields = [
         "physical_file",

@@ -16,8 +16,10 @@ import pandas as pd
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_TABLES_DIR = SCRIPT_DIR.parent / "tables"
-DEFAULT_PLOTS_DIR = SCRIPT_DIR
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else SCRIPT_DIR.parents[1]
+DEFAULT_TABLES_DIR = OUTPUT_BASE / "report-table-figure" / "tables"
+DEFAULT_PLOTS_DIR = OUTPUT_BASE / "report-table-figure" / "figures"
 BOUND_FRACTION_YMAX_OVERRIDE: float | None = None
 
 
@@ -124,14 +126,17 @@ def prepare_run_frame(fof_outcomes: pd.DataFrame, bound_outcomes: pd.DataFrame |
         bound["run_key"] = bound.get("fof_file", pd.Series(index=bound.index, dtype="object")).astype(str)
         keep_columns = [
             "run_key",
-            "bound_mass_fraction",
+            "captured_mass_fraction",
             "bound_fragment_count",
             "largest_bound_fragment_mass_kg",
             "unbound_mass_fraction",
         ]
         keep_columns = [column for column in keep_columns if column in bound.columns]
         frame = frame.merge(bound[keep_columns], on="run_key", how="left")
-        frame["bound_mass_fraction"] = pd.to_numeric(frame.get("bound_mass_fraction"), errors="coerce")
+        if "captured_mass_fraction" in frame.columns:
+            frame["bound_mass_fraction"] = pd.to_numeric(frame["captured_mass_fraction"], errors="coerce")
+        else:
+            frame["bound_mass_fraction"] = pd.to_numeric(frame.get("bound_mass_fraction"), errors="coerce")
         frame["bound_fragment_count"] = pd.to_numeric(frame.get("bound_fragment_count"), errors="coerce")
         frame["bmf_ge_0p1"] = frame["bound_mass_fraction"] >= 0.1
     else:
@@ -351,14 +356,15 @@ def plot_bound_mass(run_frame: pd.DataFrame, plots_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(7.5, 5.2))
     ax.scatter(frame["eccentricity_proxy"], frame["bound_mass_fraction"], alpha=0.75, color="#2c7fb8", edgecolors="none")
     ax.set_xlabel("Encounter eccentricity proxy")
-    ax.set_ylabel("Bound mass fraction")
-    ax.set_title("Bound retention versus encounter eccentricity proxy")
+    ax.set_ylabel("Mass fraction")
+    ax.set_title("Mass retention versus encounter eccentricity proxy")
     ymax = BOUND_FRACTION_YMAX_OVERRIDE
     if ymax is None:
         ymax = max(0.30, float(frame["bound_mass_fraction"].max()) * 1.08)
     ax.set_ylim(0.0, ymax)
     fig.tight_layout()
     fig.savefig(plots_dir / "eccentricity_vs_bound_mass_fraction.png", dpi=180)
+    fig.savefig(plots_dir / "figure2_used_in_report.png", dpi=180)
     plt.close(fig)
 
 
@@ -381,7 +387,7 @@ def write_summary(run_frame: pd.DataFrame, fragment_frame: pd.DataFrame | None, 
         "",
         f"Lowest encounter eccentricity proxy with any fragmentation proxy: {any_frag_min:.3f}" if any_frag_min is not None else "No fragmented runs found.",
         f"Lowest encounter eccentricity proxy with strong fragmentation: {strong_frag_min:.3f}" if strong_frag_min is not None else "No strong-fragmentation runs found.",
-        f"Lowest encounter eccentricity proxy with bound_mass_fraction >= 0.1: {bmf_min:.3f}" if bmf_min is not None else "No BMF >= 0.1 runs found.",
+        f"Lowest encounter eccentricity proxy with mass fraction >= 0.1: {bmf_min:.3f}" if bmf_min is not None else "No mass-fraction >= 0.1 runs found.",
         "",
         "Caveat:",
         "In the current dataset, the minimum observed encounter eccentricity proxy is already the parabolic edge (about 1.0), so this EDA can identify the lowest sampled regime that disrupts, but it cannot prove a sharper threshold below the sampled minimum.",

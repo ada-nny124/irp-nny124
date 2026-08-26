@@ -137,7 +137,7 @@ Low-confidence / SPH-required cases remain those that are:
 The repository now has two parallel execution paths:
 
 - the current project path using `extraction-outputs/`
-- the separate corrected-BMF path using `extraction-outputs_corrected_bmf/`
+- the separate corrected-BMF path using `extraction-outputs/`
 
 The corrected-BMF path uses separate script directories and separate output roots so it does not overwrite the current ML scripts, current model artifacts, current report figures, or current report tables.
 
@@ -179,23 +179,23 @@ python report-table-figure/tables/tableA2_build.py
 
 Separate corrected-BMF ML scripts now live under:
 
-- `ml/model_training_scripts_corrected_bmf/`
+- `ml/model_training_scripts/`
 
 Separate corrected-BMF report scripts now live under:
 
-- `report-table-figure/figures_corrected_bmf/`
-- `report-table-figure/tables_corrected_bmf/`
+- `report-table-figure/figures/`
+- `report-table-figure/tables/`
 
 Separate corrected-BMF outputs are intended to be written under:
 
-- `ml/trainingartifacts_corrected_bmf/`
-- `report-table-figure/figures_corrected_bmf/`
-- `report-table-figure/tables_corrected_bmf/`
+- `ml/trainingartifacts/`
+- `report-table-figure/figures/`
+- `report-table-figure/tables/`
 
 The corrected-BMF rerun expects full corrected extraction tables at:
 
-- `extraction-outputs_corrected_bmf/tables/bound_outcomes.csv`
-- `extraction-outputs_corrected_bmf/tables/fof_outcomes.csv`
+- `extraction-outputs/tables/bound_outcomes.csv`
+- `extraction-outputs/tables/fof_outcomes.csv`
 
 Run the full corrected-BMF pipeline with:
 
@@ -203,7 +203,7 @@ Run the full corrected-BMF pipeline with:
 python run_pipeline.py
 ```
 
-That root runner starts from the already-extracted corrected tables in `extraction-outputs_corrected_bmf/tables/`, retrains the corrected ML artifacts, and then rebuilds all corrected report-facing figures and tables.
+That root runner starts from the already-extracted corrected tables in `extraction-outputs/tables/`, retrains the corrected ML artifacts, and then rebuilds all corrected report-facing figures and tables.
 
 To test reproducibility without touching the live corrected-BMF outputs, run:
 
@@ -213,9 +213,9 @@ python run_pipeline.py --testing-reproducibility
 
 That writes a separate `_testing_reproducibility/` tree containing only the regenerated corrected-BMF artifacts needed for verification:
 
-- `ml/trainingartifacts_corrected_bmf/`
-- `report-table-figure/figures_corrected_bmf/`
-- `report-table-figure/tables_corrected_bmf/`
+- `ml/trainingartifacts/`
+- `report-table-figure/figures/`
+- `report-table-figure/tables/`
 - `_testing_reproducibility/reproducibility_manifest.txt`
 
 If you want a different isolated output location, run:
@@ -227,5 +227,5 @@ python run_pipeline.py --output-root path/to/output_root
 If you want to run only the corrected ML stage:
 
 ```bash
-python ml/model_training_scripts_corrected_bmf/run_corrected_bmf_pipeline.py
+python ml/model_training_scripts/run_pipeline.py
 ```

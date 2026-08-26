@@ -86,7 +86,11 @@ def build_canonical_frame(frame: pd.DataFrame) -> pd.DataFrame:
     canonical["special_case_code"] = canonical["special_case_code"].fillna("").replace("", "none")
     canonical["has_explicit_spin"] = canonical["has_explicit_spin"].fillna(False).astype(bool)
     canonical["has_spin"] = canonical["has_explicit_spin"].astype(int)
-    canonical["bound_mass_fraction_ge_0_1"] = pd.to_numeric(canonical["bound_mass_fraction"], errors="coerce") >= 0.1
+    if "bound_mass_fraction" in canonical.columns:
+        main_fraction = pd.to_numeric(canonical["bound_mass_fraction"], errors="coerce")
+    else:
+        main_fraction = pd.to_numeric(canonical.get("captured_mass_fraction"), errors="coerce")
+    canonical["bound_mass_fraction_ge_0_1"] = main_fraction >= 0.1
     return canonical
 
 

@@ -17,8 +17,8 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-OUTPUT_PATH = ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure1_bmf_vs_cmf_compare.png"
+SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
+OUTPUT_PATH = ROOT / "report-table-figure" / "figures" / "figure1_bmf_vs_cmf_compare.png"
 
 PERI_RANGE = (1.1, 3.0)
 PERI_TICKS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0]

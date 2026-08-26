@@ -23,12 +23,12 @@ from ml.model_training_scripts.helper_functions_ml import (
 )
 
 PRIMARY_TARGET = "captured_mass_fraction"
-CORRECTED_DATASET_PATH = REPO_ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-OUTPUT_ROOT_ENV = os.environ.get("CMF_OUTPUT_ROOT")
+CORRECTED_DATASET_PATH = REPO_ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
 ARTIFACT_ROOT = (
-    Path(OUTPUT_ROOT_ENV).resolve() / "ml" / "trainingartifacts_cmf"
+    Path(OUTPUT_ROOT_ENV).resolve() / "ml" / "trainingartifacts"
     if OUTPUT_ROOT_ENV
-    else REPO_ROOT / "ml" / "trainingartifacts_cmf"
+    else REPO_ROOT / "ml" / "trainingartifacts"
 )
 
 RAW_FEATURE_COLUMNS = [
@@ -83,7 +83,7 @@ def require_corrected_dataset(dataset_path: Path) -> None:
         return
     raise FileNotFoundError(
         "CMF dataset not found. Expected full corrected table at "
-        f"{dataset_path}. The current extraction-outputs_corrected_bmf folder does not yet contain it."
+        f"{dataset_path}. The current extraction-outputs folder does not yet contain it."
     )
 
 

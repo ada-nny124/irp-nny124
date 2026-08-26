@@ -18,15 +18,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ml.model_training_scripts.helper_functions_ml import (
-    PRIMARY_TARGET,
-    build_regression_pipeline,
-    load_canonical_dataset,
-)
+from ml.model_training_scripts.helper_functions_ml import build_regression_pipeline, load_canonical_dataset
 
 
+PRIMARY_TARGET = "captured_mass_fraction"
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else REPO_ROOT
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
-OUTPUT_PATH = Path("report-table-figure/figures/figure3_used_in_report.png")
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "figure3_used_in_report.png"
 GRID_POINTS = 20
 BMF_YMAX_OVERRIDE: float | None = None
 INTERPOLATION_COLOR = "#dbe8ff"
@@ -133,7 +132,7 @@ def collapse_observed_slice(slice_df: pd.DataFrame, parameter: str) -> pd.DataFr
     return (
         slice_df.groupby(parameter, as_index=False)
         .agg(
-            observed_bmf=(PRIMARY_TARGET, "mean"),
+            observed_fraction=(PRIMARY_TARGET, "mean"),
             run_count=(PRIMARY_TARGET, "size"),
         )
         .sort_values(parameter)
@@ -217,10 +216,10 @@ def render_panel(
     slice_df = frame.loc[spec["mask"]].sort_values(spec["parameter"]).copy()
     base_rows = frame.loc[spec["base_selector"], feature_columns].copy()
     grid = build_prediction_grid(base_rows, spec["parameter"], spec["x_range"][0], spec["x_range"][1])
-    grid["predicted_bmf"] = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
+    grid["predicted_fraction"] = np.clip(model.predict(grid[feature_columns]), 0.0, 1.0)
     collapsed = collapse_observed_slice(slice_df, spec["parameter"])
     synthetic_curve = (
-        grid.groupby("grid_x", as_index=False)["predicted_bmf"]
+        grid.groupby("grid_x", as_index=False)["predicted_fraction"]
         .mean()
         .sort_values("grid_x")
     )
@@ -236,14 +235,14 @@ def render_panel(
 
     ax.plot(
         synthetic_curve["grid_x"],
-        synthetic_curve["predicted_bmf"],
+        synthetic_curve["predicted_fraction"],
         color=LINE_COLOR,
         linewidth=2.0,
         label="Prediction line",
     )
     ax.scatter(
         synthetic_curve["grid_x"],
-        synthetic_curve["predicted_bmf"],
+        synthetic_curve["predicted_fraction"],
         color=DOT_COLOR,
         s=12,
         label="Prediction dots",
@@ -251,7 +250,7 @@ def render_panel(
     )
     ax.scatter(
         collapsed[spec["parameter"]],
-        collapsed["observed_bmf"],
+        collapsed["observed_fraction"],
         color=SPH_COLOR,
         s=18,
         label="SPH results",
@@ -259,7 +258,7 @@ def render_panel(
     )
     ax.set_title(spec["title"])
     ax.set_xlabel(spec["x_label"])
-    ax.set_ylabel("BMF")
+    ax.set_ylabel("Mass fraction")
     ax.set_xlim(*spec["x_range"])
     if spec["parameter"] == "v_inf_kms":
         ax.set_xlim(left=max(0.0, spec["x_range"][0]))

@@ -10,13 +10,13 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 TRAINING_SCRIPTS = [
-    "train_gradient_boosting_corrected_bmf.py",
-    "train_tuned_gradient_boosting_corrected_bmf.py",
-    "train_raw_rf_corrected_bmf.py",
-    "train_tuned_rf_corrected_bmf.py",
-    "train_main_physics_rf_corrected_bmf.py",
-    "train_tuned_physics_gradient_boosting_corrected_bmf.py",
-    "train_tuned_physics_rf_corrected_bmf.py",
+    "train_gradient_boosting.py",
+    "train_tuned_gradient_boosting.py",
+    "train_raw_rf.py",
+    "train_tuned_rf.py",
+    "train_main_physics_rf.py",
+    "train_tuned_physics_gradient_boosting.py",
+    "train_tuned_physics_rf.py",
 ]
 
 

@@ -13,42 +13,42 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_TEST_ROOT = ROOT / "_testing_reproducibility"
 
 STEPS = [
-    ROOT / "ml" / "model_training_scripts_corrected_bmf" / "run_corrected_bmf_pipeline.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure1_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure2_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure3_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure4_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figure5_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "figureA1_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "figures_corrected_bmf" / "tableA2_details_corrected_bmf.py",
-    ROOT / "report-table-figure" / "tables_corrected_bmf" / "section34_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "tables_corrected_bmf" / "table2_build_corrected_bmf.py",
-    ROOT / "report-table-figure" / "tables_corrected_bmf" / "tableA2_build_corrected_bmf.py",
+    ROOT / "ml" / "model_training_scripts" / "run_pipeline.py",
+    ROOT / "report-table-figure" / "figures" / "figure1_build.py",
+    ROOT / "report-table-figure" / "figures" / "figure2_build.py",
+    ROOT / "report-table-figure" / "figures" / "figure3_build.py",
+    ROOT / "report-table-figure" / "figures" / "figure4_build.py",
+    ROOT / "report-table-figure" / "figures" / "figure5_build.py",
+    ROOT / "report-table-figure" / "figures" / "figureA1_build.py",
+    ROOT / "report-table-figure" / "figures" / "tableA2_details.py",
+    ROOT / "report-table-figure" / "tables" / "section34_build.py",
+    ROOT / "report-table-figure" / "tables" / "table2_build.py",
+    ROOT / "report-table-figure" / "tables" / "tableA2_build.py",
 ]
 
 REQUIRED_OUTPUTS = [
-    "ml/trainingartifacts_corrected_bmf/gradient_boosting/main_bmf_gradient_boosting.pkl",
-    "ml/trainingartifacts_corrected_bmf/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl",
-    "ml/trainingartifacts_corrected_bmf/raw_rf/main_bmf_raw_rf.pkl",
-    "ml/trainingartifacts_corrected_bmf/tuned_rf/main_bmf_tuned_rf.pkl",
-    "ml/trainingartifacts_corrected_bmf/physics_rf/main_bmf_physics_rf.pkl",
-    "ml/trainingartifacts_corrected_bmf/tuned_physics_gradient_boosting/main_bmf_tuned_physics_gradient_boosting.pkl",
-    "ml/trainingartifacts_corrected_bmf/tuned_physics_rf/main_bmf_tuned_physics_rf.pkl",
-    "report-table-figure/figures_corrected_bmf/figure1_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/figure2_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/figure3_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/figure4_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/figure5_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/figureA1_used_in_report_corrected_bmf.png",
-    "report-table-figure/figures_corrected_bmf/tableA2_details_corrected_bmf.png",
-    "report-table-figure/tables_corrected_bmf/section34_used_in_report_corrected_bmf.csv",
-    "report-table-figure/tables_corrected_bmf/table2_used_in_report_corrected_bmf.csv",
-    "report-table-figure/tables_corrected_bmf/tableA2_used_in_report_corrected_bmf.csv",
+    "ml/trainingartifacts/gradient_boosting/main_bmf_gradient_boosting.pkl",
+    "ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl",
+    "ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl",
+    "ml/trainingartifacts/tuned_rf/main_bmf_tuned_rf.pkl",
+    "ml/trainingartifacts/physics_rf/main_bmf_physics_rf.pkl",
+    "ml/trainingartifacts/tuned_physics_gradient_boosting/main_bmf_tuned_physics_gradient_boosting.pkl",
+    "ml/trainingartifacts/tuned_physics_rf/main_bmf_tuned_physics_rf.pkl",
+    "report-table-figure/figures/figure1_used_in_report.png",
+    "report-table-figure/figures/figure2_used_in_report.png",
+    "report-table-figure/figures/figure3_used_in_report.png",
+    "report-table-figure/figures/figure4_used_in_report.png",
+    "report-table-figure/figures/figure5_used_in_report.png",
+    "report-table-figure/figures/figureA1_used_in_report.png",
+    "report-table-figure/figures/tableA2_details.png",
+    "report-table-figure/tables/section34_used_in_report.csv",
+    "report-table-figure/tables/table2_used_in_report.csv",
+    "report-table-figure/tables/tableA2_used_in_report.csv",
 ]
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the corrected-BMF training and report pipeline.")
+    parser = argparse.ArgumentParser(description="Run the cmf training and report pipeline.")
     parser.add_argument(
         "--testing-reproducibility",
         action="store_true",
@@ -93,7 +93,7 @@ def verify_outputs(output_root: Path | None) -> list[Path]:
 def write_manifest(output_root: Path) -> Path:
     manifest_path = output_root / "reproducibility_manifest.txt"
     lines = [
-        "Corrected-BMF reproducibility test output",
+        "CMF reproducibility test output",
         "",
         f"Output root: {output_root}",
         "",

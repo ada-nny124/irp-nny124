@@ -9,7 +9,7 @@ from typing import Dict, List
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BOUND_OUTCOMES_PATH = REPO_ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 RAW_DATA_DIR = REPO_ROOT / "martian_moon_data"
-OUTPUT_DIR = REPO_ROOT / "extraction-outputs_corrected_bmf" / "tables"
+OUTPUT_DIR = REPO_ROOT / "extraction-outputs" / "tables"
 
 
 def load_expected_physical_rows():

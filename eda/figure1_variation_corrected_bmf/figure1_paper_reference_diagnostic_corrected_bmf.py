@@ -13,13 +13,13 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-OUTPUT_DIR = ROOT / "report-table-figure" / "figures_corrected_bmf"
+SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
+OUTPUT_DIR = ROOT / "report-table-figure" / "figures"
 
-LINEAR_PLOT = OUTPUT_DIR / "figure1_paper_reference_strict_linear_corrected_bmf.png"
-LOG_PLOT = OUTPUT_DIR / "figure1_paper_reference_strict_log_corrected_bmf.png"
-COMPARISON_CSV = OUTPUT_DIR / "figure1_paper_reference_strict_comparison_corrected_bmf.csv"
-MIXING_AUDIT_CSV = OUTPUT_DIR / "figure1_current_mass20_panel_mixing_audit_corrected_bmf.csv"
+LINEAR_PLOT = OUTPUT_DIR / "figure1_paper_reference_strict_linear.png"
+LOG_PLOT = OUTPUT_DIR / "figure1_paper_reference_strict_log.png"
+COMPARISON_CSV = OUTPUT_DIR / "figure1_paper_reference_strict_comparison.csv"
+MIXING_AUDIT_CSV = OUTPUT_DIR / "figure1_current_mass20_panel_mixing_audit.csv"
 
 VELOCITY_COLORS = {
     0.0: "#1f77b4",

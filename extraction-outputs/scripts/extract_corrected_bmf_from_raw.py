@@ -67,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("extraction-outputs_corrected_bmf/tables"),
+        default=Path("extraction-outputs/tables"),
         help="Directory for corrected table outputs.",
     )
     parser.add_argument(

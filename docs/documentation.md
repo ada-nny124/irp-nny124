@@ -131,3 +131,82 @@ Low-confidence / SPH-required cases remain those that are:
 - sparse
 - borderline in retained mass
 - dependent on detailed fragment, orbital, or debris evolution
+
+## Reproducibility
+
+The repository now has two parallel execution paths:
+
+- the current project path using `extraction-outputs/`
+- the separate corrected-BMF path using `extraction-outputs_corrected_bmf/`
+
+The corrected-BMF path uses separate script directories and separate output roots so it does not overwrite the current ML scripts, current model artifacts, current report figures, or current report tables.
+
+### Current path
+
+Start from:
+
+- `extraction-outputs/tables/bound_outcomes.csv`
+- `extraction-outputs/tables/fof_outcomes.csv`
+
+Train or refresh the current BMF ML artifacts:
+
+```bash
+python ml/model_training_scripts/train_gradient_boosting.py
+python ml/model_training_scripts/train_tuned_gradient_boosting.py
+python ml/model_training_scripts/train_raw_rf.py
+python ml/model_training_scripts/train_tuned_rf.py
+python ml/model_training_scripts/train_main_physics_rf.py
+python ml/model_training_scripts/train_tuned_physics_gradient_boosting.py
+python ml/model_training_scripts/train_tuned_physics_rf.py
+```
+
+Then rebuild the current report-support figures and tables:
+
+```bash
+python report-table-figure/figures/figure1_build.py
+python report-table-figure/figures/figure2_build.py
+python report-table-figure/figures/figure3_build.py
+python report-table-figure/figures/figure4_build.py
+python report-table-figure/figures/figure5_build.py
+python report-table-figure/figures/figureA1_build.py
+python report-table-figure/figures/tableA2_details.py
+python report-table-figure/tables/section34_build.py
+python report-table-figure/tables/table2_build.py
+python report-table-figure/tables/tableA2_build.py
+```
+
+### Separate corrected-BMF path
+
+Separate corrected-BMF ML scripts now live under:
+
+- `ml/model_training_scripts_corrected_bmf/`
+
+Separate corrected-BMF report scripts now live under:
+
+- `report-table-figure/figures_corrected_bmf/`
+- `report-table-figure/tables_corrected_bmf/`
+
+Separate corrected-BMF outputs are intended to be written under:
+
+- `ml/trainingartifacts_corrected_bmf/`
+- `report-table-figure/figures_corrected_bmf/`
+- `report-table-figure/tables_corrected_bmf/`
+
+The corrected-BMF rerun expects full corrected extraction tables at:
+
+- `extraction-outputs_corrected_bmf/tables/bound_outcomes.csv`
+- `extraction-outputs_corrected_bmf/tables/fof_outcomes.csv`
+
+Run the corrected-BMF ML suite with:
+
+```bash
+python run_corrected_bmf_pipeline.py
+```
+
+That root runner starts from the already-extracted corrected tables in `extraction-outputs_corrected_bmf/tables/`, retrains the corrected ML artifacts, and then rebuilds all corrected report-facing figures and tables.
+
+If you want to run only the corrected ML stage:
+
+```bash
+python ml/model_training_scripts_corrected_bmf/run_corrected_bmf_pipeline.py
+```

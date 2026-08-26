@@ -111,7 +111,7 @@ def main() -> None:
 
     env = os.environ.copy()
     if output_root is not None:
-        env["CORRECTED_BMF_OUTPUT_ROOT"] = str(output_root)
+        env["PIPELINE_OUTPUT_ROOT"] = str(output_root)
 
     for script_path in STEPS:
         cmd = [sys.executable, str(script_path)]

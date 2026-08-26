@@ -9,7 +9,7 @@ Demo model inventory
 
 2. BMF threshold screen
 - Artifact: derived at runtime from predicted_bmf
-- Training script: none; rule applied in demo-scripts/app.py
+- Training script: none; rule applied in src/triage/dashboard.py
 - Used in demo as: bound_mass_fraction_ge_0p1 (greater than or qual to 0.1)
 - Target: bound_mass_fraction >= 0.1
 - Threshold rule, not a separate model (derived from the tuned Gradient Boosting BMF model)

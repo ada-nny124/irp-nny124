@@ -67,7 +67,7 @@ reviewed, modified and tested by me.
 - Local dashboard/API server (server.py, templates): initial implementation.
 - Unit tests (including scaffolds): AI-generated, extended and verified by me.
 
-### scripts/app.py, scripts/run_triage_demo.py
+### src/triage/dashboard.py, src/triage/cli.py
 
 - Dashboard entrypoint and demo runner: initial implementation.
 

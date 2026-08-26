@@ -1,4 +1,0 @@
-fof_file,exists,readable,n_particles,velocity_dataset_shape,velocity_dataset_dtype,min_vx,max_vx,min_vy,max_vy,min_vz,max_vz,max_abs_velocity,min_speed,max_speed,mean_speed,nonzero_velocity_count,all_particle_speeds_zero
-/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1800_n60_r12_v00_90000_fof_0.0001_0000.hdf5,True,True,1002827,"(1002827, 3)",float32,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,True
-/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v02_90000_fof_0.002_0000.hdf5,True,True,3227685,"(3227685, 3)",float32,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,True
-/rds/general/ephemeral/user/nny124/ephemeral/martian_moons_data/Ma_xp_A1900_n65_r12_v04_90000_fof_0.002_0000.hdf5,True,True,3227694,"(3227694, 3)",float32,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,True

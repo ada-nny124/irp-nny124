@@ -307,11 +307,11 @@ def plot_scatter(run_frame: pd.DataFrame, plots_dir: Path) -> None:
         alpha=0.8,
         edgecolors="none",
     )
-    ax.set_xlabel("Encounter eccentricity proxy")
+    ax.set_xlabel("Encounter eccentricity")
     ax.set_ylabel("Dispersed mass fraction")
-    ax.set_title("Fragmentation severity versus encounter eccentricity proxy")
+    ax.set_title("Fragmentation severity versus encounter eccentricity")
     cbar = fig.colorbar(scatter, ax=ax)
-    cbar.set_label("Fragment count (min-particles proxy)")
+    cbar.set_label("Fragment count")
     fig.tight_layout()
     fig.savefig(plots_dir / "eccentricity_vs_dispersed_mass_fraction.png", dpi=180)
     plt.close(fig)
@@ -326,8 +326,8 @@ def plot_box(run_frame: pd.DataFrame, plots_dir: Path) -> None:
     groups = [(label, values) for label, values in groups if not values.empty]
     fig, ax = plt.subplots(figsize=(7.0, 5.0))
     ax.boxplot([values.to_numpy() for _, values in groups], tick_labels=[label for label, _ in groups], patch_artist=True)
-    ax.set_ylabel("Encounter eccentricity proxy")
-    ax.set_title("Eccentricity proxy distribution by fragmentation class")
+    ax.set_ylabel("Encounter eccentricity")
+    ax.set_title("Eccentricity distribution by fragmentation class")
     fig.tight_layout()
     fig.savefig(plots_dir / "eccentricity_boxplot_by_fragmentation_class.png", dpi=180)
     plt.close(fig)
@@ -355,9 +355,9 @@ def plot_bound_mass(run_frame: pd.DataFrame, plots_dir: Path) -> None:
     frame = run_frame.dropna(subset=["eccentricity_proxy", "bound_mass_fraction"]).copy()
     fig, ax = plt.subplots(figsize=(7.5, 5.2))
     ax.scatter(frame["eccentricity_proxy"], frame["bound_mass_fraction"], alpha=0.75, color="#2c7fb8", edgecolors="none")
-    ax.set_xlabel("Encounter eccentricity proxy")
+    ax.set_xlabel("Encounter eccentricity")
     ax.set_ylabel("Mass fraction")
-    ax.set_title("Mass retention versus encounter eccentricity proxy")
+    ax.set_title("Mass retention versus encounter eccentricity")
     ymax = BOUND_FRACTION_YMAX_OVERRIDE
     if ymax is None:
         ymax = max(0.30, float(frame["bound_mass_fraction"].max()) * 1.08)

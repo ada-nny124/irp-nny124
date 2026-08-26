@@ -3,15 +3,21 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from cmf_runtime import aliased_bound_dataset, patched_text_labels
+
 FIGURES_DIR = ROOT / "report-table-figure" / "figures"
-OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_ROOT_ENV = os.environ.get("CMF_OUTPUT_ROOT")
 OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
-OUTPUT_FIGURES = OUTPUT_BASE / "report-table-figure" / "figures_corrected_bmf"
+OUTPUT_FIGURES = OUTPUT_BASE / "report-table-figure" / "figures_cmf"
 CORRECTED_BOUND = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
 
 
@@ -29,7 +35,7 @@ def corrected_figure4_ylim_upper(bound_table: Path) -> float:
         spin = "no spin" if not spin_code else f"{float(spin_code[1:4]) / 10.0:g}h {spin_code[4:] or 'none'}"
         periapsis = float(str(row["periapsis_code"])[1:]) / 10.0
         velocity = float(str(row["velocity_code"])[1:]) / 10.0
-        bmf = float(row["bound_mass_fraction"])
+        bmf = float(row["captured_mass_fraction"])
         grouped.setdefault((velocity, periapsis), {})[spin] = bmf
         vel_grouped.setdefault((spin, periapsis), {})[velocity] = bmf
     deltas = []
@@ -57,19 +63,21 @@ def load_module(name: str, path: Path):
 
 def main() -> None:
     OUTPUT_FIGURES.mkdir(parents=True, exist_ok=True)
-    module = load_module("figure4_build_corrected_bmf_runtime", FIGURES_DIR / "figure4_build.py")
-    module.YMAX_OVERRIDE = corrected_figure4_ylim_upper(CORRECTED_BOUND)
+    module = load_module("figure4_build_cmf_runtime", FIGURES_DIR / "figure4_build.py")
     import sys
     previous_argv = sys.argv[:]
     try:
-        sys.argv = [
-            str(FIGURES_DIR / "figure4_build.py"),
-            "--bound-table",
-            str(CORRECTED_BOUND),
-            "--png-out",
-            str(OUTPUT_FIGURES / "figure4_used_in_report_corrected_bmf.png"),
-        ]
-        module.main()
+        with aliased_bound_dataset(CORRECTED_BOUND, "captured_mass_fraction") as aliased_bound:
+            module.YMAX_OVERRIDE = corrected_figure4_ylim_upper(CORRECTED_BOUND)
+            sys.argv = [
+                str(FIGURES_DIR / "figure4_build.py"),
+                "--bound-table",
+                str(aliased_bound),
+                "--png-out",
+                str(OUTPUT_FIGURES / "figure4_used_in_report_cmf.png"),
+            ]
+            with patched_text_labels():
+                module.main()
     finally:
         sys.argv = previous_argv
 

@@ -1,0 +1,4 @@
+family,raw_parameter,note,baseline_r2,baseline_mae,ablation_r2,ablation_mae,delta_r2,delta_mae,removed_features,retained_feature_count
+Velocity,v_inf,Removes encounter speed and any derived features that explicitly depend on velocity.,0.8951860714868984,0.03158840752695603,0.38699443756802254,0.09229804460061408,-0.5081916339188759,0.06070963707365805,['v_inf_kms'],6
+Periapsis,periapsis,Removes the direct closest-approach variable and any derived features that depend on periapsis.,0.8951860714868984,0.03158840752695603,0.4287583788621885,0.08789924448758339,-0.46642769262470996,0.05631083696062736,['periapsis_Rm'],6
+Spin,spin,"Removes spin magnitude, spin axis, and any spin-derived helper features.",0.8951860714868984,0.03158840752695603,0.649371159434865,0.05931741406822599,-0.24581491205203343,0.02772900654126996,"['spin_period_hr', 'spin_axis']",5

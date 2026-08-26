@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FIGURES_DIR = ROOT / "report-table-figure" / "figures"
-OUTPUT_FIGURES = ROOT / "report-table-figure" / "figures_corrected_bmf"
+OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
+OUTPUT_FIGURES = OUTPUT_BASE / "report-table-figure" / "figures_corrected_bmf"
 CORRECTED_BOUND = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-CORRECTED_ARTIFACTS = ROOT / "ml" / "trainingartifacts_corrected_bmf"
+CORRECTED_ARTIFACTS = OUTPUT_BASE / "ml" / "trainingartifacts_corrected_bmf"
 
 
 def ensure_corrected_bound() -> None:
@@ -33,7 +36,9 @@ def main() -> None:
     module.FIG_PATH = OUTPUT_FIGURES / "tableA2_details_corrected_bmf.png"
     module.FOLDS_PATH = CORRECTED_ARTIFACTS / "tuned_physics_gradient_boosting" / "grouped_cv_fold_assignments.csv"
     OUTPUT_FIGURES.mkdir(parents=True, exist_ok=True)
-    module.main()
+    metrics = module.evaluate_feature_contribution(module.load_frame())
+    module.remake_plot(module.FIG_PATH, metrics)
+    print(module.FIG_PATH)
 
 
 if __name__ == "__main__":

@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FIGURES_DIR = ROOT / "report-table-figure" / "figures"
-OUTPUT_FIGURES = ROOT / "report-table-figure" / "figures_corrected_bmf"
+OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
+OUTPUT_FIGURES = OUTPUT_BASE / "report-table-figure" / "figures_corrected_bmf"
 CORRECTED_BOUND = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
 
 

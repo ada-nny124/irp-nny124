@@ -15,7 +15,6 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from ml.model_training_scripts.helper_functions_ml import (
-    PRIMARY_TARGET,
     add_physics_features,
     build_or_load_group_folds,
     build_regression_pipeline,
@@ -23,13 +22,13 @@ from ml.model_training_scripts.helper_functions_ml import (
     load_canonical_dataset,
 )
 
-
+PRIMARY_TARGET = "captured_mass_fraction"
 CORRECTED_DATASET_PATH = REPO_ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_ROOT_ENV = os.environ.get("CMF_OUTPUT_ROOT")
 ARTIFACT_ROOT = (
-    Path(OUTPUT_ROOT_ENV).resolve() / "ml" / "trainingartifacts_corrected_bmf"
+    Path(OUTPUT_ROOT_ENV).resolve() / "ml" / "trainingartifacts_cmf"
     if OUTPUT_ROOT_ENV
-    else REPO_ROOT / "ml" / "trainingartifacts_corrected_bmf"
+    else REPO_ROOT / "ml" / "trainingartifacts_cmf"
 )
 
 RAW_FEATURE_COLUMNS = [
@@ -83,7 +82,7 @@ def require_corrected_dataset(dataset_path: Path) -> None:
     if dataset_path.exists():
         return
     raise FileNotFoundError(
-        "Corrected-BMF dataset not found. Expected full corrected table at "
+        "CMF dataset not found. Expected full corrected table at "
         f"{dataset_path}. The current extraction-outputs_corrected_bmf folder does not yet contain it."
     )
 
@@ -91,11 +90,13 @@ def require_corrected_dataset(dataset_path: Path) -> None:
 def build_training_frame(dataset_path: Path) -> pd.DataFrame:
     require_corrected_dataset(dataset_path)
     raw = load_canonical_dataset(dataset_path)
-    if "bound_mass_fraction" not in raw.columns:
-        raise KeyError("Corrected bound_outcomes.csv is missing bound_mass_fraction.")
-    raw["bound_mass_fraction"] = pd.to_numeric(raw["bound_mass_fraction"], errors="coerce")
+    if "captured_mass_fraction" not in raw.columns:
+        raise KeyError("Corrected bound_outcomes.csv is missing captured_mass_fraction.")
+    raw["captured_mass_fraction"] = pd.to_numeric(raw["captured_mass_fraction"], errors="coerce")
     if "bound_mass_kg" in raw.columns:
         raw["bound_mass_kg"] = pd.to_numeric(raw["bound_mass_kg"], errors="coerce")
+    if "captured_mass_kg" in raw.columns:
+        raw["captured_mass_kg"] = pd.to_numeric(raw["captured_mass_kg"], errors="coerce")
     if "unbound_mass_fraction" in raw.columns:
         raw["unbound_mass_fraction"] = pd.to_numeric(raw["unbound_mass_fraction"], errors="coerce")
     if "unbound_mass_kg" in raw.columns:

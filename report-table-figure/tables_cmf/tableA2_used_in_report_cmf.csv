@@ -1,0 +1,7 @@
+Model,R2,MAE,RMSE
+Gradient Boosting,0.9262,0.0296,0.0419
+Tuned Gradient Boosting,0.9328,0.0277,0.04
+Random Forest,0.9191,0.0293,0.0439
+Tuned RF,0.9318,0.027,0.0403
+RF + derived features,0.9376,0.0268,0.0385
+GB + derived features,0.9253,0.0298,0.0421

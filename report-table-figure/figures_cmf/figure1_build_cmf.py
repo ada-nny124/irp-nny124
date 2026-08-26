@@ -18,9 +18,9 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "extraction-outputs_corrected_bmf" / "tables" / "bound_outcomes.csv"
-OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_ROOT_ENV = os.environ.get("CMF_OUTPUT_ROOT")
 OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
-OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures_corrected_bmf" / "figure1_used_in_report_corrected_bmf.png"
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures_cmf" / "figure1_used_in_report_cmf.png"
 
 PERI_RANGE = (1.1, 3.0)
 PERI_TICKS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0]
@@ -57,33 +57,33 @@ SPIN_LABELS = {
 }
 
 PAPER_TABLE2_ROWS = [
-    {"periapsis_Rm": 1.1, "v_inf_kms": 0.0, "paper_f_bnd": 0.526},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.0, "paper_f_bnd": 0.516},
-    {"periapsis_Rm": 1.3, "v_inf_kms": 0.0, "paper_f_bnd": 0.516},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.0, "paper_f_bnd": 0.513},
-    {"periapsis_Rm": 1.5, "v_inf_kms": 0.0, "paper_f_bnd": 0.434},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.0, "paper_f_bnd": 0.466},
-    {"periapsis_Rm": 1.7, "v_inf_kms": 0.0, "paper_f_bnd": 0.388},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.0, "paper_f_bnd": 0.238},
-    {"periapsis_Rm": 1.9, "v_inf_kms": 0.0, "paper_f_bnd": 0.181},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.0, "paper_f_bnd": 0.000},
-    {"periapsis_Rm": 2.2, "v_inf_kms": 0.0, "paper_f_bnd": 0.000},
-    {"periapsis_Rm": 2.4, "v_inf_kms": 0.0, "paper_f_bnd": 0.000},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.2, "paper_f_bnd": 0.493},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.2, "paper_f_bnd": 0.452},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.2, "paper_f_bnd": 0.392},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.2, "paper_f_bnd": 0.237},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.2, "paper_f_bnd": 0.121},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.4, "paper_f_bnd": 0.426},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.4, "paper_f_bnd": 0.380},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.4, "paper_f_bnd": 0.334},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.4, "paper_f_bnd": 0.183},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.4, "paper_f_bnd": 0.000},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.6, "paper_f_bnd": 0.395},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.6, "paper_f_bnd": 0.321},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.6, "paper_f_bnd": 0.253},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.6, "paper_f_bnd": 0.112},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.6, "paper_f_bnd": 0.000},
+    {"periapsis_Rm": 1.1, "v_inf_kms": 0.0, "paper_f_capt": 0.479},
+    {"periapsis_Rm": 1.2, "v_inf_kms": 0.0, "paper_f_capt": 0.444},
+    {"periapsis_Rm": 1.3, "v_inf_kms": 0.0, "paper_f_capt": 0.424},
+    {"periapsis_Rm": 1.4, "v_inf_kms": 0.0, "paper_f_capt": 0.442},
+    {"periapsis_Rm": 1.5, "v_inf_kms": 0.0, "paper_f_capt": 0.428},
+    {"periapsis_Rm": 1.6, "v_inf_kms": 0.0, "paper_f_capt": 0.368},
+    {"periapsis_Rm": 1.7, "v_inf_kms": 0.0, "paper_f_capt": 0.336},
+    {"periapsis_Rm": 1.8, "v_inf_kms": 0.0, "paper_f_capt": 0.235},
+    {"periapsis_Rm": 1.9, "v_inf_kms": 0.0, "paper_f_capt": 0.181},
+    {"periapsis_Rm": 2.0, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
+    {"periapsis_Rm": 2.2, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
+    {"periapsis_Rm": 2.4, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
+    {"periapsis_Rm": 1.2, "v_inf_kms": 0.2, "paper_f_capt": 0.441},
+    {"periapsis_Rm": 1.4, "v_inf_kms": 0.2, "paper_f_capt": 0.405},
+    {"periapsis_Rm": 1.6, "v_inf_kms": 0.2, "paper_f_capt": 0.352},
+    {"periapsis_Rm": 1.8, "v_inf_kms": 0.2, "paper_f_capt": 0.188},
+    {"periapsis_Rm": 2.0, "v_inf_kms": 0.2, "paper_f_capt": 0.000},
+    {"periapsis_Rm": 1.2, "v_inf_kms": 0.4, "paper_f_capt": 0.344},
+    {"periapsis_Rm": 1.4, "v_inf_kms": 0.4, "paper_f_capt": 0.330},
+    {"periapsis_Rm": 1.6, "v_inf_kms": 0.4, "paper_f_capt": 0.298},
+    {"periapsis_Rm": 1.8, "v_inf_kms": 0.4, "paper_f_capt": 0.168},
+    {"periapsis_Rm": 2.0, "v_inf_kms": 0.4, "paper_f_capt": 0.000},
+    {"periapsis_Rm": 1.2, "v_inf_kms": 0.6, "paper_f_capt": 0.278},
+    {"periapsis_Rm": 1.4, "v_inf_kms": 0.6, "paper_f_capt": 0.243},
+    {"periapsis_Rm": 1.6, "v_inf_kms": 0.6, "paper_f_capt": 0.213},
+    {"periapsis_Rm": 1.8, "v_inf_kms": 0.6, "paper_f_capt": 0.087},
+    {"periapsis_Rm": 2.0, "v_inf_kms": 0.6, "paper_f_capt": 0.000},
 ]
 
 
@@ -102,7 +102,7 @@ def load_frame() -> pd.DataFrame:
     frame.loc[spin_code.str.contains("mz"), "spin_orientation"] = "retrograde_z"
     frame.loc[spin_code.str.contains("x") | spin_code.str.contains("y"), "spin_orientation"] = "equatorial"
     frame.loc[spin_code.str.contains("z") & ~spin_code.str.contains("mz"), "spin_orientation"] = "prograde_z"
-    frame["bound_mass_fraction"] = pd.to_numeric(frame["bound_mass_fraction"], errors="coerce")
+    frame["captured_mass_fraction"] = pd.to_numeric(frame["captured_mass_fraction"], errors="coerce")
     frame["n_fragments"] = pd.to_numeric(frame["n_fragments"], errors="coerce")
     frame["fof_linking_length"] = pd.to_numeric(frame["fof_linking_length"], errors="coerce")
     return frame
@@ -220,14 +220,14 @@ def draw_panel_a(ax: plt.Axes, frame: pd.DataFrame) -> None:
 def grouped_metric_panel(frame: pd.DataFrame, mass_code: str | None = None) -> pd.DataFrame:
     panel = frame.loc[
         frame["periapsis_Rm"].between(*PERI_RANGE, inclusive="both")
-        & frame["bound_mass_fraction"].notna()
+        & frame["captured_mass_fraction"].notna()
         & frame["v_inf_kms"].notna()
     ].copy()
     if mass_code is not None:
         panel = panel.loc[panel["mass_code"] == mass_code].copy()
     return (
         panel.groupby(["periapsis_Rm", "v_inf_kms", "spin_orientation"], as_index=False)
-        .agg(metric_median=("bound_mass_fraction", "median"))
+        .agg(metric_median=("captured_mass_fraction", "median"))
         .sort_values(["v_inf_kms", "spin_orientation", "periapsis_Rm"])
     )
 
@@ -260,7 +260,7 @@ def draw_grouped_panel(ax: plt.Axes, grouped: pd.DataFrame, title: str, y_max: f
         )
     ax.set_title(title, fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
-    ax.set_ylabel("Bound Mass Fraction")
+    ax.set_ylabel("Mass Fraction")
     ax.set_xlim(*PERI_RANGE)
     ax.set_xticks(PERI_TICKS)
     ax.tick_params(axis="x", labelsize=9, pad=4)
@@ -286,7 +286,7 @@ def draw_exact_archive_panel(ax: plt.Axes, subset: pd.DataFrame, title: str, y_m
         color = VELOCITY_COLORS.get(float(velocity), "#333333")
         ax.plot(
             rows["periapsis_Rm"],
-            rows["bound_mass_fraction"],
+            rows["captured_mass_fraction"],
             color=color,
             linewidth=1.9,
             marker="o",
@@ -295,7 +295,7 @@ def draw_exact_archive_panel(ax: plt.Axes, subset: pd.DataFrame, title: str, y_m
         )
     ax.set_title(title, fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
-    ax.set_ylabel("Bound Mass Fraction")
+    ax.set_ylabel("Mass Fraction")
     ax.set_xlim(*PERI_RANGE)
     ax.set_xticks(PERI_TICKS)
     ax.tick_params(axis="x", labelsize=9, pad=4)
@@ -305,7 +305,7 @@ def draw_exact_archive_panel(ax: plt.Axes, subset: pd.DataFrame, title: str, y_m
 def strict_reference_comparison(frame: pd.DataFrame) -> pd.DataFrame:
     paper = pd.DataFrame(PAPER_TABLE2_ROWS)
     strict = exact_subset(frame, "A2000", resolution_code="n65", fof_linking_length=0.0040)[
-        ["periapsis_Rm", "v_inf_kms", "bound_mass_fraction"]
+        ["periapsis_Rm", "v_inf_kms", "captured_mass_fraction"]
     ].copy()
     return paper.merge(strict, on=["periapsis_Rm", "v_inf_kms"], how="left").sort_values(["v_inf_kms", "periapsis_Rm"])
 
@@ -318,7 +318,7 @@ def draw_reference_linear_panel(ax: plt.Axes, comparison: pd.DataFrame) -> None:
         velocities_present.append(float(velocity))
         ax.plot(
             rows["periapsis_Rm"],
-            rows["paper_f_bnd"],
+            rows["paper_f_capt"],
             color=color,
             linewidth=1.8,
             linestyle="-",
@@ -328,7 +328,7 @@ def draw_reference_linear_panel(ax: plt.Axes, comparison: pd.DataFrame) -> None:
         )
         ax.plot(
             rows["periapsis_Rm"],
-            rows["bound_mass_fraction"],
+            rows["captured_mass_fraction"],
             color=color,
             linewidth=1.8,
             linestyle="-",
@@ -336,9 +336,9 @@ def draw_reference_linear_panel(ax: plt.Axes, comparison: pd.DataFrame) -> None:
             markersize=3.8,
             label=f"Archive {velocity:g}",
         )
-    ax.set_title(r"Bound Mass Fraction vs Periapsis ($10^{20}$ kg)", fontsize=12)
+    ax.set_title(r"Mass Fraction vs Periapsis ($10^{20}$ kg)", fontsize=12)
     ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
-    ax.set_ylabel("Bound Mass Fraction")
+    ax.set_ylabel("Mass Fraction")
     ax.set_xlim(*PERI_RANGE)
     ax.set_xticks(PERI_TICKS)
     ax.set_ylim(0.0, 0.55)
@@ -355,19 +355,19 @@ def main() -> None:
     y_max = max(
         0.52,
         float(grouped_all["metric_median"].max()) * 1.08 if not grouped_all.empty else 0.0,
-        float(exact_mass19["bound_mass_fraction"].max()) * 1.08 if not exact_mass19.empty else 0.0,
-        float(comparison["bound_mass_fraction"].max()) * 1.08 if comparison["bound_mass_fraction"].notna().any() else 0.0,
-        float(comparison["paper_f_bnd"].max()) * 1.08 if comparison["paper_f_bnd"].notna().any() else 0.0,
+        float(exact_mass19["captured_mass_fraction"].max()) * 1.08 if not exact_mass19.empty else 0.0,
+        float(comparison["captured_mass_fraction"].max()) * 1.08 if comparison["captured_mass_fraction"].notna().any() else 0.0,
+        float(comparison["paper_f_capt"].max()) * 1.08 if comparison["paper_f_capt"].notna().any() else 0.0,
     )
     y_max = min(0.55, y_max)
 
     fig, axes = plt.subplots(2, 2, figsize=(12.2, 9.2), dpi=220)
     draw_panel_a(axes[0, 0], frame)
-    draw_grouped_panel(axes[0, 1], grouped_all, "Bound Mass Fraction vs Periapsis", y_max)
+    draw_grouped_panel(axes[0, 1], grouped_all, "Mass Fraction vs Periapsis", y_max)
     draw_exact_archive_panel(
         axes[1, 0],
         exact_mass19,
-        r"Bound Mass Fraction vs Periapsis ($10^{19}$ kg)",
+        r"Mass Fraction vs Periapsis ($10^{19}$ kg)",
         y_max,
     )
     draw_reference_linear_panel(axes[1, 1], comparison)

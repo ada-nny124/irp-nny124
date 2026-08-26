@@ -55,6 +55,8 @@ venv/
 configs/paths.yaml
 configs/ssh.yaml
 archived/
+_testing_reproducibility/
+_testing_reproducibility_cmf/
 pyproject.toml
 src/mars_flyby_explorer.egg-info
 .html

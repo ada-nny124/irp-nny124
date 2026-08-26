@@ -8,19 +8,19 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_ROOT_ENV = os.environ.get("CORRECTED_BMF_OUTPUT_ROOT")
+OUTPUT_ROOT_ENV = os.environ.get("CMF_OUTPUT_ROOT")
 OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
-OUTPUT_TABLES = OUTPUT_BASE / "report-table-figure" / "tables_corrected_bmf"
-CORRECTED_ARTIFACTS = OUTPUT_BASE / "ml" / "trainingartifacts_corrected_bmf"
-OUTPUT_PATH = OUTPUT_TABLES / "tableA2_used_in_report_corrected_bmf.csv"
+OUTPUT_TABLES = OUTPUT_BASE / "report-table-figure" / "tables_cmf"
+CORRECTED_ARTIFACTS = OUTPUT_BASE / "ml" / "trainingartifacts_cmf"
+OUTPUT_PATH = OUTPUT_TABLES / "tableA2_used_in_report_cmf.csv"
 
 MODEL_SPECS = [
-    ("Gradient Boosting", CORRECTED_ARTIFACTS / "gradient_boosting" / "main_bmf_gradient_boosting_metrics.json"),
-    ("Tuned Gradient Boosting", CORRECTED_ARTIFACTS / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting_metrics.json"),
-    ("Random Forest", CORRECTED_ARTIFACTS / "raw_rf" / "main_bmf_raw_rf_metrics.json"),
-    ("Tuned RF", CORRECTED_ARTIFACTS / "tuned_rf" / "main_bmf_tuned_rf_metrics.json"),
-    ("RF + derived features", CORRECTED_ARTIFACTS / "physics_rf" / "main_bmf_physics_rf_metrics.json"),
-    ("GB + derived features", CORRECTED_ARTIFACTS / "tuned_physics_gradient_boosting" / "main_bmf_tuned_physics_gradient_boosting_metrics.json"),
+    ("Gradient Boosting", CORRECTED_ARTIFACTS / "gradient_boosting" / "main_cmf_gradient_boosting_metrics.json"),
+    ("Tuned Gradient Boosting", CORRECTED_ARTIFACTS / "tuned_gradient_boosting" / "main_cmf_tuned_gradient_boosting_metrics.json"),
+    ("Random Forest", CORRECTED_ARTIFACTS / "raw_rf" / "main_cmf_raw_rf_metrics.json"),
+    ("Tuned RF", CORRECTED_ARTIFACTS / "tuned_rf" / "main_cmf_tuned_rf_metrics.json"),
+    ("RF + derived features", CORRECTED_ARTIFACTS / "physics_rf" / "main_cmf_physics_rf_metrics.json"),
+    ("GB + derived features", CORRECTED_ARTIFACTS / "tuned_physics_gradient_boosting" / "main_cmf_tuned_physics_gradient_boosting_metrics.json"),
 ]
 
 
@@ -53,7 +53,7 @@ def main() -> None:
         )
     if missing:
         missing_text = "\n".join(f"- {path}" for path in missing)
-        raise FileNotFoundError(f"Missing corrected-BMF metric files:\n{missing_text}")
+        raise FileNotFoundError(f"Missing corrected-Mass fraction metric files:\n{missing_text}")
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(OUTPUT_PATH, index=False)
     print(OUTPUT_PATH)

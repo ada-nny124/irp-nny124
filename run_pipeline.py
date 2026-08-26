@@ -51,8 +51,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the cmf training and report pipeline.")
     parser.add_argument(
         "--testing-reproducibility",
+        "--_testing_reproducibility",
+        dest="testing_reproducibility",
         action="store_true",
-        help="Run into an isolated _testing_reproducibility output tree instead of the live corrected folders.",
+        help="Run into an isolated _testing_reproducibility output tree instead of the live output folders.",
     )
     parser.add_argument(
         "--output-root",

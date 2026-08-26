@@ -62,3 +62,4 @@ src/mars_flyby_explorer.egg-info
 
 # hdf5 files, sph-related files in ssh hpc
 *.hdf5
+martian_moon_data/

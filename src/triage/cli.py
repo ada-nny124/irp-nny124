@@ -10,15 +10,16 @@ from pathlib import Path
 
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from triage.predict import load_artifacts, predict_cases
+else:
+    from .predict import load_artifacts, predict_cases
 
-from triage.predict import load_artifacts, predict_cases
+ROOT = Path(__file__).resolve().parents[2]
 
 
-DEFAULT_TEMPLATE = ROOT / "src" / "triage" / "templates" / "triage_case_template.json"
+DEFAULT_TEMPLATE = Path(__file__).resolve().parent / "templates" / "triage_case_template.json"
 DEFAULT_MODEL_DIR = ROOT / "ml" / "triage"
 DEFAULT_OUTPUT = ROOT / "outputs" / "triage_demo_predictions.csv"
 

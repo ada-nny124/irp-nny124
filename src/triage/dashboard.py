@@ -18,12 +18,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from triage.decision import check_training_domain
+    from triage.features import add_derived_features
+    from triage.predict import get_artifact_status, load_artifacts, predict_cases
+else:
+    from .decision import check_training_domain
+    from .features import add_derived_features
+    from .predict import get_artifact_status, load_artifacts, predict_cases
 
-from triage import add_derived_features, check_training_domain, get_artifact_status, load_artifacts, predict_cases
+ROOT = Path(__file__).resolve().parents[2]
 
 MODEL_DIR = ROOT / "ml" / "triage"
 TRAINING_ARTIFACTS_DIR = ROOT / "ml" / "trainingartifacts"
@@ -36,7 +41,7 @@ BENCHMARK_BMF_MODEL_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf.pkl"
 BENCHMARK_BMF_METRICS_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf_metrics.json"
 BENCHMARK_BMF_OOF_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf_oof_predictions.csv"
 DATASET_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-HTML_PATH = ROOT / "src" / "triage" / "templates" / "sph_triage_dashboard.html"
+HTML_PATH = Path(__file__).resolve().parent / "templates" / "sph_triage_dashboard.html"
 
 MARS_MU_KM3_S2 = 4.282837e4
 MARS_RADIUS_KM = 3389.5

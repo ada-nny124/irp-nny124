@@ -28,6 +28,7 @@ from ml.model_training_scripts.helper_functions_ml import (
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 OUTPUT_PATH = Path("report-table-figure/figures/figureA1_used_in_report.png")
 GRID_POINTS = 20
+BMF_YMAX_OVERRIDE: float | None = None
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
 LINE_COLOR = "#3b80d0"
@@ -255,7 +256,8 @@ def render_panel(
         ticks = np.arange(16.0, 24.1, 2.0)
         ax.set_xticks(ticks)
         ax.set_xticklabels([fr"$10^{{{tick:g}}}$" for tick in ticks])
-    ax.set_ylim(-0.02, 0.30)
+    y_upper = BMF_YMAX_OVERRIDE if BMF_YMAX_OVERRIDE is not None else 0.30
+    ax.set_ylim(-0.02, y_upper)
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False, fontsize=8, loc="best")
     ax.text(0.0, 1.03, panel_label, transform=ax.transAxes, ha="left", va="bottom", fontsize=10, fontweight="bold")

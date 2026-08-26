@@ -47,7 +47,9 @@ def load_bound_frame() -> pd.DataFrame:
 def load_predictions() -> pd.DataFrame:
     predictions = pd.read_csv(PREDICTIONS_SOURCE, low_memory=False)
     predictions["abs_error"] = pd.to_numeric(predictions["residual"], errors="coerce").abs()
-    return predictions.loc[predictions["target"] == "bound_mass_fraction"].copy()
+    if "target" in predictions.columns:
+        return predictions.loc[predictions["target"] == "bound_mass_fraction"].copy()
+    return predictions.copy()
 
 
 def unique_physical_coverage(

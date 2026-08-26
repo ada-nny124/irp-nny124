@@ -18,6 +18,7 @@ MARS_RADIUS_KM = 3389.5
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_TABLES_DIR = SCRIPT_DIR.parent / "tables"
 DEFAULT_PLOTS_DIR = SCRIPT_DIR
+BOUND_FRACTION_YMAX_OVERRIDE: float | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -352,6 +353,10 @@ def plot_bound_mass(run_frame: pd.DataFrame, plots_dir: Path) -> None:
     ax.set_xlabel("Encounter eccentricity proxy")
     ax.set_ylabel("Bound mass fraction")
     ax.set_title("Bound retention versus encounter eccentricity proxy")
+    ymax = BOUND_FRACTION_YMAX_OVERRIDE
+    if ymax is None:
+        ymax = max(0.30, float(frame["bound_mass_fraction"].max()) * 1.08)
+    ax.set_ylim(0.0, ymax)
     fig.tight_layout()
     fig.savefig(plots_dir / "eccentricity_vs_bound_mass_fraction.png", dpi=180)
     plt.close(fig)

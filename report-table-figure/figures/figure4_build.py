@@ -10,6 +10,7 @@ from matplotlib.lines import Line2D
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+YMAX_OVERRIDE: float | None = None
 SPIN_ORDER = ("no spin", "3h z", "4.7h z")
 SPIN_LABELS = {
     "no spin": "No spin",
@@ -184,7 +185,8 @@ def make_plot(
 
     for ax in axes:
         ax.set_xlim(1.05, 2.45)
-        ax.set_ylim(0.0, 0.30)
+        y_upper = YMAX_OVERRIDE if YMAX_OVERRIDE is not None else 0.30
+        ax.set_ylim(0.0, y_upper)
         style_axes(ax)
         ax.axvspan(1.05, 1.55, color="#e8f1f8", alpha=0.52, zorder=0)
         ax.axvspan(1.55, 2.45, color="#f7efe3", alpha=0.48, zorder=0)

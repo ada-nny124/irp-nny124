@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-YMAX_OVERRIDE: float | None = None
+YMAX_OVERRIDE: float | None = 0.6
 SPIN_ORDER = ("no spin", "3h z", "4.7h z")
 SPIN_LABELS = {
     "no spin": "No spin",
@@ -195,8 +195,28 @@ def make_plot(
         ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=18)
 
     ax_spin.set_ylabel("Local spread in BMF", fontsize=18)
-    ax_spin.set_title("Change spin, hold velocity family fixed", fontsize=14, pad=10)
-    ax_velocity.set_title("Change velocity, hold spin state fixed", fontsize=14, pad=10)
+    ax_spin.set_title("Change velocity, hold spin state fixed", fontsize=14, pad=10)
+    ax_velocity.set_title("Change spin, hold velocity family fixed", fontsize=14, pad=10)
+    ax_spin.text(
+        0.0,
+        1.04,
+        "(a)",
+        transform=ax_spin.transAxes,
+        fontsize=13,
+        fontweight="bold",
+        va="bottom",
+        ha="left",
+    )
+    ax_velocity.text(
+        0.0,
+        1.04,
+        "(b)",
+        transform=ax_velocity.transAxes,
+        fontsize=13,
+        fontweight="bold",
+        va="bottom",
+        ha="left",
+    )
 
     velocity_handles = [
         Line2D([0], [0], color=VELOCITY_COLORS[velocity], linewidth=2.3, marker="o", markersize=5.3, label=f"{velocity:g}")
@@ -226,28 +246,8 @@ def make_plot(
         title_fontsize=12,
     )
 
-    fig.suptitle("Different regimes can make different inputs look important", fontsize=18, y=0.98)
-    fig.text(
-        0.5,
-        0.075,
-        "Matched subset: A2000, n65, timestep 90000, FoF 0.004. "
-        "Left: ΔBMF_spin = max(BMF across spins) - min(BMF across spins). "
-        "Right: ΔBMF_velocity = max(BMF across velocities) - min(BMF across velocities).",
-        ha="center",
-        fontsize=10.0,
-        color="#444444",
-    )
-    fig.text(
-        0.5,
-        0.04,
-        "The global average cannot show this regime dependence: one input can look moderate overall but become a strong local separator in a restricted region.",
-        ha="center",
-        fontsize=10.0,
-        color="#444444",
-    )
-
     png_out.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout(rect=(0.03, 0.14, 0.99, 0.91))
+    fig.tight_layout(rect=(0.03, 0.03, 0.99, 0.96))
     fig.savefig(png_out, dpi=220)
     plt.close(fig)
 

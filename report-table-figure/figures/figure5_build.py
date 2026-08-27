@@ -314,7 +314,7 @@ def main() -> None:
         ax_c,
         mass_peri_bmf,
         mass_peri_cov,
-        "Mass vs periapsis: mean observed BMF",
+        "Mass-periapsis:\nmean observed mass fraction",
         "Periapsis ($R_{Mars}$)",
         "Mass log10 kg",
         PANEL_LABELS[2],
@@ -344,7 +344,7 @@ def main() -> None:
         ax_f,
         peri_vel_bmf,
         peri_vel_cov,
-        "Periapsis vs velocity: mean observed BMF",
+        "Periapsis-velocity:\nmean observed mass fraction",
         r"$v_{\infty}$ (km s$^{-1}$)",
         "Periapsis $R_{Mars}$",
         PANEL_LABELS[5],
@@ -368,11 +368,6 @@ def main() -> None:
     for cbar in (support_cbar, error_cbar, bmf_cbar):
         cbar.ax.yaxis.set_label_position("left")
 
-    fig.suptitle(
-        "Coverage, held-out error, and observed BMF across the sampled parameter space",
-        fontsize=17,
-        y=0.985,
-    )
     fig.legend(
         handles=[
             Patch(facecolor=ZERO_BMF_COLOR, edgecolor="none", label="Observed mean BMF = 0"),

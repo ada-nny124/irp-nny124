@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-YMAX_OVERRIDE: float | None = 0.6
+YMAX_OVERRIDE: float | None = 0.7
 SPIN_ORDER = ("no spin", "3h z", "4.7h z")
 SPIN_LABELS = {
     "no spin": "No spin",
@@ -150,7 +150,7 @@ def make_plot(
         }
     )
 
-    fig, axes = plt.subplots(1, 2, figsize=(11.2, 6.4), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), sharey=True)
     ax_spin, ax_velocity = axes
 
     for velocity in VELOCITY_ORDER:
@@ -194,9 +194,11 @@ def make_plot(
         ax.grid(axis="y", color="#d9d9d9", linewidth=0.8, alpha=0.7)
         ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=18)
 
-    ax_spin.set_ylabel("Local spread in BMF", fontsize=18)
-    ax_spin.set_title("Change velocity, hold spin state fixed", fontsize=14, pad=10)
-    ax_velocity.set_title("Change spin, hold velocity family fixed", fontsize=14, pad=10)
+    ax_spin.set_ylabel(r"$\Delta$BMF spin", fontsize=18)
+    ax_spin.set_title("BMF spread across spins, grouped by velocity", fontsize=14, pad=10)
+    ax_velocity.set_title("BMF spread across velocities, grouped by spin", fontsize=14, pad=10)
+    ax_velocity.set_ylabel(r"$\Delta$BMF velocity", fontsize=18)
+    ax_velocity.tick_params(labelleft=True)
     ax_spin.text(
         0.0,
         1.04,
@@ -206,6 +208,26 @@ def make_plot(
         fontweight="bold",
         va="bottom",
         ha="left",
+    )
+    ax_spin.text(
+        0.5,
+        0.98,
+        "For each periapsis-velocity pair,\n"
+        r"$\Delta$BMF = max(BMF across spins) - min(BMF across spins)",
+        transform=ax_spin.transAxes,
+        fontsize=9.7,
+        va="top",
+        ha="center",
+    )
+    ax_velocity.text(
+        0.5,
+        0.98,
+        "For each periapsis-spin pair,\n"
+        r"$\Delta$BMF = max(BMF across velocities) - min(BMF across velocities)",
+        transform=ax_velocity.transAxes,
+        fontsize=9.7,
+        va="top",
+        ha="center",
     )
     ax_velocity.text(
         0.0,
@@ -225,8 +247,9 @@ def make_plot(
     ]
     ax_spin.legend(
         handles=velocity_handles,
-        title=r"$v_{\infty}$ (km s$^{-1}$)",
+        title=r"Velocity group, $v_{\infty}$ (km s$^{-1}$)",
         loc="upper left",
+        bbox_to_anchor=(0.0, 0.86),
         frameon=True,
         fontsize=10,
         title_fontsize=12,
@@ -239,8 +262,9 @@ def make_plot(
     ]
     ax_velocity.legend(
         handles=spin_handles,
-        title="Fixed spin state",
+        title="Spin group",
         loc="upper left",
+        bbox_to_anchor=(0.0, 0.86),
         frameon=True,
         fontsize=10,
         title_fontsize=12,

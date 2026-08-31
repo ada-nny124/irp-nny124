@@ -121,19 +121,18 @@ def prepare_run_frame(fof_outcomes: pd.DataFrame, bound_outcomes: pd.DataFrame |
     if bound_outcomes is not None and not bound_outcomes.empty:
         bound = bound_outcomes.copy()
         bound["run_key"] = bound.get("fof_file", pd.Series(index=bound.index, dtype="object")).astype(str)
+        if "bound_mass_fraction" in bound.columns:
+            bound["bound_mass_fraction_from_outcomes"] = pd.to_numeric(bound["bound_mass_fraction"], errors="coerce")
         keep_columns = [
             "run_key",
-            "captured_mass_fraction",
             "bound_fragment_count",
             "largest_bound_fragment_mass_kg",
             "unbound_mass_fraction",
+            "bound_mass_fraction_from_outcomes",
         ]
         keep_columns = [column for column in keep_columns if column in bound.columns]
         frame = frame.merge(bound[keep_columns], on="run_key", how="left")
-        if "captured_mass_fraction" in frame.columns:
-            frame["bound_mass_fraction"] = pd.to_numeric(frame["captured_mass_fraction"], errors="coerce")
-        else:
-            frame["bound_mass_fraction"] = pd.to_numeric(frame.get("bound_mass_fraction"), errors="coerce")
+        frame["bound_mass_fraction"] = pd.to_numeric(frame.get("bound_mass_fraction_from_outcomes"), errors="coerce")
         frame["bound_fragment_count"] = pd.to_numeric(frame.get("bound_fragment_count"), errors="coerce")
         frame["bmf_ge_0p1"] = frame["bound_mass_fraction"] >= 0.1
     else:

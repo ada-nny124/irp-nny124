@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build corrected parent-normalized bound/captured outputs from raw SPH snapshots."""
+"""Build corrected parent-normalized BMF outputs from raw SPH snapshots.
+
+Canonical BMF is the fraction of the original asteroid mass on Mars-bound
+orbits whose apoapsis remains inside Mars's Hill sphere. The broader
+negative-energy-only quantity is retained as an energy-bound diagnostic.
+"""
 
 import argparse
 import csv
@@ -211,7 +216,7 @@ def compute_particle_level_metrics(snapshot_path, fallback_mars_mass_kg, mars_hi
     valid_radius = np.isfinite(radius_m) & (radius_m > 0.0)
     specific_energy = np.full(len(radius_m), np.nan, dtype=np.float64)
     specific_energy[valid_radius] = 0.5 * speed_sq[valid_radius] - mu / radius_m[valid_radius]
-    bound_mask = np.isfinite(specific_energy) & (specific_energy < 0.0)
+    energy_bound_mask = np.isfinite(specific_energy) & (specific_energy < 0.0)
 
     angular_momentum = np.cross(pos_m, vel_m_s)
     h_sq = np.sum(angular_momentum * angular_momentum, axis=1)
@@ -221,41 +226,45 @@ def compute_particle_level_metrics(snapshot_path, fallback_mars_mass_kg, mars_hi
     eccentricity = np.sqrt(np.maximum(eccentricity_sq, 0.0))
 
     semi_major_axis_m = np.full(len(radius_m), np.nan, dtype=np.float64)
-    valid_bound = bound_mask & (np.abs(specific_energy) > 0.0)
+    valid_bound = energy_bound_mask & (np.abs(specific_energy) > 0.0)
     semi_major_axis_m[valid_bound] = -mu / (2.0 * specific_energy[valid_bound])
 
     apoapsis_m = np.full(len(radius_m), np.nan, dtype=np.float64)
     apoapsis_m[valid_bound] = semi_major_axis_m[valid_bound] * (1.0 + eccentricity[valid_bound])
-    captured_mask = bound_mask & np.isfinite(apoapsis_m) & (apoapsis_m < mars_hill_radius_m)
+    bound_mask = energy_bound_mask & np.isfinite(apoapsis_m) & (apoapsis_m < mars_hill_radius_m)
 
     target_mass_kg = float(np.sum(masses_kg))
+    energy_bound_mass_kg = float(np.sum(masses_kg[energy_bound_mask]))
     bound_mass_kg = float(np.sum(masses_kg[bound_mask]))
-    captured_mass_kg = float(np.sum(masses_kg[captured_mask]))
     unbound_mass_kg = target_mass_kg - bound_mass_kg
 
     return {
         "raw_hdf5_path": str(snapshot_path.resolve()),
         "target_mass_kg": target_mass_kg,
+        "energy_bound_mass_kg": energy_bound_mass_kg,
         "bound_mass_kg": bound_mass_kg,
-        "captured_mass_kg": captured_mass_kg,
+        "captured_mass_kg": bound_mass_kg,
         "unbound_mass_kg": unbound_mass_kg,
+        "energy_bound_mass_fraction": energy_bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
         "f_bnd_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
-        "f_capt_parent": captured_mass_kg / target_mass_kg if target_mass_kg else math.nan,
+        "f_capt_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
         "unbound_mass_fraction_parent": unbound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
         "particle_count": int(len(masses_kg)),
+        "energy_bound_particle_count": int(np.count_nonzero(energy_bound_mask)),
         "bound_particle_count": int(np.count_nonzero(bound_mask)),
-        "captured_particle_count": int(np.count_nonzero(captured_mask)),
+        "captured_particle_count": int(np.count_nonzero(bound_mask)),
         "mars_mass_kg": mars_mass_kg,
         "mars_hill_radius_m": mars_hill_radius_m,
         "time_code_units": time_code,
         "method": "particle_level_raw_snapshot_parent_normalized",
         "unresolved_handling": (
             "All raw asteroid particles in the physical snapshot are included in the denominator; "
-            "all raw bound/captured asteroid particles are included in the numerator. "
+            "all raw Mars-bound asteroid particles with Hill-sphere apoapsides are included in the BMF numerator. "
             "No FoF background or unresolved material is discarded for the particle-level metrics."
         ),
         "notes": (
-            "Particle-level Mars-centric energy and apoapsis classification from raw SPH snapshot. "
+            "BMF is negative Mars-centric orbital energy plus apoapsis inside Mars's Hill sphere. "
+            "energy_bound_mass_fraction keeps the negative-energy-only diagnostic. "
             "FoF-group diagnostics are preserved from existing CSV outputs only because FoF HDF5 catalogues are not available locally."
         ),
     }
@@ -287,11 +296,14 @@ def build_paper_rows(raw_files, bound_rows, fallback_mars_mass_kg, mars_hill_rad
                 "raw_hdf5_path": metrics["raw_hdf5_path"],
                 "fof_linking_length": choose_preferred_linking_length(snapshot_path.name, bound_rows),
                 "target_mass_kg": metrics["target_mass_kg"],
+                "energy_bound_mass_kg": metrics["energy_bound_mass_kg"],
                 "bound_mass_kg": metrics["bound_mass_kg"],
                 "captured_mass_kg": metrics["captured_mass_kg"],
+                "energy_bound_mass_fraction": metrics["energy_bound_mass_fraction"],
                 "f_bnd_parent": metrics["f_bnd_parent"],
                 "f_capt_parent": metrics["f_capt_parent"],
                 "particle_count": metrics["particle_count"],
+                "energy_bound_particle_count": metrics["energy_bound_particle_count"],
                 "bound_particle_count": metrics["bound_particle_count"],
                 "captured_particle_count": metrics["captured_particle_count"],
                 "mars_mass_kg": metrics["mars_mass_kg"],
@@ -309,11 +321,14 @@ def build_paper_rows(raw_files, bound_rows, fallback_mars_mass_kg, mars_hill_rad
                     "raw_hdf5_path": str(snapshot_path.resolve()),
                     "fof_linking_length": choose_preferred_linking_length(snapshot_path.name, bound_rows),
                     "target_mass_kg": "",
+                    "energy_bound_mass_kg": "",
                     "bound_mass_kg": "",
                     "captured_mass_kg": "",
+                    "energy_bound_mass_fraction": "",
                     "f_bnd_parent": "",
                     "f_capt_parent": "",
                     "particle_count": "",
+                    "energy_bound_particle_count": "",
                     "bound_particle_count": "",
                     "captured_particle_count": "",
                     "mars_mass_kg": "",
@@ -334,6 +349,8 @@ def corrected_bound_rows(bound_rows, metrics_by_physical):
         corrected = dict(row)
         if metrics:
             corrected["target_mass_kg"] = format_float(metrics["target_mass_kg"])
+            corrected["energy_bound_mass_kg"] = format_float(metrics["energy_bound_mass_kg"])
+            corrected["energy_bound_mass_fraction"] = format_float(metrics["energy_bound_mass_fraction"])
             corrected["bound_mass_kg"] = format_float(metrics["bound_mass_kg"])
             corrected["bound_mass_fraction"] = format_float(metrics["f_bnd_parent"])
             corrected["captured_mass_kg"] = format_float(metrics["captured_mass_kg"])
@@ -344,7 +361,8 @@ def corrected_bound_rows(bound_rows, metrics_by_physical):
             corrected["method"] = metrics["method"]
             corrected["unresolved_handling"] = metrics["unresolved_handling"]
             corrected["normalization_notes"] = (
-                "Corrected bound_mass_fraction uses bound_mass_kg / target_mass_kg from raw particle-level Mars-centric orbit tests."
+                "BMF is bound_mass_kg / target_mass_kg for particles with negative Mars-centric orbital energy "
+                "and apoapsis inside Mars's Hill sphere. energy_bound_mass_fraction is the negative-energy-only diagnostic."
             )
         corrected_rows.append(corrected)
     return corrected_rows
@@ -384,6 +402,8 @@ def corrected_fof_rows(fof_rows, bound_rows, metrics_by_physical):
         "unbound_mass_fraction_existing_fof_csv",
         "largest_unbound_fragment_mass_kg",
         "target_mass_kg",
+        "energy_bound_mass_kg",
+        "energy_bound_mass_fraction",
         "bound_mass_kg",
         "bound_mass_fraction",
         "captured_mass_kg",
@@ -422,6 +442,8 @@ def corrected_fof_rows(fof_rows, bound_rows, metrics_by_physical):
         corrected["largest_unbound_fragment_mass_kg"] = bound_row.get("largest_unbound_fragment_mass_kg", "")
         if metrics:
             corrected["target_mass_kg"] = format_float(metrics["target_mass_kg"])
+            corrected["energy_bound_mass_kg"] = format_float(metrics["energy_bound_mass_kg"])
+            corrected["energy_bound_mass_fraction"] = format_float(metrics["energy_bound_mass_fraction"])
             corrected["bound_mass_kg"] = format_float(metrics["bound_mass_kg"])
             corrected["bound_mass_fraction"] = format_float(metrics["f_bnd_parent"])
             corrected["captured_mass_kg"] = format_float(metrics["captured_mass_kg"])
@@ -485,26 +507,26 @@ def build_summary(paper_rows, bound_rows, fof_rows, validation):
         "Mass fraction extraction summary",
         "",
         "Exact formulas",
-        "f_bnd_parent = bound_mass_kg / target_mass_kg",
-        "f_capt_parent = captured_mass_kg / target_mass_kg",
+        "bound_mass_fraction = bound_mass_kg / target_mass_kg",
+        "energy_bound_mass_fraction = energy_bound_mass_kg / target_mass_kg",
         "",
         "Extraction level",
         "Paper-style mass fractions are particle-level from raw physical HDF5 snapshots.",
         "FoF-grouped diagnostics are not regenerated from raw data in this pass because FoF HDF5 catalogues are not available locally.",
         "",
-        "Bound/capture classification",
-        "Bound if specific orbital energy epsilon = v^2 / 2 - G M_Mars / r is negative in the Mars-centric frame.",
-        "Apoapsis computed for bound particles as Q = a (1 + e), with a = -G M_Mars / (2 epsilon).",
-        f"Capture requires bound orbit and Q < R_Hill, using R_Hill = {DEFAULT_MARS_HILL_RADIUS_M:.6e} m.",
+        "BMF classification",
+        "Energy-bound diagnostic if specific orbital energy epsilon = v^2 / 2 - G M_Mars / r is negative in the Mars-centric frame.",
+        "Apoapsis is computed for energy-bound particles as Q = a (1 + e), with a = -G M_Mars / (2 epsilon).",
+        f"Canonical BMF additionally requires Q < R_Hill, using R_Hill = {DEFAULT_MARS_HILL_RADIUS_M:.6e} m.",
         "",
         "Material accounting",
         "Denominator: all asteroid particles in each raw physical snapshot.",
-        "Numerator for f_bnd_parent: all asteroid particles with negative Mars-centric orbital energy.",
-        "Numerator for f_capt_parent: all asteroid particles with negative Mars-centric orbital energy and apoapsis below the Mars Hill radius.",
+        "Numerator for bound_mass_fraction/BMF: all asteroid particles with negative Mars-centric orbital energy and apoapsis below the Mars Hill radius.",
+        "Numerator for energy_bound_mass_fraction: all asteroid particles with negative Mars-centric orbital energy, before the Hill-sphere apoapsis cut.",
         "Unresolved/background/unassigned particles: included for the particle-level metrics because the raw physical snapshots contain the asteroid particles directly and no FoF filtering is applied.",
         "",
         "Approximation status",
-        "Paper-style parent-normalized bound/captured fractions are an exact particle-level reconstruction under the raw-snapshot assumptions above.",
+        "Parent-normalized BMF and energy-bound diagnostic fractions are exact particle-level reconstructions under the raw-snapshot assumptions above.",
         "FoF-level fragment columns in corrected bound_outcomes.csv and corrected fof_outcomes.csv remain inherited approximations from the existing CSV pipeline because FoF HDF5 group catalogues were not available for re-extraction.",
         "",
         "Row counts",
@@ -576,11 +598,14 @@ def main() -> int:
         "timestep",
         "fof_linking_length",
         "target_mass_kg",
+        "energy_bound_mass_kg",
         "bound_mass_kg",
         "captured_mass_kg",
+        "energy_bound_mass_fraction",
         "f_bnd_parent",
         "f_capt_parent",
         "particle_count",
+        "energy_bound_particle_count",
         "bound_particle_count",
         "captured_particle_count",
         "mars_mass_kg",
@@ -590,7 +615,17 @@ def main() -> int:
         "notes",
     ]
     bound_output_fields = list(bound_fields)
-    for field in ["target_mass_kg", "captured_mass_kg", "captured_mass_fraction", "raw_hdf5_path", "method", "unresolved_handling", "normalization_notes"]:
+    for field in [
+        "target_mass_kg",
+        "energy_bound_mass_kg",
+        "energy_bound_mass_fraction",
+        "captured_mass_kg",
+        "captured_mass_fraction",
+        "raw_hdf5_path",
+        "method",
+        "unresolved_handling",
+        "normalization_notes",
+    ]:
         if field not in bound_output_fields:
             bound_output_fields.append(field)
     fof_output_fields = list(fof_fields)

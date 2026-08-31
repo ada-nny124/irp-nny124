@@ -61,6 +61,7 @@ pyproject.toml
 src/mars_flyby_explorer.egg-info
 .html
 .html.1
+outputs/
 
 # hdf5 files, sph-related files in ssh hpc
 *.hdf5

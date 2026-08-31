@@ -4,7 +4,7 @@ Origins of Mars's Moons: Physics-Structured ML Using Asteroid Tidal-Disruption S
 
 ## Abstract
 
-One theory for the formation of Mars's moons, Phobos and Deimos, is that close collisions between asteroids and Mars can tidally damage the asteroid and leave some debris bonded to the planet. This process is thoroughly modelled by smoothed-particle hydrodynamics (SPH), but testing every possible combination of inputs is computationally costly. In this study, bound mass fraction (BMF) is predicted from the simulation inputs using machine learning models after SPH outputs are converted into fragmentation measurements. The primary model, a tuned Gradient Boosting regressor using the original simulation inputs, achieves a grouped cross-validated R² of 0.9234, MAE of 0.0159, and RMSE of 0.0257. Adding physics-derived features gives no meaningful extra improvement, so the simpler tuned raw-input model is retained. The models are assessed using grouped cross-validation. In a controlled set, predicted BMF generally decreases from roughly 0.27 at 1.2 Mars radii to approximately zero by about 2.5 Mars radii as periapsis increases. A similarly clear decline occurs as encounter speed increases, from roughly 0.25 at low velocity to approximately zero by about 1.2 km/s. While the impacts of spin and velocity depend on the encounter conditions, periapsis is the strongest overall physical input. As a result, distinct physical inputs may become more significant in different regions of the measured parameter range. Changes in spin in matched cases result in BMF discrepancies of up to 0.24 at bigger periapsis and between 0.06 and 0.09 below 1.5 Mars radii. Despite falling within the numerical training ranges, a sparsely sampled 1019.5 kg instance yields held-out errors close to 0.08 BMF, demonstrating that being within the input range does not ensure a trustworthy prediction. Therefore, the model does not replace SPH or prove physical causality, but it is helpful for quickly screening well-supported encounter circumstances and highlighting parameter correlations that call for additional SPH research.
+One theory for the formation of Mars's moons, Phobos and Deimos, is that close collisions between asteroids and Mars can tidally damage the asteroid and leave some debris bonded to the planet. This process is thoroughly modelled by smoothed-particle hydrodynamics (SPH), but testing every possible combination of inputs is computationally costly. In this study, bound mass fraction (BMF) is predicted from the simulation inputs using machine learning models after SPH outputs are converted into fragmentation measurements. The primary model, a tuned Gradient Boosting regressor using the original simulation inputs, achieves a grouped cross-validated R² of 0.9234, MAE of 0.0159, and RMSE of 0.0257. Adding physics-derived features gives no meaningful extra improvement, so the simpler tuned raw-input model is retained. The models are assessed using grouped cross-validation. In a controlled set, predicted BMF generally decreases from roughly 0.27 at 1.2 Mars radii to approximately zero by about 2.5 Mars radii as periapsis increases. A similarly clear decline occurs as encounter speed increases, from roughly 0.25 at low velocity to approximately zero by about 1.2 km/s. While the impacts of spin and velocity depend on the encounter conditions, periapsis is the strongest overall physical input. As a result, distinct physical inputs may become more significant in different regions of the measured parameter range. Changes in spin in matched cases result in BMF discrepancies of up to 0.24 at bigger periapsis and between 0.06 and 0.09 below 1.5 Mars radii. Despite falling within the numerical training ranges, a sparsely sampled 1019.5 kg instance yields held-out errors close to 0.08 BMF, demonstrating that being within the input range does not ensure a trustworthy prediction.
 
 ## Repository Guide
 
@@ -47,3 +47,29 @@ mars-flyby-dashboard
 ```
 
 This starts the packaged local API/dashboard on `http://127.0.0.1:8000` by default.
+
+Or, to run one BMF prediction directly from the terminal:
+
+```bash
+python -m src.triage.cli \
+  --case-name demo_case \
+  --mass-log10 20 \
+  --periapsis 1.8 \
+  --v-inf 0.6 \
+  --no-spin \ 
+  --output outputs/demo_prediction.csv
+```
+
+2nd example with spin:
+```bash
+python -m src.triage.cli \
+  --case-name spinning_demo \
+  --mass-log10 20 \
+  --periapsis 1.8 \
+  --v-inf 0.6 \
+  --spin-axis z \
+  --spin-period 4.7 \
+  --output outputs/spinning_demo_prediction.csv
+```
+
+The CLI prints the predicted BMF, bound mass, support category and score, recommendation, and saves the full prediction row to the output CSV.

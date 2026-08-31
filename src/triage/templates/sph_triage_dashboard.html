@@ -439,6 +439,9 @@
     display:block;
     margin-bottom:6px;
   }
+  .demo-secondary{
+    display:none;
+  }
   .details-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -699,7 +702,7 @@
         </form>
       </article>
 
-      <article class="card">
+      <article class="card demo-secondary">
         <h2>Bulk Conditions</h2>
         <div class="rows" style="margin-bottom:12px">
           <div class="row"><span>CSV upload</span><strong>Run many flyby conditions through the same API</strong></div>
@@ -716,7 +719,7 @@
         <div id="bulk-status" class="status"></div>
       </article>
 
-      <article class="card">
+      <article class="card demo-secondary">
         <h2>How to Read This</h2>
         <div class="rows">
           <div class="row"><span>Tidal-disruption severity</span><strong>Visible label remapped from the classifier using the largest-remnant thresholds</strong></div>
@@ -728,7 +731,7 @@
     </section>
 
     <section class="stack">
-      <section class="result-grid">
+      <section class="result-grid demo-secondary">
         <article class="metric">
           <div class="label">Tidal-disruption severity</div>
           <div id="metric-outcome" class="value">-</div>
@@ -756,7 +759,7 @@
         </article>
       </section>
 
-      <section class="card split-card">
+      <section class="card split-card demo-secondary">
         <div class="split-header">
           <strong>Bound vs unbound mass split</strong>
         </div>
@@ -810,22 +813,22 @@
             </div>
             <div id="quick-reason" class="quick-result-reason">Run a case to show the same minimum output as the terminal demo.</div>
           </div>
-          <div class="story-box">
+          <div class="story-box demo-secondary">
             <strong>Scenario summary</strong>
             <div id="public-summary" class="muted">The dashboard summary will appear here.</div>
           </div>
-          <div class="story-box">
+          <div class="story-box demo-secondary">
             <strong>Decision outputs</strong>
             <div id="science-summary" class="muted">The model interpretation will summarise disruption severity, retained mass, and whether a dominant remnant survives.</div>
           </div>
-          <div class="story-box">
+          <div class="story-box demo-secondary">
             <strong>Recommendation logic</strong>
             <div id="timing-summary" class="muted">This panel will explain support level, domain status, and whether ML screening is enough or SPH is recommended.</div>
           </div>
         </div>
       </section>
 
-      <section class="details-grid">
+      <section class="details-grid demo-secondary">
         <article class="card">
           <h2>Prediction Details</h2>
           <div id="prediction-rows" class="rows">
@@ -842,12 +845,12 @@
         </article>
       </section>
 
-      <details class="card">
+      <details class="card demo-secondary">
         <summary>Validation and limits</summary>
         <div id="validation-note" class="muted" style="margin-top:12px; line-height:1.6">This section summarises model quality, typical grouped held-out error, and where local support is weaker.</div>
       </details>
 
-      <article class="card">
+      <article class="card demo-secondary">
         <h2>Saved Results</h2>
         <div class="toolbar" style="margin-bottom:12px">
           <button id="save-result-btn" class="primary-btn" type="button">Save current result</button>
@@ -869,7 +872,7 @@
         </div>
       </article>
 
-      <article class="card sensitivity-card">
+      <article class="card sensitivity-card demo-secondary">
         <div class="sensitivity-shell">
           <div class="sensitivity-head">
             <div>
@@ -1727,6 +1730,11 @@
     document.getElementById("metric-support-sub").textContent = "Checking whether this case sits in a well-supported archive region.";
     document.getElementById("metric-recommendation").textContent = "Loading...";
     document.getElementById("metric-recommendation-sub").textContent = "Preparing the screening recommendation.";
+    document.getElementById("quick-bmf").textContent = "Loading...";
+    document.getElementById("quick-support").textContent = "Loading...";
+    document.getElementById("quick-score").textContent = "Loading...";
+    document.getElementById("quick-recommendation").textContent = "Loading...";
+    document.getElementById("quick-reason").textContent = "Running the same prediction path used by the terminal CLI.";
 
     document.getElementById("public-summary").innerHTML = "Loading scenario summary...";
     document.getElementById("science-summary").innerHTML = "Loading model interpretation and retained-material estimate...";

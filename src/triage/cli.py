@@ -161,10 +161,6 @@ def print_case_summary(result: pd.DataFrame) -> None:
         print(f"  Reason: {row['recommendation_reason']}")
         print()
 
-    print("Disclaimer:")
-    print("  This tool predicts surrogate BMF and fragmentation-screen outcomes from SPH-derived training data.")
-    print("  It does not replace SPH and does not directly validate long-term capture, disk mass, or moon formation.")
-
 
 def main() -> None:
     args = parse_args()

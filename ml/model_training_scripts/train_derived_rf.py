@@ -23,7 +23,7 @@ from ml.model_training_scripts.common import (
 )
 
 
-MODEL_PATH = ARTIFACT_ROOT / "physics_rf" / "main_physics_rf.pkl"
+MODEL_PATH = ARTIFACT_ROOT / "derived_rf" / "derived_rf.pkl"
 FEATURE_COLUMNS = RAW_FEATURE_COLUMNS + PHYSICS_FEATURE_COLUMNS
 RF_PARAMS = {
     "n_estimators": 500,
@@ -50,7 +50,7 @@ def main() -> None:
         feature_columns=FEATURE_COLUMNS,
         model_name="random_forest",
         params=RF_PARAMS,
-        bundle_name="main_physics_random_forest",
+        bundle_name="derived_rf",
         extra_bundle_fields={
             "raw_feature_columns": RAW_FEATURE_COLUMNS,
             "physics_feature_columns": PHYSICS_FEATURE_COLUMNS,

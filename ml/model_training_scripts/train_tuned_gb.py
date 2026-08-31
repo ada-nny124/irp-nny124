@@ -12,14 +12,12 @@ if str(REPO_ROOT) not in sys.path:
 from ml.model_training_scripts.common import (
     ARTIFACT_ROOT,
     CORRECTED_DATASET_PATH,
-    PHYSICS_FEATURE_COLUMNS,
     RAW_FEATURE_COLUMNS,
     train_and_save_regression_model,
 )
 
 
-MODEL_PATH = ARTIFACT_ROOT / "tuned_physics_gradient_boosting" / "main_tuned_physics_gradient_boosting.pkl"
-FEATURE_COLUMNS = RAW_FEATURE_COLUMNS + PHYSICS_FEATURE_COLUMNS
+MODEL_PATH = ARTIFACT_ROOT / "tuned_gb" / "tuned_gb.pkl"
 GB_PARAMS = {
     "n_estimators": 500,
     "learning_rate": 0.08,
@@ -42,14 +40,10 @@ def main() -> None:
     result = train_and_save_regression_model(
         dataset_path=args.dataset,
         output_path=args.output,
-        feature_columns=FEATURE_COLUMNS,
+        feature_columns=RAW_FEATURE_COLUMNS,
         model_name="gradient_boosting",
         params=GB_PARAMS,
-        bundle_name="main_tuned_physics_gradient_boosting",
-        extra_bundle_fields={
-            "raw_feature_columns": RAW_FEATURE_COLUMNS,
-            "physics_feature_columns": PHYSICS_FEATURE_COLUMNS,
-        },
+        bundle_name="tuned_gb",
     )
     print(f"Saved model bundle to {args.output}")
     print(f"Training rows: {len(result['frame'])}")

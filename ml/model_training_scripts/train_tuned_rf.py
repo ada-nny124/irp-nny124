@@ -17,7 +17,7 @@ from ml.model_training_scripts.common import (
 )
 
 
-MODEL_PATH = ARTIFACT_ROOT / "tuned_rf" / "main_tuned_rf.pkl"
+MODEL_PATH = ARTIFACT_ROOT / "tuned_rf" / "tuned_rf.pkl"
 RF_PARAMS = {
     "n_estimators": 500,
     "max_features": 0.8,
@@ -43,7 +43,7 @@ def main() -> None:
         feature_columns=RAW_FEATURE_COLUMNS,
         model_name="random_forest",
         params=RF_PARAMS,
-        bundle_name="main_tuned_random_forest",
+        bundle_name="tuned_rf",
     )
     print(f"Saved model bundle to {args.output}")
     print(f"Training rows: {len(result['frame'])}")

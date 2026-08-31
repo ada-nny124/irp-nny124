@@ -54,7 +54,7 @@ At run level:
 
 Grouped validation is done by physical_file to reduce leakage across related runs.
 
-All active model files used by the current repo are included in the repository under ml/triage/ (csv and json files, pkl models only the ones used in demo, others can be reproduced through the script in model_training_scripts if needed) and ml/trainingartifacts/ (this one includes the pkl files so anyone who clone my repo can immediately run my demo without further run). The main deployed bound-mass model is the tuned Gradient Boosting BMF artifact at ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl.
+All active model files used by the current repo are included in the repository under ml/triage/ (csv and json files, pkl models only the ones used in demo, others can be reproduced through the script in model_training_scripts if needed) and ml/trainingartifacts/ (this one includes the pkl files so anyone who clone my repo can immediately run my demo without further run). The main deployed bound-mass model is the tuned GB BMF artifact at ml/trainingartifacts/tuned_gb/tuned_gb.pkl.
 
 ### Best fragmentation regressions
 
@@ -96,7 +96,7 @@ Interpretation:
 The current active dashboard/report BMF path uses tuned Gradient Boosting.
 
 - deployed dashboard BMF model: tuned Gradient Boosting
-- artifact: ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl
+- artifact: ml/trainingartifacts/tuned_gb/tuned_gb.pkl
 - target: bound_mass_fraction
 - grouped validation: by physical_file
 - grouped-CV BMF score: R² = 0.9217
@@ -141,6 +141,12 @@ python run_pipeline.py
 ```
 
 That retrains the ML artifacts and rebuilds the report-facing figures and tables using the current files in the repository.
+
+To retrain only the model artifacts, run:
+
+```bash
+python ml/model_training_scripts/train_all_models.py
+```
 
 If you want the pipeline to write everything into new folders instead of replacing the current files, run:
 

@@ -17,7 +17,7 @@ from ml.model_training_scripts.common import (
 )
 
 
-MODEL_PATH = ARTIFACT_ROOT / "gradient_boosting" / "main_gradient_boosting.pkl"
+MODEL_PATH = ARTIFACT_ROOT / "raw_gb" / "raw_gb.pkl"
 GB_PARAMS = {
     "n_estimators": 200,
     "learning_rate": 0.1,
@@ -43,7 +43,7 @@ def main() -> None:
         feature_columns=RAW_FEATURE_COLUMNS,
         model_name="gradient_boosting",
         params=GB_PARAMS,
-        bundle_name="main_gradient_boosting",
+        bundle_name="raw_gb",
     )
     print(f"Saved model bundle to {args.output}")
     print(f"Training rows: {len(result['frame'])}")

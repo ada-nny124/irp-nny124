@@ -13,27 +13,27 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_TEST_ROOT = ROOT / "_testing_reproducibility"
 
 STEPS = [
-    ROOT / "ml" / "model_training_scripts" / "run_pipeline.py",
+    ROOT / "ml" / "model_training_scripts" / "train_all_models.py",
     ROOT / "report-table-figure" / "figures" / "figure1_build.py",
     ROOT / "report-table-figure" / "figures" / "figure2_build.py",
     ROOT / "report-table-figure" / "figures" / "figure3_build.py",
     ROOT / "report-table-figure" / "figures" / "figure4_build.py",
+    ROOT / "report-table-figure" / "tables" / "tuned_gb_oof_predictions_build.py",
     ROOT / "report-table-figure" / "figures" / "figure5_build.py",
     ROOT / "report-table-figure" / "figures" / "figureA1_build.py",
-    ROOT / "report-table-figure" / "figures" / "tableA2_details.py",
+    ROOT / "report-table-figure" / "figures" / "tableA2_details_build.py",
     ROOT / "report-table-figure" / "tables" / "section34_build.py",
     ROOT / "report-table-figure" / "tables" / "table2_build.py",
     ROOT / "report-table-figure" / "tables" / "tableA2_build.py",
 ]
 
 REQUIRED_OUTPUTS = [
-    "ml/trainingartifacts/gradient_boosting/main_bmf_gradient_boosting.pkl",
-    "ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl",
-    "ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl",
-    "ml/trainingartifacts/tuned_rf/main_bmf_tuned_rf.pkl",
-    "ml/trainingartifacts/physics_rf/main_bmf_physics_rf.pkl",
-    "ml/trainingartifacts/tuned_physics_gradient_boosting/main_bmf_tuned_physics_gradient_boosting.pkl",
-    "ml/trainingartifacts/tuned_physics_rf/main_bmf_tuned_physics_rf.pkl",
+    "ml/trainingartifacts/raw_gb/raw_gb.pkl",
+    "ml/trainingartifacts/tuned_gb/tuned_gb.pkl",
+    "ml/trainingartifacts/raw_rf/raw_rf.pkl",
+    "ml/trainingartifacts/tuned_rf/tuned_rf.pkl",
+    "ml/trainingartifacts/derived_rf/derived_rf.pkl",
+    "ml/trainingartifacts/derived_gb/derived_gb.pkl",
     "report-table-figure/figures/figure1_used_in_report.png",
     "report-table-figure/figures/figure2_used_in_report.png",
     "report-table-figure/figures/figure3_used_in_report.png",
@@ -41,6 +41,7 @@ REQUIRED_OUTPUTS = [
     "report-table-figure/figures/figure5_used_in_report.png",
     "report-table-figure/figures/figureA1_used_in_report.png",
     "report-table-figure/figures/tableA2_details.png",
+    "report-table-figure/tables/tuned_gb_oof_predictions.csv",
     "report-table-figure/tables/section34_used_in_report.csv",
     "report-table-figure/tables/table2_used_in_report.csv",
     "report-table-figure/tables/tableA2_used_in_report.csv",
@@ -48,7 +49,7 @@ REQUIRED_OUTPUTS = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the cmf training and report pipeline.")
+    parser = argparse.ArgumentParser(description="Run the BMF training and report pipeline.")
     parser.add_argument(
         "--testing-reproducibility",
         "--_testing_reproducibility",
@@ -95,7 +96,7 @@ def verify_outputs(output_root: Path | None) -> list[Path]:
 def write_manifest(output_root: Path) -> Path:
     manifest_path = output_root / "reproducibility_manifest.txt"
     lines = [
-        "CMF reproducibility test output",
+        "BMF reproducibility test output",
         "",
         f"Output root: {output_root}",
         "",

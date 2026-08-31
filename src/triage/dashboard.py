@@ -1104,7 +1104,7 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "domain_near_edge_features": domain["near_edge_features"],
         "domain_out_of_domain_features": domain["out_of_domain_features"],
         "validation": load_demo_metadata()["model_validation"],
-        "diagnostics_note": "Largest-remnant fraction and predicted BMF are the primary visible public-facing outcomes in this dashboard. The BMF error figure is a typical grouped held-out absolute error from the evaluated Random Forest dashboard prototype, not a case-specific uncertainty interval.",
+        "diagnostics_note": "Predicted BMF and support diagnostics come from the retained tuned GB BMF model. The BMF error summary is grouped held-out error, not a case-specific uncertainty interval.",
         "visualization": {
             "periapsis_rm": float(normalized_payload["periapsis_Rm"]),
             "encounter_eccentricity": encounter_eccentricity,

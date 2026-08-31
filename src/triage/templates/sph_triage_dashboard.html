@@ -394,6 +394,39 @@
     padding:14px;
     background:var(--soft);
   }
+  .quick-result{
+    border:1px solid rgba(63,111,212,0.22);
+    background:linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+  }
+  .quick-result-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:8px;
+  }
+  .quick-result-item{
+    border:1px solid rgba(216,226,234,0.9);
+    border-radius:14px;
+    padding:10px;
+    background:#ffffff;
+  }
+  .quick-result-item span{
+    display:block;
+    margin-bottom:4px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .quick-result-item strong{
+    display:block;
+    font-size:18px;
+    line-height:1.1;
+  }
+  .quick-result-reason{
+    margin-top:10px;
+    font-size:12px;
+    line-height:1.45;
+    color:var(--muted);
+  }
   @media (max-width: 1120px){
     .viz-grid{
       grid-template-columns:1fr;
@@ -755,6 +788,28 @@
           </div>
         </div>
         <div class="story">
+          <div class="story-box quick-result">
+            <strong>Demo result</strong>
+            <div class="quick-result-grid">
+              <div class="quick-result-item">
+                <span>Predicted BMF</span>
+                <strong id="quick-bmf">-</strong>
+              </div>
+              <div class="quick-result-item">
+                <span>Support</span>
+                <strong id="quick-support">-</strong>
+              </div>
+              <div class="quick-result-item">
+                <span>Support score</span>
+                <strong id="quick-score">-</strong>
+              </div>
+              <div class="quick-result-item">
+                <span>Recommendation</span>
+                <strong id="quick-recommendation">-</strong>
+              </div>
+            </div>
+            <div id="quick-reason" class="quick-result-reason">Run a case to show the same minimum output as the terminal demo.</div>
+          </div>
           <div class="story-box">
             <strong>Scenario summary</strong>
             <div id="public-summary" class="muted">The dashboard summary will appear here.</div>
@@ -1725,6 +1780,12 @@
     document.getElementById("metric-recommendation").textContent = "-";
     document.getElementById("metric-recommendation-sub").textContent = "Screening verdict for whether SPH follow-up is needed.";
 
+    document.getElementById("quick-bmf").textContent = "-";
+    document.getElementById("quick-support").textContent = "-";
+    document.getElementById("quick-score").textContent = "-";
+    document.getElementById("quick-recommendation").textContent = "-";
+    document.getElementById("quick-reason").textContent = "Run a case to show the same minimum output as the terminal demo.";
+
     document.getElementById("public-summary").innerHTML = "The dashboard summary will appear here.";
     document.getElementById("science-summary").innerHTML = "The model interpretation will summarise disruption severity, retained mass, and whether a dominant remnant survives.";
     document.getElementById("timing-summary").innerHTML = "This panel will explain support level, domain status, and whether ML screening is enough or SPH is recommended.";
@@ -1759,6 +1820,11 @@
     document.getElementById("metric-support-sub").textContent = payload.support_reason;
     document.getElementById("metric-recommendation").textContent = payload.recommendation;
     document.getElementById("metric-recommendation-sub").textContent = payload.recommendation_reason;
+    document.getElementById("quick-bmf").textContent = `${payload.predicted_bmf_percent.toFixed(1)}%`;
+    document.getElementById("quick-support").textContent = payload.support_level;
+    document.getElementById("quick-score").textContent = `${Number(payload.support_score).toFixed(0)}/100`;
+    document.getElementById("quick-recommendation").textContent = payload.recommendation;
+    document.getElementById("quick-reason").textContent = payload.recommendation_reason;
 
     const summaryHtml = formatSummaryHtml(payload);
     document.getElementById("public-summary").innerHTML = summaryHtml.public;

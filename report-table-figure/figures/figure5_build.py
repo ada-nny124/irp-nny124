@@ -12,7 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from matplotlib.colors import BoundaryNorm, Normalize
-from matplotlib.patches import Patch
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 
@@ -28,7 +28,6 @@ SUPPORT_BOUNDS = [0, 1, 5, 10, 25, 50, 100, 201]
 SUPPORT_TICK_POSITIONS = [0.5, 3, 7.5, 17, 37, 74.5, 150]
 SUPPORT_TICK_LABELS = ["0", "1-4", "5-9", "10-24", "25-49", "50-99", "100-200"]
 PANEL_LABELS = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
-ZERO_BMF_COLOR = "#cfe8f6"
 
 
 def parse_numeric_code(series: pd.Series, pattern: str, scale: float = 1.0) -> pd.Series:
@@ -99,6 +98,10 @@ def format_label(value: float | str) -> str:
     if abs(value - round(value)) < 1e-9:
         return f"{int(round(value))}"
     return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def format_percent(value: float) -> str:
+    return f"{value * 100:.1f}%"
 
 
 def style_heatmap_axes(ax: plt.Axes, table: pd.DataFrame, x_label: str, y_label: str) -> None:
@@ -194,7 +197,7 @@ def draw_error_panel(
             ax.text(
                 col_idx,
                 row_idx,
-                f"{value:.3f}",
+                format_percent(value),
                 ha="center",
                 va="center",
                 rotation=text_rotation,
@@ -223,12 +226,6 @@ def draw_bmf_panel(
     masked = np.ma.masked_invalid(means)
     image = ax.imshow(masked, cmap=cmap, norm=norm, origin="lower", aspect="auto")
 
-    zero_mask = np.isfinite(means) & np.isclose(means, 0.0) & (counts > 0)
-    if np.any(zero_mask):
-        zero_overlay = np.ma.masked_where(~zero_mask, np.ones_like(means, dtype=float))
-        zero_cmap = matplotlib.colors.ListedColormap([ZERO_BMF_COLOR])
-        ax.imshow(zero_overlay, cmap=zero_cmap, origin="lower", aspect="auto", vmin=0.0, vmax=1.0)
-
     ax.set_title(title, fontsize=10.8, pad=12)
     style_heatmap_axes(ax, mean_table, x_label, y_label)
     add_panel_label(ax, panel_label)
@@ -237,12 +234,21 @@ def draw_bmf_panel(
             count = int(counts[row_idx, col_idx])
             if count > 0:
                 value = means[row_idx, col_idx]
-                if np.isfinite(value) and not np.isclose(value, 0.0):
+                if np.isfinite(value):
                     rgba = cmap(norm(value))
                     text_color = text_color_for_rgba(rgba)
                 else:
                     text_color = "#111111"
-                ax.text(col_idx, row_idx, f"{count}", ha="center", va="center", fontsize=7.2, color=text_color)
+                ax.text(
+                    col_idx,
+                    row_idx,
+                    format_percent(float(value)),
+                    ha="center",
+                    va="center",
+                    rotation=90 if panel_label == "(c)" else 0,
+                    fontsize=6.8,
+                    color=text_color,
+                )
     return image
 
 
@@ -363,31 +369,12 @@ def main() -> None:
     error_cbar.ax.tick_params(labelsize=8.0)
     bmf_cbar.ax.tick_params(labelsize=8.0)
     support_cbar.set_label("Unique physical simulations", fontsize=9.0, labelpad=10)
-    error_cbar.set_label("Mean |held-out residual|", fontsize=9.0, labelpad=18)
-    bmf_cbar.set_label("Mean observed BMF", fontsize=9.0, labelpad=18)
+    error_cbar.set_label("Mean |held-out residual| (%)", fontsize=9.0, labelpad=18)
+    bmf_cbar.set_label("Mean observed BMF (%)", fontsize=9.0, labelpad=18)
+    error_cbar.ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value * 100:.0f}%"))
+    bmf_cbar.ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value * 100:.0f}%"))
     for cbar in (support_cbar, error_cbar, bmf_cbar):
         cbar.ax.yaxis.set_label_position("left")
-
-    fig.legend(
-        handles=[
-            Patch(facecolor=ZERO_BMF_COLOR, edgecolor="none", label="Observed mean BMF = 0"),
-            Patch(facecolor=NO_DATA_COLOR, edgecolor="none", label="No SPH data"),
-        ],
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.01),
-        frameon=False,
-        ncol=2,
-        fontsize=9.8,
-    )
-    fig.text(
-        0.5,
-        0.04,
-        "Cell labels in the mean-observed-BMF panels are unique physical simulation counts.",
-        ha="center",
-        va="bottom",
-        fontsize=9.6,
-        color="#333333",
-    )
     fig.savefig(OUTPUT_PATH, bbox_inches="tight")
     plt.close(fig)
 

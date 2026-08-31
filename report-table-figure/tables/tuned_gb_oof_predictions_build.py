@@ -71,7 +71,6 @@ def build_prediction_table() -> pd.DataFrame:
         "timestep",
         "bound_mass_fraction",
         "target_mass_kg",
-        "captured_mass_fraction",
     ]
     bound_lookup = bound[merge_cols + extra_cols].drop_duplicates(subset=merge_cols, keep="first")
     merged = oof.merge(bound_lookup, on=merge_cols, how="left", validate="many_to_one")
@@ -99,7 +98,6 @@ def build_prediction_table() -> pd.DataFrame:
             "spin_axis",
             "resolution_value",
             "target_mass_kg",
-            "captured_mass_fraction",
             "bound_mass_fraction",
             "actual_bmf",
             "predicted_bmf",

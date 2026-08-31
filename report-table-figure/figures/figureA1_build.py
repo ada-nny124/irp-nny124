@@ -21,13 +21,13 @@ import pandas as pd
 from ml.model_training_scripts.helper_functions_ml import build_regression_pipeline, load_canonical_dataset
 
 
-PRIMARY_TARGET = "captured_mass_fraction"
+PRIMARY_TARGET = "bound_mass_fraction"
 OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
 OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else REPO_ROOT
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "figureA1_used_in_report.png"
 GRID_POINTS = 20
-BMF_YMAX_OVERRIDE: float | None = None
+BMF_YMAX_OVERRIDE: float | None = 0.6
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
 LINE_COLOR = "#3b80d0"

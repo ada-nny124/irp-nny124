@@ -21,6 +21,7 @@ SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
 OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "figure1_used_in_report.png"
+PRIMARY_TARGET = "bound_mass_fraction"
 
 PERI_RANGE = (1.1, 3.0)
 PERI_TICKS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.2, 2.6, 3.0]
@@ -71,7 +72,7 @@ def load_frame() -> pd.DataFrame:
     frame.loc[spin_code.str.contains("mz"), "spin_orientation"] = "retrograde_z"
     frame.loc[spin_code.str.contains("x") | spin_code.str.contains("y"), "spin_orientation"] = "equatorial"
     frame.loc[spin_code.str.contains("z") & ~spin_code.str.contains("mz"), "spin_orientation"] = "prograde_z"
-    frame["captured_mass_fraction"] = pd.to_numeric(frame["captured_mass_fraction"], errors="coerce")
+    frame[PRIMARY_TARGET] = pd.to_numeric(frame[PRIMARY_TARGET], errors="coerce")
     frame["n_fragments"] = pd.to_numeric(frame["n_fragments"], errors="coerce")
     frame["fof_linking_length"] = pd.to_numeric(frame["fof_linking_length"], errors="coerce")
     return frame
@@ -189,14 +190,14 @@ def draw_panel_a(ax: plt.Axes, frame: pd.DataFrame) -> None:
 def grouped_metric_panel(frame: pd.DataFrame, mass_code: str | None = None) -> pd.DataFrame:
     panel = frame.loc[
         frame["periapsis_Rm"].between(*PERI_RANGE, inclusive="both")
-        & frame["captured_mass_fraction"].notna()
+        & frame[PRIMARY_TARGET].notna()
         & frame["v_inf_kms"].notna()
     ].copy()
     if mass_code is not None:
         panel = panel.loc[panel["mass_code"] == mass_code].copy()
     return (
         panel.groupby(["periapsis_Rm", "v_inf_kms", "spin_orientation"], as_index=False)
-        .agg(metric_median=("captured_mass_fraction", "median"))
+        .agg(metric_median=(PRIMARY_TARGET, "median"))
         .sort_values(["v_inf_kms", "spin_orientation", "periapsis_Rm"])
     )
 
@@ -255,7 +256,7 @@ def draw_exact_archive_panel(ax: plt.Axes, subset: pd.DataFrame, title: str, y_m
         color = VELOCITY_COLORS.get(float(velocity), "#333333")
         ax.plot(
             rows["periapsis_Rm"],
-            rows["captured_mass_fraction"],
+            rows[PRIMARY_TARGET],
             color=color,
             linewidth=1.9,
             marker="o",
@@ -280,8 +281,8 @@ def main() -> None:
     y_max = max(
         0.52,
         float(grouped_all["metric_median"].max()) * 1.08 if not grouped_all.empty else 0.0,
-        float(exact_mass19["captured_mass_fraction"].max()) * 1.08 if not exact_mass19.empty else 0.0,
-        float(exact_mass20["captured_mass_fraction"].max()) * 1.08 if not exact_mass20.empty else 0.0,
+        float(exact_mass19[PRIMARY_TARGET].max()) * 1.08 if not exact_mass19.empty else 0.0,
+        float(exact_mass20[PRIMARY_TARGET].max()) * 1.08 if not exact_mass20.empty else 0.0,
     )
     y_max = min(0.55, y_max)
 

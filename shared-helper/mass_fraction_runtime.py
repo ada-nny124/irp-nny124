@@ -46,7 +46,7 @@ def patched_text_labels():
 
 
 @contextmanager
-def aliased_bound_dataset(source_path: Path, target_column: str = "captured_mass_fraction"):
+def aliased_bound_dataset(source_path: Path, target_column: str = "bound_mass_fraction"):
     frame = pd.read_csv(source_path, low_memory=False)
     if target_column not in frame.columns:
         raise KeyError(f"{source_path} is missing {target_column}.")

@@ -22,7 +22,7 @@ from ml.model_training_scripts.helper_functions_ml import (
     load_canonical_dataset,
 )
 
-PRIMARY_TARGET = "captured_mass_fraction"
+PRIMARY_TARGET = "bound_mass_fraction"
 CORRECTED_DATASET_PATH = REPO_ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
 ARTIFACT_ROOT = (
@@ -90,13 +90,11 @@ def require_corrected_dataset(dataset_path: Path) -> None:
 def build_training_frame(dataset_path: Path) -> pd.DataFrame:
     require_corrected_dataset(dataset_path)
     raw = load_canonical_dataset(dataset_path)
-    if "captured_mass_fraction" not in raw.columns:
-        raise KeyError("Corrected bound_outcomes.csv is missing captured_mass_fraction.")
-    raw["captured_mass_fraction"] = pd.to_numeric(raw["captured_mass_fraction"], errors="coerce")
+    if "bound_mass_fraction" not in raw.columns:
+        raise KeyError("Corrected bound_outcomes.csv is missing bound_mass_fraction.")
+    raw["bound_mass_fraction"] = pd.to_numeric(raw["bound_mass_fraction"], errors="coerce")
     if "bound_mass_kg" in raw.columns:
         raw["bound_mass_kg"] = pd.to_numeric(raw["bound_mass_kg"], errors="coerce")
-    if "captured_mass_kg" in raw.columns:
-        raw["captured_mass_kg"] = pd.to_numeric(raw["captured_mass_kg"], errors="coerce")
     if "unbound_mass_fraction" in raw.columns:
         raw["unbound_mass_fraction"] = pd.to_numeric(raw["unbound_mass_fraction"], errors="coerce")
     if "unbound_mass_kg" in raw.columns:

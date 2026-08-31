@@ -8,7 +8,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "table2_used_in_report.csv"
-OOF_PATH = ROOT / "report-table-figure" / "tables" / "figure5_tuned_gb_oof_predictions.csv"
+OOF_PATH = ROOT / "report-table-figure" / "tables" / "tuned_gb_oof_predictions.csv"
 
 TARGET_PERIAPSIS = 1.4
 TARGET_V_INF_KMS = [0.8, 1.0]

@@ -20,7 +20,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = Path(__file__).resolve().parent
 BOUND_SOURCE = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-PREDICTIONS_SOURCE = ROOT / "archived" / "physics_structured_surrogate" / "tables" / "predictions_with_trust_flags.csv"
+PREDICTIONS_SOURCE = ROOT / "report-table-figure" / "tables" / "tuned_gb_oof_predictions.csv"
 OUTPUT_PATH = SCRIPT_DIR / "figure5_used_in_report.png"
 
 NO_DATA_COLOR = "#CFCFCF"
@@ -46,28 +46,14 @@ def load_bound_frame() -> pd.DataFrame:
 def load_predictions() -> pd.DataFrame:
     predictions = pd.read_csv(PREDICTIONS_SOURCE, low_memory=False)
     predictions["abs_error"] = pd.to_numeric(predictions["residual"], errors="coerce").abs()
-    if "target" in predictions.columns:
-        return predictions.loc[predictions["target"] == "bound_mass_fraction"].copy()
-    return predictions.copy()
+    return predictions
 
 
-def unique_physical_coverage(
-    frame: pd.DataFrame,
-    row_col: str,
-    col_col: str,
-    *,
-    categorical_cols: dict[str, list[str]] | None = None,
-) -> pd.DataFrame:
+def unique_physical_coverage(frame: pd.DataFrame, row_col: str, col_col: str) -> pd.DataFrame:
     support = frame.dropna(subset=[row_col, col_col]).copy()
     coverage = support.pivot_table(index=row_col, columns=col_col, values="physical_file", aggfunc=pd.Series.nunique)
-    if categorical_cols and row_col in categorical_cols:
-        coverage = coverage.reindex(index=categorical_cols[row_col])
-    if categorical_cols and col_col in categorical_cols:
-        coverage = coverage.reindex(columns=categorical_cols[col_col])
-    if not (categorical_cols and row_col in categorical_cols):
-        coverage = coverage.reindex(index=sorted(pd.to_numeric(coverage.index, errors="coerce").dropna().unique()))
-    if not (categorical_cols and col_col in categorical_cols):
-        coverage = coverage.reindex(columns=sorted(pd.to_numeric(coverage.columns, errors="coerce").dropna().unique()))
+    coverage = coverage.reindex(index=sorted(pd.to_numeric(coverage.index, errors="coerce").dropna().unique()))
+    coverage = coverage.reindex(columns=sorted(pd.to_numeric(coverage.columns, errors="coerce").dropna().unique()))
     return coverage.fillna(0)
 
 
@@ -121,18 +107,7 @@ def style_heatmap_axes(ax: plt.Axes, table: pd.DataFrame, x_label: str, y_label:
 
 
 def add_panel_label(ax: plt.Axes, label: str) -> None:
-    ax.text(
-        0.0,
-        1.06,
-        label,
-        transform=ax.transAxes,
-        fontsize=11.2,
-        fontweight="bold",
-        ha="left",
-        va="bottom",
-        color="#222222",
-        clip_on=False,
-    )
+    ax.text(0.0, 1.06, label, transform=ax.transAxes, fontsize=11.2, fontweight="bold", ha="left", va="bottom", color="#222222", clip_on=False)
 
 
 def text_color_for_rgba(rgba: tuple[float, float, float, float]) -> str:
@@ -141,15 +116,7 @@ def text_color_for_rgba(rgba: tuple[float, float, float, float]) -> str:
     return "white" if luminance < 0.5 else "#111111"
 
 
-def draw_coverage_panel(
-    ax: plt.Axes,
-    table: pd.DataFrame,
-    title: str,
-    x_label: str,
-    y_label: str,
-    panel_label: str,
-    norm: BoundaryNorm,
-):
+def draw_coverage_panel(ax: plt.Axes, table: pd.DataFrame, title: str, x_label: str, y_label: str, panel_label: str, norm: BoundaryNorm):
     cmap = colormaps["Blues"].copy()
     cmap.set_bad(NO_DATA_COLOR)
     values = table.to_numpy(dtype=float)
@@ -163,23 +130,11 @@ def draw_coverage_panel(
             count = int(values[row_idx, col_idx])
             if count > 0:
                 rgba = cmap(norm(values[row_idx, col_idx]))
-                text_color = text_color_for_rgba(rgba)
-                ax.text(col_idx, row_idx, f"{count}", ha="center", va="center", fontsize=7.4, color=text_color)
+                ax.text(col_idx, row_idx, f"{count}", ha="center", va="center", fontsize=7.4, color=text_color_for_rgba(rgba))
     return image
 
 
-def draw_error_panel(
-    ax: plt.Axes,
-    table: pd.DataFrame,
-    title: str,
-    x_label: str,
-    y_label: str,
-    panel_label: str,
-    norm: Normalize,
-    *,
-    text_rotation: float = 90,
-    text_fontsize: float = 6.6,
-):
+def draw_error_panel(ax: plt.Axes, table: pd.DataFrame, title: str, x_label: str, y_label: str, panel_label: str, norm: Normalize, *, text_rotation: float = 90, text_fontsize: float = 6.6):
     cmap = colormaps["Reds"].copy()
     cmap.set_bad(NO_DATA_COLOR)
     masked = np.ma.masked_invalid(table.to_numpy(dtype=float))
@@ -193,68 +148,32 @@ def draw_error_panel(
                 continue
             value = float(masked[row_idx, col_idx])
             rgba = cmap(norm(value))
-            text_color = text_color_for_rgba(rgba)
-            ax.text(
-                col_idx,
-                row_idx,
-                format_percent(value),
-                ha="center",
-                va="center",
-                rotation=text_rotation,
-                fontsize=text_fontsize,
-                color=text_color,
-            )
+            ax.text(col_idx, row_idx, format_percent(value), ha="center", va="center", rotation=text_rotation, fontsize=text_fontsize, color=text_color_for_rgba(rgba))
     return image
 
 
-def draw_bmf_panel(
-    ax: plt.Axes,
-    mean_table: pd.DataFrame,
-    count_table: pd.DataFrame,
-    title: str,
-    x_label: str,
-    y_label: str,
-    panel_label: str,
-    norm: Normalize,
-):
+def draw_bmf_panel(ax: plt.Axes, mean_table: pd.DataFrame, count_table: pd.DataFrame, title: str, x_label: str, y_label: str, panel_label: str, norm: Normalize, *, text_rotation: float = 0):
     cmap = colormaps["viridis"].copy()
     cmap.set_bad(NO_DATA_COLOR)
-
     counts = count_table.reindex(index=mean_table.index, columns=mean_table.columns, fill_value=0).to_numpy(dtype=float)
     means = mean_table.to_numpy(dtype=float)
-
     masked = np.ma.masked_invalid(means)
     image = ax.imshow(masked, cmap=cmap, norm=norm, origin="lower", aspect="auto")
-
     ax.set_title(title, fontsize=10.8, pad=12)
     style_heatmap_axes(ax, mean_table, x_label, y_label)
     add_panel_label(ax, panel_label)
     for row_idx in range(counts.shape[0]):
         for col_idx in range(counts.shape[1]):
-            count = int(counts[row_idx, col_idx])
-            if count > 0:
-                value = means[row_idx, col_idx]
-                if np.isfinite(value):
-                    rgba = cmap(norm(value))
-                    text_color = text_color_for_rgba(rgba)
-                else:
-                    text_color = "#111111"
-                ax.text(
-                    col_idx,
-                    row_idx,
-                    format_percent(float(value)),
-                    ha="center",
-                    va="center",
-                    rotation=90 if panel_label == "(c)" else 0,
-                    fontsize=6.8,
-                    color=text_color,
-                )
+            if int(counts[row_idx, col_idx]) <= 0:
+                continue
+            value = float(means[row_idx, col_idx])
+            rgba = cmap(norm(value))
+            ax.text(col_idx, row_idx, format_percent(value), ha="center", va="center", rotation=text_rotation, fontsize=6.8, color=text_color_for_rgba(rgba))
     return image
 
 
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-
     bound_frame = load_bound_frame()
     predictions = load_predictions()
 
@@ -266,30 +185,19 @@ def main() -> None:
     peri_vel_bmf = mean_bmf_table(bound_frame, "periapsis_Rm", "v_inf_kms")
 
     support_norm = BoundaryNorm(SUPPORT_BOUNDS, ncolors=colormaps["Blues"].N, clip=True)
-    all_error_values = np.concatenate(
-        [
-            mass_peri_err.to_numpy(dtype=float)[np.isfinite(mass_peri_err.to_numpy(dtype=float))],
-            peri_vel_err.to_numpy(dtype=float)[np.isfinite(peri_vel_err.to_numpy(dtype=float))],
-        ]
-    )
+    all_error_values = np.concatenate([
+        mass_peri_err.to_numpy(dtype=float)[np.isfinite(mass_peri_err.to_numpy(dtype=float))],
+        peri_vel_err.to_numpy(dtype=float)[np.isfinite(peri_vel_err.to_numpy(dtype=float))],
+    ])
     error_norm = Normalize(vmin=0.0, vmax=float(np.max(all_error_values)) if all_error_values.size else 0.1)
-    all_bmf_values = np.concatenate(
-        [
-            mass_peri_bmf.to_numpy(dtype=float)[np.isfinite(mass_peri_bmf.to_numpy(dtype=float))],
-            peri_vel_bmf.to_numpy(dtype=float)[np.isfinite(peri_vel_bmf.to_numpy(dtype=float))],
-        ]
-    )
+    all_bmf_values = np.concatenate([
+        mass_peri_bmf.to_numpy(dtype=float)[np.isfinite(mass_peri_bmf.to_numpy(dtype=float))],
+        peri_vel_bmf.to_numpy(dtype=float)[np.isfinite(peri_vel_bmf.to_numpy(dtype=float))],
+    ])
     bmf_norm = Normalize(vmin=0.0, vmax=float(np.max(all_bmf_values)) if all_bmf_values.size else 0.3)
 
     fig = plt.figure(figsize=(21.6, 9.8), dpi=220)
-    gs = fig.add_gridspec(
-        nrows=2,
-        ncols=6,
-        width_ratios=[1, 1, 1, 0.07, 0.07, 0.07],
-        height_ratios=[1, 1],
-        hspace=0.48,
-        wspace=0.42,
-    )
+    gs = fig.add_gridspec(nrows=2, ncols=6, width_ratios=[1, 1, 1, 0.07, 0.07, 0.07], height_ratios=[1, 1], hspace=0.48, wspace=0.42)
 
     ax_a = fig.add_subplot(gs[0, 0])
     ax_b = fig.add_subplot(gs[0, 1])
@@ -298,64 +206,12 @@ def main() -> None:
     ax_e = fig.add_subplot(gs[1, 1])
     ax_f = fig.add_subplot(gs[1, 2])
 
-    support_image = draw_coverage_panel(
-        ax_a,
-        mass_peri_cov,
-        "Mass-periapsis: unique simulations",
-        "Periapsis ($R_{Mars}$)",
-        "Mass log10 kg",
-        PANEL_LABELS[0],
-        support_norm,
-    )
-    error_image = draw_error_panel(
-        ax_b,
-        mass_peri_err,
-        "Mass-periapsis: mean |OOF residual|",
-        "Periapsis ($R_{Mars}$)",
-        "Mass log10 kg",
-        PANEL_LABELS[1],
-        error_norm,
-    )
-    bmf_image = draw_bmf_panel(
-        ax_c,
-        mass_peri_bmf,
-        mass_peri_cov,
-        "Mass-periapsis:\nmean observed mass fraction",
-        "Periapsis ($R_{Mars}$)",
-        "Mass log10 kg",
-        PANEL_LABELS[2],
-        bmf_norm,
-    )
-    draw_coverage_panel(
-        ax_d,
-        peri_vel_cov,
-        "Periapsis-velocity: unique simulations",
-        r"$v_{\infty}$ (km s$^{-1}$)",
-        "Periapsis $R_{Mars}$",
-        PANEL_LABELS[3],
-        support_norm,
-    )
-    draw_error_panel(
-        ax_e,
-        peri_vel_err,
-        "Periapsis-velocity: mean |OOF residual|",
-        r"$v_{\infty}$ (km s$^{-1}$)",
-        "Periapsis $R_{Mars}$",
-        PANEL_LABELS[4],
-        error_norm,
-        text_rotation=0,
-        text_fontsize=5.8,
-    )
-    draw_bmf_panel(
-        ax_f,
-        peri_vel_bmf,
-        peri_vel_cov,
-        "Periapsis-velocity:\nmean observed mass fraction",
-        r"$v_{\infty}$ (km s$^{-1}$)",
-        "Periapsis $R_{Mars}$",
-        PANEL_LABELS[5],
-        bmf_norm,
-    )
+    support_image = draw_coverage_panel(ax_a, mass_peri_cov, "Mass-periapsis: unique simulations", "Periapsis ($R_{Mars}$)", "Mass log10 kg", PANEL_LABELS[0], support_norm)
+    error_image = draw_error_panel(ax_b, mass_peri_err, "Mass-periapsis: mean |OOF residual|", "Periapsis ($R_{Mars}$)", "Mass log10 kg", PANEL_LABELS[1], error_norm)
+    bmf_image = draw_bmf_panel(ax_c, mass_peri_bmf, mass_peri_cov, "Mass-periapsis:\nmean observed mass fraction", "Periapsis ($R_{Mars}$)", "Mass log10 kg", PANEL_LABELS[2], bmf_norm, text_rotation=90)
+    draw_coverage_panel(ax_d, peri_vel_cov, "Periapsis-velocity: unique simulations", r"$v_{\infty}$ (km s$^{-1}$)", "Periapsis $R_{Mars}$", PANEL_LABELS[3], support_norm)
+    draw_error_panel(ax_e, peri_vel_err, "Periapsis-velocity: mean |OOF residual|", r"$v_{\infty}$ (km s$^{-1}$)", "Periapsis $R_{Mars}$", PANEL_LABELS[4], error_norm, text_rotation=0, text_fontsize=5.8)
+    draw_bmf_panel(ax_f, peri_vel_bmf, peri_vel_cov, "Periapsis-velocity:\nmean observed mass fraction", r"$v_{\infty}$ (km s$^{-1}$)", "Periapsis $R_{Mars}$", PANEL_LABELS[5], bmf_norm)
 
     cax_support = fig.add_subplot(gs[:, 3])
     cax_error = fig.add_subplot(gs[:, 4])
@@ -375,6 +231,7 @@ def main() -> None:
     bmf_cbar.ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value * 100:.0f}%"))
     for cbar in (support_cbar, error_cbar, bmf_cbar):
         cbar.ax.yaxis.set_label_position("left")
+
     fig.savefig(OUTPUT_PATH, bbox_inches="tight")
     plt.close(fig)
 

@@ -27,7 +27,7 @@ OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else REPO_ROOT
 DATASET_PATH = Path("extraction-outputs/tables/bound_outcomes.csv")
 OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "figure3_used_in_report.png"
 GRID_POINTS = 20
-BMF_YMAX_OVERRIDE: float | None = 0.6
+BMF_YMAX_OVERRIDE: float | None = 0.55
 INTERPOLATION_COLOR = "#dbe8ff"
 EXTRAPOLATION_COLOR = "#f3d3d3"
 LINE_COLOR = "#3b80d0"
@@ -267,7 +267,7 @@ def render_panel(
         ax.set_xticks(ticks)
         ax.set_xticklabels([fr"$10^{{{tick:g}}}$" for tick in ticks])
     y_upper = BMF_YMAX_OVERRIDE if BMF_YMAX_OVERRIDE is not None else 0.30
-    ax.set_ylim(-0.02, y_upper)
+    ax.set_ylim(0.0, y_upper)
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False, fontsize=8, loc="best")
     ax.text(0.0, 1.03, panel_label, transform=ax.transAxes, ha="left", va="bottom", fontsize=10, fontweight="bold")

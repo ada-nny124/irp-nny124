@@ -1,3 +1,3 @@
 v_inf,Actual BMF,OOF prediction,Abs. error,Failure
-0.8,0.150849,0.1036,0.0472,Underpredicts
-1.0,0.023327,0.0957,0.0724,Overpredicts
+0.8,0.150849,0.1383,0.0126,Underpredicts
+1.0,0.023327,0.0954,0.0720,Overpredicts

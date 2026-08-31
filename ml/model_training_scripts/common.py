@@ -82,7 +82,7 @@ def require_corrected_dataset(dataset_path: Path) -> None:
     if dataset_path.exists():
         return
     raise FileNotFoundError(
-        "CMF dataset not found. Expected full corrected table at "
+        "BMF dataset not found. Expected full corrected table at "
         f"{dataset_path}. The current extraction-outputs folder does not yet contain it."
     )
 

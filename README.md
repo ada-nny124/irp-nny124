@@ -48,22 +48,32 @@ mars-flyby-dashboard
 
 This starts the packaged local API/dashboard on `http://127.0.0.1:8000` by default.
 
-Or, to run one BMF prediction directly from the terminal:
+Or, to run one BMF prediction directly from the terminal using velocity:
 
 ```bash
 python -m src.triage.cli \
-  --case-name demo_case \
   --mass-log10 20 \
   --periapsis 1.8 \
   --v-inf 0.6 \
-  --no-spin \ 
+  --no-spin \
   --output outputs/demo_prediction.csv
 ```
 
-2nd example with spin:
+The CLI also accepts eccentricity instead of velocity:
+
 ```bash
 python -m src.triage.cli \
-  --case-name spinning_demo \
+  --mass-log10 20 \
+  --periapsis 1.8 \
+  --eccentricity 1.03 \
+  --no-spin \
+  --output outputs/eccentricity_demo_prediction.csv
+```
+
+Example with spin:
+
+```bash
+python -m src.triage.cli \
   --mass-log10 20 \
   --periapsis 1.8 \
   --v-inf 0.6 \

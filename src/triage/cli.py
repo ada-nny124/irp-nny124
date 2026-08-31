@@ -150,11 +150,9 @@ def prediction_rows(cases: pd.DataFrame) -> pd.DataFrame:
 
 
 def print_case_summary(result: pd.DataFrame) -> None:
-    for idx, row in result.reset_index(drop=True).iterrows():
-        print(f"Case {idx + 1}")
+    for _, row in result.reset_index(drop=True).iterrows():
         print(f"  Predicted BMF: {float(row['predicted_bmf']) * 100.0:.1f}%")
         print(f"  Predicted bound mass: {float(row['predicted_bound_mass_kg']):.3e} kg")
-        print(f"  Largest remnant: {float(row['largest_remnant_fraction']) * 100.0:.1f}%")
         print(f"  Fragmentation label: {row['fragmentation_label']}")
         print(f"  Support: {row['support_category']} ({float(row['support_score']):.0f}/100)")
         print(f"  Recommendation: {row['recommendation']}")

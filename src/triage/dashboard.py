@@ -599,7 +599,7 @@ def load_demo_metadata() -> dict[str, object]:
         "defaults": defaults,
         "ranges": ranges,
         "choices": {
-            "spin_axis": ["x", "y", "z"],
+            "spin_axis": ["x", "y", "z", "mz"],
             "asteroid_type": ["rocky"],
             "input_mode": ["mass", "size"],
         },
@@ -674,6 +674,11 @@ def normalize_payload(payload: dict[str, object]) -> dict[str, object]:
     normalized["input_mode"] = str(normalized.get("input_mode", defaults["input_mode"]) or defaults["input_mode"])
     normalized["mass_log10_kg"] = float(normalized["mass_log10_kg"])
     normalized["periapsis_Rm"] = float(normalized["periapsis_Rm"])
+    if normalized.get("encounter_eccentricity") in ("", None) and normalized.get("v_inf_kms") not in ("", None):
+        normalized["encounter_eccentricity"] = eccentricity_from_periapsis_and_vinf(
+            normalized["periapsis_Rm"],
+            float(normalized["v_inf_kms"]),
+        )
     normalized["encounter_eccentricity"] = float(normalized["encounter_eccentricity"])
     normalized["has_explicit_spin"] = parse_bool(normalized.get("has_explicit_spin", True))
     normalized["spin_axis"] = str(normalized.get("spin_axis", "z") or "z")
@@ -701,16 +706,18 @@ def validate_payload(payload: dict[str, object]) -> dict[str, object]:
         "case_name",
         "mass_log10_kg",
         "periapsis_Rm",
-        "encounter_eccentricity",
     ]
     missing = [key for key in required if key not in payload or payload[key] in ("", None)]
+    if payload.get("encounter_eccentricity") in ("", None) and payload.get("v_inf_kms") in ("", None):
+        missing.append("encounter_eccentricity or v_inf_kms")
     if missing:
         raise ValueError(f"Missing required fields: {', '.join(missing)}")
     if parse_bool(payload.get("has_explicit_spin", True)) and payload.get("spin_period_hr") in ("", None):
         raise ValueError("spin_period_hr is required when has_explicit_spin is true")
-    if float(payload["encounter_eccentricity"]) < 1.0:
+    normalized = normalize_payload(payload)
+    if float(normalized["encounter_eccentricity"]) < 1.0:
         raise ValueError("Encounter eccentricity must be at least 1.0 for a Mars flyby.")
-    return normalize_payload(payload)
+    return normalized
 
 
 def apply_bound_predictions(result: pd.Series, input_df: pd.DataFrame) -> pd.Series:

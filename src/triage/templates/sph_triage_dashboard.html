@@ -110,6 +110,92 @@
     color:var(--muted);
     line-height:1.35;
   }
+  .field-note{
+    display:inline-grid;
+    place-items:center;
+    align-items:center;
+    width:22px;
+    height:22px;
+    min-height:0;
+    border:1px solid #cfd7e2;
+    border-radius:999px;
+    padding:0;
+    background:#ffffff;
+    color:#6f7e91;
+    cursor:pointer;
+    font-weight:700;
+    font-size:0;
+    line-height:1;
+  }
+  .field-note::before{
+    content:"i";
+    display:inline-grid;
+    place-items:center;
+    width:auto;
+    height:auto;
+    border-radius:0;
+    background:transparent;
+    color:#6f7e91;
+    font-size:12px;
+    line-height:1;
+  }
+  .field-note:hover{
+    background:#f3f6f8;
+    border-color:#b9c5d2;
+  }
+  .field-info{
+    display:none;
+    margin-top:6px;
+    padding:8px 10px;
+    border-radius:12px;
+    background:#eef5ff;
+    color:#405978;
+    font-size:11px;
+    line-height:1.4;
+  }
+  .field-info.open{
+    display:block;
+  }
+  .supported-range-note{
+    margin-top:4px;
+    padding:10px 12px;
+    border:1px solid #dce5ee;
+    border-radius:14px;
+    background:#f7fafc;
+    color:#596d84;
+    font-size:11px;
+    line-height:1.45;
+  }
+  .encounter-help-space{
+    min-height:48px;
+  }
+  .input-label-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .input-label-row label{
+    flex:1;
+    margin-bottom:0;
+  }
+  .swap-input-btn{
+    width:48px;
+    min-height:0;
+    border:1px solid #cfd7e2;
+    border-radius:999px;
+    padding:1px 12px 2px;
+    background:#ffffff;
+    color:#657589;
+    font-size:13px;
+    font-weight:500;
+    line-height:1.3;
+    cursor:pointer;
+  }
+  .swap-input-btn:hover{
+    background:#f3f6f8;
+    border-color:#b9c5d2;
+  }
   .toggle{
     display:flex;
     align-items:center;
@@ -151,7 +237,7 @@
     font-size:12px;
     color:var(--red);
   }
-  .status.loading{color:var(--blue)}
+  .status.loading{color:#3f6fd4 !important}
   .status.ok{color:#3f6fd4}
   .toolbar{
     display:flex;
@@ -342,7 +428,7 @@
   .pill.low{background:rgba(255,141,123,0.14);color:var(--red)}
   .viz-grid{
     display:grid;
-    grid-template-columns:1.18fr 0.82fr;
+    grid-template-columns:minmax(0, 1fr);
     gap:16px;
     align-items:start;
   }
@@ -355,7 +441,7 @@
   .storyboard-canvas{
     display:block;
     width:100%;
-    min-height:460px;
+    min-height:360px;
     border-radius:14px;
     background:#0f1a2c;
     overflow:hidden;
@@ -387,6 +473,7 @@
   .story{
     display:grid;
     gap:12px;
+    order:-1;
   }
   .story-box{
     border:1px solid var(--line);
@@ -400,7 +487,7 @@
   }
   .quick-result-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
     gap:10px;
     margin-top:8px;
   }
@@ -610,48 +697,74 @@
         <h2>Main User Inputs</h2>
         <form id="explorer-form">
           <div class="form-grid">
-            <div class="wide">
-              <label for="case_name">Scenario name</label>
-              <input id="case_name" type="text" placeholder="demo_001_baseline">
+            <input id="case_name" type="hidden" value="demo_case">
+
+            <input id="input_mode" type="hidden" value="mass">
+            <div class="wide demo-secondary">
+              <div class="hint">This screening assumes rocky-type asteroid density = 2700 kg/m^3.</div>
             </div>
 
-            <div>
-              <label for="input_mode">Primary size input</label>
-              <select id="input_mode">
-                <option value="mass">Asteroid mass</option>
-                <option value="size">Asteroid size</option>
-              </select>
-            </div>
             <div class="wide">
-              <label>Archive assumption</label>
-              <div class="hint">This dashboard currently supports rocky-type asteroid assumptions with density assumed = 2700 kg/m^3.</div>
+              <div class="input-label-row">
+                <label for="periapsis_Rm">Periapsis (Mars radii)</label>
+                <button class="field-note" type="button" data-info-target="periapsis-input-info" aria-label="Show periapsis input information"></button>
+              </div>
+              <input id="periapsis_Rm" type="number" step="0.1">
+              <div class="hint" id="range-periapsis_Rm"></div>
+              <div id="periapsis-input-info" class="field-info">Periapsis is the closest approach to Mars, measured in Mars radii.</div>
             </div>
 
-            <div id="mass-input-wrap">
-              <label for="mass_log10_kg">Asteroid mass, log10(kg)</label>
+            <div id="mass-input-wrap" class="wide">
+              <div class="input-label-row">
+                <label id="mass-input-label" for="mass_log10_kg">Asteroid mass, log10(kg)</label>
+                <button id="toggle-asteroid-input-btn" class="swap-input-btn" type="button" title="Change to asteroid radius input">↔</button>
+                <button class="field-note" type="button" data-info-target="mass-input-info" aria-label="Show asteroid mass input information"></button>
+              </div>
               <input id="mass_log10_kg" type="number" step="0.01">
               <div class="hint" id="range-mass_log10_kg"></div>
               <div class="hint">For example, 20.00 means 1.0 × 10^20 kg.</div>
+              <div id="mass-input-info" class="field-info">Click ↔ to enter asteroid radius instead. The dashboard then calculates equivalent asteroid mass using density = 2700 kg/m^3.</div>
             </div>
-            <div id="radius-input-wrap">
-              <label for="asteroid_radius_km_input">Asteroid radius (km)</label>
+            <div id="radius-input-wrap" class="wide">
+              <div class="input-label-row">
+                <label id="radius-input-label" for="asteroid_radius_km_input">Asteroid radius (km)</label>
+                <button id="toggle-radius-input-btn" class="swap-input-btn" type="button" title="Change to asteroid mass input">↔</button>
+                <button class="field-note" type="button" data-info-target="radius-input-info" aria-label="Show asteroid radius input information"></button>
+              </div>
               <input id="asteroid_radius_km_input" type="number" step="0.1">
-              <div class="hint">If size is used, the dashboard converts radius into equivalent mass using the fixed rocky-density assumption.</div>
-            </div>
-            <div>
-              <label for="periapsis_Rm">Closest approach / periapsis (Mars radii)</label>
-              <input id="periapsis_Rm" type="number" step="0.1">
-              <div class="hint" id="range-periapsis_Rm"></div>
+              <div class="hint">Radius input: equivalent asteroid mass is calculated using density = 2700 kg/m^3.</div>
+              <div id="radius-input-info" class="field-info">Click ↔ to enter asteroid mass directly. Radius is only converted into the mass used by the model.</div>
             </div>
 
-            <div>
-              <label for="encounter_eccentricity">Orbit shape / eccentricity</label>
+            <input id="encounter_input_mode" type="hidden" value="velocity">
+            <div id="velocity-input-wrap" class="wide">
+              <div class="input-label-row">
+                <label id="velocity-input-label" for="v_inf_kms">Encounter velocity (km/s)</label>
+                <button id="toggle-encounter-input-btn" class="swap-input-btn" type="button" title="Change to eccentricity input">↔</button>
+                <button class="field-note" type="button" data-info-target="velocity-input-info" aria-label="Show encounter velocity input information"></button>
+              </div>
+              <input id="v_inf_kms" type="number" step="0.1" min="0">
+              <div class="encounter-help-space">
+                <div class="hint">Eccentricity is calculated internally from velocity and periapsis.</div>
+                <div id="velocity-input-info" class="field-info">Click ↔ to enter eccentricity instead.</div>
+              </div>
+            </div>
+            <div id="eccentricity-input-wrap" class="wide">
+              <div class="input-label-row">
+                <label id="eccentricity-input-label" for="encounter_eccentricity">Eccentricity</label>
+                <button id="toggle-eccentricity-input-btn" class="swap-input-btn" type="button" title="Change to encounter velocity input">↔</button>
+                <button class="field-note" type="button" data-info-target="eccentricity-input-info" aria-label="Show eccentricity input information"></button>
+              </div>
               <input id="encounter_eccentricity" type="number" step="0.01" min="1.0">
-              <div class="hint" id="range-encounter_eccentricity"></div>
+              <div class="encounter-help-space">
+                <div class="hint" id="range-encounter_eccentricity"></div>
+                <div class="hint">Encounter velocity will be calculated internally from this eccentricity.</div>
+                <div id="eccentricity-input-info" class="field-info">Encounter velocity will be calculated internally from this eccentricity.</div>
+              </div>
             </div>
             <div class="toggle wide">
               <input id="has_explicit_spin" type="checkbox" checked>
-              <label for="has_explicit_spin" style="margin:0;color:var(--ink)">Include spin</label>
+              <label for="has_explicit_spin" style="margin:0;color:var(--ink)">Include spin (untick for no spin)</label>
             </div>
 
             <div id="spin-axis-wrap">
@@ -660,8 +773,9 @@
                 <option value="x">x</option>
                 <option value="y">y</option>
                 <option value="z">z</option>
+                <option value="mz">mz</option>
               </select>
-              <div class="hint">Orientation of the asteroid spin axis relative to the archive coordinate frame.</div>
+              <div class="hint">x/y/z mean spin around that coordinate axis; mz means negative z, or retrograde z-axis spin.</div>
             </div>
             <div id="spin-period-wrap">
               <label for="spin_period_hr">Spin period (hr)</label>
@@ -677,28 +791,14 @@
               </div>
               <div id="form-status" class="status"></div>
             </div>
+            <div class="wide supported-range-note">
+              Supported range means the input range covered by the SPH cases used in training. The model can still predict outside this range, but those predictions are less reliable.
+            </div>
           </div>
 
-          <details class="inline-details">
-            <summary>Advanced settings</summary>
-            <div class="form-grid" style="margin-top:12px">
-              <div>
-                <label for="resolution_value">Numerical resolution</label>
-                <input id="resolution_value" type="number" step="1">
-                <div class="hint">Numerical setting for archive alignment.</div>
-              </div>
-              <div>
-                <label for="timestep">Timestep / analysis time</label>
-                <input id="timestep" type="number" step="1">
-                <div class="hint">Kept visible for expert users and reproducibility.</div>
-              </div>
-              <div class="wide">
-                <label for="fof_linking_length">FoF linking length</label>
-                <input id="fof_linking_length" type="number" step="0.0001">
-                <div class="hint">Post-processing sensitivity control; useful for diagnostics, not for physical interpretation.</div>
-              </div>
-            </div>
-          </details>
+          <input id="resolution_value" type="hidden">
+          <input id="timestep" type="hidden">
+          <input id="fof_linking_length" type="hidden">
         </form>
       </article>
 
@@ -799,6 +899,14 @@
                 <strong id="quick-bmf">-</strong>
               </div>
               <div class="quick-result-item">
+                <span>Predicted bound mass</span>
+                <strong id="quick-bound-mass">-</strong>
+              </div>
+              <div class="quick-result-item">
+                <span>Fragmentation label</span>
+                <strong id="quick-fragmentation">-</strong>
+              </div>
+              <div class="quick-result-item">
                 <span>Support</span>
                 <strong id="quick-support">-</strong>
               </div>
@@ -828,22 +936,12 @@
         </div>
       </section>
 
-      <section class="details-grid demo-secondary">
-        <article class="card">
-          <h2>Prediction Details</h2>
-          <div id="prediction-rows" class="rows">
-            <div class="row"><span>Awaiting run</span><strong>-</strong></div>
-          </div>
-        </article>
-        <article class="card">
-          <h2>Coverage / Domain Status</h2>
-          <div id="support-pill" class="pill">Awaiting run</div>
-          <div id="support-note" class="muted" style="margin-top:10px">The dashboard will report whether the case is in-range, near-edge, or sparse relative to the archive.</div>
-          <div id="support-rows" class="rows" style="margin-top:14px">
-            <div class="row"><span>Awaiting run</span><strong>-</strong></div>
-          </div>
-        </article>
-      </section>
+      <div class="demo-secondary" aria-hidden="true">
+        <div id="prediction-rows"></div>
+        <div id="support-pill"></div>
+        <div id="support-note"></div>
+        <div id="support-rows"></div>
+      </div>
 
       <details class="card demo-secondary">
         <summary>Validation and limits</summary>
@@ -911,6 +1009,13 @@
   const inputMode = document.getElementById("input_mode");
   const massInput = document.getElementById("mass_log10_kg");
   const radiusInput = document.getElementById("asteroid_radius_km_input");
+  const toggleAsteroidInputBtn = document.getElementById("toggle-asteroid-input-btn");
+  const toggleRadiusInputBtn = document.getElementById("toggle-radius-input-btn");
+  const encounterInputMode = document.getElementById("encounter_input_mode");
+  const vInfInput = document.getElementById("v_inf_kms");
+  const eccentricityInput = document.getElementById("encounter_eccentricity");
+  const toggleEncounterInputBtn = document.getElementById("toggle-encounter-input-btn");
+  const toggleEccentricityInputBtn = document.getElementById("toggle-eccentricity-input-btn");
   const resolutionInput = document.getElementById("resolution_value");
   const timestepInput = document.getElementById("timestep");
   const fofInput = document.getElementById("fof_linking_length");
@@ -954,7 +1059,10 @@
   let storyboardStage = null;
   const SAVED_RESULTS_KEY = "mars_flyby_saved_results_v1";
   const SCENARIO_COUNTER_KEY = "mars_flyby_scenario_counter_v1";
+  const RANDOM_SUPPORT_COUNTER_KEY = "mars_flyby_random_support_counter_v1";
   const SAVED_RESULTS_PAGE_SIZE = 3;
+  const MARS_MU_KM3_S2 = 4.282837e4;
+  const MARS_RADIUS_KM = 3389.5;
 
   function setStatus(el, message, mode = "") {
     el.textContent = message;
@@ -984,23 +1092,75 @@
     const useSize = inputMode.value === "size";
     massInput.disabled = useSize;
     radiusInput.disabled = !useSize;
-    document.getElementById("mass-input-wrap").style.opacity = useSize ? 0.55 : 1;
-    document.getElementById("radius-input-wrap").style.opacity = useSize ? 1 : 0.55;
+    document.getElementById("mass-input-wrap").style.display = useSize ? "none" : "";
+    document.getElementById("radius-input-wrap").style.display = useSize ? "" : "none";
   }
 
-  function switchInputMode(mode) {
-    const useSize = mode === "size";
-    if (useSize) {
-      massInput.value = "";
+  function eccentricityFromPeriapsisAndVinf(periapsisRm, velocityKms) {
+    const periapsisKm = Number(periapsisRm) * MARS_RADIUS_KM;
+    return 1.0 + (periapsisKm * (Number(velocityKms) ** 2)) / MARS_MU_KM3_S2;
+  }
+
+  function vinfFromPeriapsisAndEccentricity(periapsisRm, eccentricity) {
+    const periapsisKm = Number(periapsisRm) * MARS_RADIUS_KM;
+    return Math.sqrt(Math.max(0, (Number(eccentricity) - 1.0) * MARS_MU_KM3_S2 / periapsisKm));
+  }
+
+  function getEncounterEccentricityFromForm() {
+    const periapsis = Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0);
+    if (encounterInputMode.value === "velocity") {
+      const velocity = Number(vInfInput.value || 0);
+      return eccentricityFromPeriapsisAndVinf(periapsis, velocity);
+    }
+    return Number(eccentricityInput.value || metadata?.defaults?.encounter_eccentricity || 1.0);
+  }
+
+  function setEncounterInputState() {
+    const useVelocity = encounterInputMode.value === "velocity";
+    document.getElementById("velocity-input-wrap").style.display = useVelocity ? "" : "none";
+    document.getElementById("eccentricity-input-wrap").style.display = useVelocity ? "none" : "";
+    vInfInput.disabled = !useVelocity;
+    eccentricityInput.disabled = useVelocity;
+  }
+
+  function toggleAsteroidInputMode() {
+    const density = rockyDensityKgM3();
+    if (inputMode.value === "mass") {
+      const massLog10 = Number(massInput.value || metadata?.defaults?.mass_log10_kg || 20.0);
+      radiusInput.value = radiusFromMassLog10(massLog10, density).toFixed(1);
+      inputMode.value = "size";
     } else {
-      radiusInput.value = "";
+      const radiusKm = Number(radiusInput.value || 0);
+      if (Number.isFinite(radiusKm) && radiusKm > 0) {
+        massInput.value = massLog10FromRadius(radiusKm, density).toFixed(2);
+      }
+      inputMode.value = "mass";
     }
     setMassSizeState();
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  }
+
+  function toggleEncounterInputMode() {
+    const periapsis = Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0);
+    if (encounterInputMode.value === "velocity") {
+      eccentricityInput.value = getEncounterEccentricityFromForm().toFixed(2);
+      encounterInputMode.value = "eccentricity";
+    } else {
+      vInfInput.value = vinfFromPeriapsisAndEccentricity(
+        periapsis,
+        Number(eccentricityInput.value || metadata?.defaults?.encounter_eccentricity || 1.0),
+      ).toFixed(1);
+      encounterInputMode.value = "velocity";
+    }
+    setEncounterInputState();
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
   }
 
   function caseNameFromInputs() {
     const peri = Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0);
-    const ecc = Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0);
+    const ecc = getEncounterEccentricityFromForm();
     const spin = Number(spinPeriod.value || metadata?.defaults?.spin_period_hr || 3.0);
     const tags = [];
     if (peri <= 1.5) tags.push("lowperiapsis");
@@ -1027,7 +1187,7 @@
     const severity = outcomeDisplay(payload.predicted_outcome);
     return {
       public: `<strong>${severity.label}</strong> is the best-matching severity screen. The asteroid passes Mars at <strong>${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii</strong> with eccentricity <strong>${Number(payload.encounter_eccentricity).toFixed(2)}</strong>.`,
-      science: `The model predicts <strong>${payload.predicted_bmf_percent.toFixed(1)}% bound mass</strong> and <strong>${payload.predicted_unbound_mass_percent.toFixed(1)}% escaping fragments</strong>. Largest-remnant output remains available in <strong>Prediction Details</strong>.`,
+      science: `The model predicts <strong>${payload.predicted_bmf_percent.toFixed(1)}% bound mass</strong> and <strong>${payload.predicted_unbound_mass_percent.toFixed(1)}% escaping fragments</strong>.`,
       timing: `<strong>${payload.support_level} support</strong> underpins a <strong>${payload.recommendation}</strong> recommendation. Domain status is <strong>${payload.training_range_status}</strong> and <strong>${payload.edge_status.toLowerCase()}</strong>.`,
     };
   }
@@ -1136,12 +1296,17 @@
     }
     for (const [key, range] of Object.entries(meta.ranges || {})) {
       const hint = document.getElementById(`range-${key}`);
-      if (hint) hint.textContent = `Archive range: ${Number(range.min).toFixed(2)} to ${Number(range.max).toFixed(2)}`;
+      if (hint) hint.textContent = `Supported range: ${Number(range.min).toFixed(2)} to ${Number(range.max).toFixed(2)}`;
     }
     const caseNameEl = document.getElementById("case_name");
     if (!caseNameEl.value || caseNameEl.value === "demo_case_001" || caseNameEl.value === "mars_flyby_demo") {
       caseNameEl.value = caseNameFromInputs();
     }
+    const defaultPeriapsis = Number(meta.defaults?.periapsis_Rm || 2.0);
+    const defaultEccentricity = Number(meta.defaults?.encounter_eccentricity || 1.0);
+    encounterInputMode.value = "velocity";
+    vInfInput.value = vinfFromPeriapsisAndEccentricity(defaultPeriapsis, defaultEccentricity).toFixed(1);
+    setEncounterInputState();
     setSpinState();
     setMassSizeState();
     const validation = meta.model_validation || {};
@@ -1181,7 +1346,7 @@
       asteroid_density_kg_m3: density,
       asteroid_type: "rocky",
       periapsis_Rm: Number(document.getElementById("periapsis_Rm").value),
-      encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value),
+      encounter_eccentricity: getEncounterEccentricityFromForm(),
       has_explicit_spin: spinToggle.checked,
       spin_axis: spinAxis.value,
       spin_period_hr: spinToggle.checked ? Number(spinPeriod.value) : null,
@@ -1193,26 +1358,42 @@
 
   function randomizeScenario() {
     if (!metadata) return;
-    const ranges = metadata.ranges || {};
     const defaults = metadata.defaults || {};
-    const spinOn = Math.random() > 0.5;
-    const mass = randomInRange(ranges.mass_log10_kg.min, ranges.mass_log10_kg.max, 0.5);
     const density = rockyDensityKgM3();
-    document.getElementById("case_name").value = `m${mass.toFixed(1)}`;
-    massInput.value = mass;
-    radiusInput.value = radiusFromMassLog10(mass, density).toFixed(1);
-    document.getElementById("periapsis_Rm").value = randomInRange(ranges.periapsis_Rm.min, ranges.periapsis_Rm.max, 0.1);
-    document.getElementById("encounter_eccentricity").value = randomInRange(Math.max(1.0, ranges.encounter_eccentricity.min), ranges.encounter_eccentricity.max, 0.01);
-    spinToggle.checked = spinOn;
-    spinAxis.value = choose((metadata.choices && metadata.choices.spin_axis) || ["x", "y", "z"]);
-    spinPeriod.value = spinOn ? randomInRange(ranges.spin_period_hr.min, ranges.spin_period_hr.max, 0.1) : (defaults.spin_period_hr ?? 3.0);
+    const supportPresets = [
+      { label: "High support", mass: 20.0, periapsis: 1.6, velocity: 0.2, spinOn: false, spinAxis: "none", spinPeriod: defaults.spin_period_hr ?? 3.0 },
+      { label: "Moderate support", mass: 19.0, periapsis: 1.6, velocity: 0.2, spinOn: true, spinAxis: "z", spinPeriod: 3.0 },
+      { label: "Low support", mass: 20.0, periapsis: 1.2, velocity: 1.4, spinOn: true, spinAxis: "z", spinPeriod: 4.7 },
+    ];
+    const presetIndex = Number(localStorage.getItem(RANDOM_SUPPORT_COUNTER_KEY) || "0") % supportPresets.length;
+    const preset = supportPresets[presetIndex];
+    localStorage.setItem(RANDOM_SUPPORT_COUNTER_KEY, String(presetIndex + 1));
+    inputMode.value = "mass";
+    encounterInputMode.value = "velocity";
+    document.getElementById("case_name").value = preset.label;
+    massInput.value = preset.mass.toFixed(1);
+    radiusInput.value = radiusFromMassLog10(preset.mass, density).toFixed(1);
+    document.getElementById("periapsis_Rm").value = preset.periapsis.toFixed(1);
+    vInfInput.value = preset.velocity.toFixed(1);
+    document.getElementById("encounter_eccentricity").value = eccentricityFromPeriapsisAndVinf(
+      preset.periapsis,
+      preset.velocity,
+    ).toFixed(3);
+    vInfInput.value = vinfFromPeriapsisAndEccentricity(
+      Number(document.getElementById("periapsis_Rm").value),
+      Number(document.getElementById("encounter_eccentricity").value),
+    ).toFixed(1);
+    spinToggle.checked = preset.spinOn;
+    spinAxis.value = preset.spinAxis === "none" ? "z" : preset.spinAxis;
+    spinPeriod.value = preset.spinPeriod;
     resolutionInput.value = defaults.resolution_value;
     timestepInput.value = defaults.timestep;
     fofInput.value = defaults.fof_linking_length;
     setSpinState();
     setMassSizeState();
-    document.getElementById("case_name").value = caseNameFromInputs();
+    setEncounterInputState();
     resetResultPanels();
+    setStatus(statusEl, `${preset.label} preset loaded.`, "ok");
   }
 
   function renderSupport(payload) {
@@ -1272,7 +1453,7 @@
     const payload = latest?.input_payload || {};
     return {
       periapsis: Number(document.getElementById("periapsis_Rm").value || payload.periapsis_Rm || metadata?.defaults?.periapsis_Rm || 2.0),
-      eccentricity: Number(document.getElementById("encounter_eccentricity").value || payload.encounter_eccentricity || metadata?.defaults?.encounter_eccentricity || 1.0),
+      eccentricity: latest ? Number(payload.encounter_eccentricity || metadata?.defaults?.encounter_eccentricity || 1.0) : getEncounterEccentricityFromForm(),
       mass: Number(document.getElementById("mass_log10_kg").value || payload.mass_log10_kg || metadata?.defaults?.mass_log10_kg || 20.0),
       spin: Number(document.getElementById("spin_period_hr").value || payload.spin_period_hr || metadata?.defaults?.spin_period_hr || 3.0),
       boundPercent: Number(latest?.predicted_bmf_percent ?? 0),
@@ -1704,13 +1885,13 @@
     return {
       input_payload: {
         periapsis_Rm: Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0),
-        encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0),
+        encounter_eccentricity: getEncounterEccentricityFromForm(),
         mass_log10_kg: massLog10,
         asteroid_radius_km_input: radiusKmInput,
       },
       render_mode: "preview",
       display_radius_km: displayRadiusKm,
-      encounter_eccentricity: Number(document.getElementById("encounter_eccentricity").value || metadata?.defaults?.encounter_eccentricity || 1.0),
+      encounter_eccentricity: getEncounterEccentricityFromForm(),
       visualization: {
         periapsis_rm: Number(document.getElementById("periapsis_Rm").value || metadata?.defaults?.periapsis_Rm || 2.0),
         tidal_disruption_radius_rm: 2.7,
@@ -1731,6 +1912,8 @@
     document.getElementById("metric-recommendation").textContent = "Loading...";
     document.getElementById("metric-recommendation-sub").textContent = "Preparing the screening recommendation.";
     document.getElementById("quick-bmf").textContent = "Loading...";
+    document.getElementById("quick-bound-mass").textContent = "Loading...";
+    document.getElementById("quick-fragmentation").textContent = "Loading...";
     document.getElementById("quick-support").textContent = "Loading...";
     document.getElementById("quick-score").textContent = "Loading...";
     document.getElementById("quick-recommendation").textContent = "Loading...";
@@ -1740,12 +1923,12 @@
     document.getElementById("science-summary").innerHTML = "Loading model interpretation and retained-material estimate...";
     document.getElementById("timing-summary").innerHTML = "Loading support level and recommendation logic...";
     document.getElementById("prediction-rows").innerHTML = [
-      ["Input mode", "Loading..."],
-      ["Archive assumption", "Loading..."],
-      ["Periapsis", "Loading..."],
-      ["Eccentricity", "Loading..."],
-      ["Largest remnant", "Loading..."],
+      ["Predicted BMF", "Loading..."],
       ["Predicted bound mass", "Loading..."],
+      ["Fragmentation label", "Loading..."],
+      ["Support", "Loading..."],
+      ["Recommendation", "Loading..."],
+      ["Reason", "Loading..."],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
     document.getElementById("support-pill").textContent = "Loading...";
     document.getElementById("support-pill").className = "pill";
@@ -1757,7 +1940,7 @@
       ["Nearby archive runs", "Loading..."],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
-    storyboardCanvas.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:420px;color:#eef4ff;font-size:28px;background:#0f1a2c;border-radius:14px;">Loading screen...</div>`;
+    storyboardCanvas.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:420px;color:#3f6fd4;font-size:28px;background:#0f1a2c;border-radius:14px;">Loading screen...</div>`;
     if (storyboardStage) {
       storyboardStage.destroy();
       storyboardStage = null;
@@ -1789,13 +1972,15 @@
     document.getElementById("metric-recommendation-sub").textContent = "Screening verdict for whether SPH follow-up is needed.";
 
     document.getElementById("quick-bmf").textContent = "-";
+    document.getElementById("quick-bound-mass").textContent = "-";
+    document.getElementById("quick-fragmentation").textContent = "-";
     document.getElementById("quick-support").textContent = "-";
     document.getElementById("quick-score").textContent = "-";
     document.getElementById("quick-recommendation").textContent = "-";
     document.getElementById("quick-reason").textContent = "Run a case to show the same minimum output as the terminal demo.";
 
     document.getElementById("public-summary").innerHTML = "The dashboard summary will appear here.";
-    document.getElementById("science-summary").innerHTML = "The model interpretation will summarise disruption severity, retained mass, and whether a dominant remnant survives.";
+    document.getElementById("science-summary").innerHTML = "The model interpretation will summarise retained mass and support status.";
     document.getElementById("timing-summary").innerHTML = "This panel will explain support level, domain status, and whether ML screening is enough or SPH is recommended.";
 
     document.getElementById("prediction-rows").innerHTML = `
@@ -1829,6 +2014,8 @@
     document.getElementById("metric-recommendation").textContent = payload.recommendation;
     document.getElementById("metric-recommendation-sub").textContent = payload.recommendation_reason;
     document.getElementById("quick-bmf").textContent = `${payload.predicted_bmf_percent.toFixed(1)}%`;
+    document.getElementById("quick-bound-mass").textContent = formatKg(payload.predicted_bound_mass_kg);
+    document.getElementById("quick-fragmentation").textContent = payload.predicted_outcome;
     document.getElementById("quick-support").textContent = payload.support_level;
     document.getElementById("quick-score").textContent = `${Number(payload.support_score).toFixed(0)}/100`;
     document.getElementById("quick-recommendation").textContent = payload.recommendation;
@@ -1840,18 +2027,12 @@
     document.getElementById("timing-summary").innerHTML = summaryHtml.timing;
 
     document.getElementById("prediction-rows").innerHTML = [
-      ["Input mode", payload.input_payload.input_mode === "size" ? "Size-derived mass" : "Direct mass"],
-      ["Archive assumption", "Rocky asteroid"],
-      ["Equivalent parent mass", formatLogMassWithKg(payload.input_payload.mass_log10_kg, payload.parent_mass_kg)],
-      ["Displayed radius", payload.display_radius_km == null ? "n/a" : `${Number(payload.display_radius_km).toFixed(1)} km`],
-      ["Periapsis", `${Number(payload.input_payload.periapsis_Rm).toFixed(2)} Mars radii`],
-      ["Eccentricity", Number(payload.encounter_eccentricity).toFixed(2)],
-      ["Spin", payload.input_payload.has_explicit_spin ? `${payload.input_payload.spin_axis}-axis, ${Number(payload.input_payload.spin_period_hr).toFixed(1)} hr` : "No explicit spin"],
-      ["Numerical resolution", String(Math.round(Number(payload.input_payload.resolution_value)))],
-      ["Timestep", String(Math.round(Number(payload.input_payload.timestep)))],
-      ["FoF linking length", Number(payload.input_payload.fof_linking_length).toFixed(4)],
-      ["Largest remnant", `${payload.largest_remnant_percent.toFixed(1)}% ± ${payload.largest_remnant_uncertainty_percentage_points.toFixed(1)} pp`],
+      ["Predicted BMF", `${payload.predicted_bmf_percent.toFixed(1)}%`],
       ["Predicted bound mass", formatKg(payload.predicted_bound_mass_kg)],
+      ["Fragmentation label", payload.predicted_outcome],
+      ["Support", `${payload.support_level} (${Number(payload.support_score).toFixed(0)}/100)`],
+      ["Recommendation", payload.recommendation],
+      ["Reason", payload.recommendation_reason],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
     renderSupport(payload);
@@ -2141,11 +2322,8 @@
   });
 
   spinToggle.addEventListener("change", setSpinState);
-  inputMode.addEventListener("change", () => {
-    switchInputMode(inputMode.value);
-    refreshPreviewIfIdle();
-    renderSensitivityPanel();
-  });
+  toggleAsteroidInputBtn.addEventListener("click", toggleAsteroidInputMode);
+  toggleRadiusInputBtn.addEventListener("click", toggleAsteroidInputMode);
   massInput.addEventListener("input", () => {
     refreshPreviewIfIdle();
     renderSensitivityPanel();
@@ -2161,6 +2339,18 @@
   document.getElementById("encounter_eccentricity").addEventListener("input", () => {
     refreshPreviewIfIdle();
     renderSensitivityPanel();
+  });
+  vInfInput.addEventListener("input", () => {
+    refreshPreviewIfIdle();
+    renderSensitivityPanel();
+  });
+  toggleEncounterInputBtn.addEventListener("click", toggleEncounterInputMode);
+  toggleEccentricityInputBtn.addEventListener("click", toggleEncounterInputMode);
+  document.querySelectorAll("[data-info-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = document.getElementById(button.dataset.infoTarget);
+      if (target) target.classList.toggle("open");
+    });
   });
   spinPeriod.addEventListener("input", renderSensitivityPanel);
   sensitivityTabs.forEach((tab) => {

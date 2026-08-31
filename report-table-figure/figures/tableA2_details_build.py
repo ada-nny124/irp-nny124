@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -28,8 +30,8 @@ from ml.model_training_scripts.helper_functions_ml import (
 
 
 SOURCE_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-FIG_PATH = ROOT / "report-table-figure" / "figures" / "figureA1_used_in_report.png"
-FOLDS_PATH = ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "grouped_cv_fold_assignments.csv"
+FIG_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "tableA2_details.png"
+FOLDS_PATH = OUTPUT_BASE / "ml" / "trainingartifacts" / "derived_gb" / "grouped_cv_fold_assignments.csv"
 
 RAW_FEATURE_COLUMNS = [
     "mass_log10_kg",

@@ -2,14 +2,23 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 from collections import defaultdict
 from pathlib import Path
 
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
+
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parents[1]
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 YMAX_OVERRIDE: float | None = 0.7
 SPIN_ORDER = ("no spin", "3h z", "4.7h z")
 SPIN_LABELS = {
@@ -41,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--png-out",
-        default=str(SCRIPT_DIR / "fiugure4_used_in_report.png"),
+        default=str(OUTPUT_BASE / "report-table-figure" / "figures" / "figure4_used_in_report.png"),
         help="PNG output path.",
     )
     return parser.parse_args()

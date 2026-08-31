@@ -18,10 +18,11 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_DIR = Path(__file__).resolve().parent
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 BOUND_SOURCE = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-PREDICTIONS_SOURCE = ROOT / "report-table-figure" / "tables" / "tuned_gb_oof_predictions.csv"
-OUTPUT_PATH = SCRIPT_DIR / "figure5_used_in_report.png"
+PREDICTIONS_SOURCE = OUTPUT_BASE / "report-table-figure" / "tables" / "tuned_gb_oof_predictions.csv"
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "figures" / "figure5_used_in_report.png"
 
 NO_DATA_COLOR = "#CFCFCF"
 SUPPORT_BOUNDS = [0, 1, 5, 10, 25, 50, 100, 201]

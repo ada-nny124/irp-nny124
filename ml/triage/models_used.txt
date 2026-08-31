@@ -1,8 +1,8 @@
 Demo model inventory
 
 1. Continuous BMF
-- Artifact: ml/trainingartifacts/tuned_gradient_boosting/main_bmf_tuned_gradient_boosting.pkl
-- Training script: ml/model_training_scripts/train_tuned_gradient_boosting.py
+- Artifact: ml/trainingartifacts/tuned_gb/tuned_gb.pkl
+- Training script: ml/model_training_scripts/train_tuned_gb.py
 - Used in demo as: predicted_bmf
 - Target: bound_mass_fraction
 - Model: tuned Gradient Boosting regressor (main model)
@@ -36,7 +36,7 @@ Demo model inventory
 - Derived from the largest-fragment-mass regressor
 
 6. Model spread / disagreement benchmark
-- Artifact: ml/trainingartifacts/raw_rf/main_bmf_raw_rf.pkl
+- Artifact: ml/trainingartifacts/raw_rf/raw_rf.pkl
 - Training script: ml/model_training_scripts/train_raw_rf.py
 - Used in demo as: bmf_model_spread, model_spread_fraction, model_spread_percentage_points
 - Target: bound_mass_fraction

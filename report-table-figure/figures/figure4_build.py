@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--png-out",
-        default=str(SCRIPT_DIR / "regime_dependent_parameter_story.png"),
+        default=str(SCRIPT_DIR / "fiugure4_used_in_report.png"),
         help="PNG output path.",
     )
     return parser.parse_args()

@@ -56,37 +56,6 @@ SPIN_LABELS = {
     "retrograde_z": "Retrograde z-spin",
 }
 
-PAPER_TABLE2_ROWS = [
-    {"periapsis_Rm": 1.1, "v_inf_kms": 0.0, "paper_f_capt": 0.479},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.0, "paper_f_capt": 0.444},
-    {"periapsis_Rm": 1.3, "v_inf_kms": 0.0, "paper_f_capt": 0.424},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.0, "paper_f_capt": 0.442},
-    {"periapsis_Rm": 1.5, "v_inf_kms": 0.0, "paper_f_capt": 0.428},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.0, "paper_f_capt": 0.368},
-    {"periapsis_Rm": 1.7, "v_inf_kms": 0.0, "paper_f_capt": 0.336},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.0, "paper_f_capt": 0.235},
-    {"periapsis_Rm": 1.9, "v_inf_kms": 0.0, "paper_f_capt": 0.181},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
-    {"periapsis_Rm": 2.2, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
-    {"periapsis_Rm": 2.4, "v_inf_kms": 0.0, "paper_f_capt": 0.000},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.2, "paper_f_capt": 0.441},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.2, "paper_f_capt": 0.405},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.2, "paper_f_capt": 0.352},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.2, "paper_f_capt": 0.188},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.2, "paper_f_capt": 0.000},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.4, "paper_f_capt": 0.344},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.4, "paper_f_capt": 0.330},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.4, "paper_f_capt": 0.298},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.4, "paper_f_capt": 0.168},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.4, "paper_f_capt": 0.000},
-    {"periapsis_Rm": 1.2, "v_inf_kms": 0.6, "paper_f_capt": 0.278},
-    {"periapsis_Rm": 1.4, "v_inf_kms": 0.6, "paper_f_capt": 0.243},
-    {"periapsis_Rm": 1.6, "v_inf_kms": 0.6, "paper_f_capt": 0.213},
-    {"periapsis_Rm": 1.8, "v_inf_kms": 0.6, "paper_f_capt": 0.087},
-    {"periapsis_Rm": 2.0, "v_inf_kms": 0.6, "paper_f_capt": 0.000},
-]
-
-
 def parse_numeric_code(series: pd.Series, pattern: str, scale: float = 1.0) -> pd.Series:
     extracted = series.fillna("").astype(str).str.extract(pattern)[0]
     return pd.to_numeric(extracted, errors="coerce") / scale

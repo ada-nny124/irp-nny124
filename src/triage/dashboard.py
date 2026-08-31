@@ -36,19 +36,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 MODEL_DIR = ROOT / "ml" / "triage"
 TRAINING_ARTIFACTS_DIR = ROOT / "ml" / "trainingartifacts"
-DEPLOYED_BMF_DIR = TRAINING_ARTIFACTS_DIR / "tuned_gradient_boosting"
+DEPLOYED_BMF_DIR = TRAINING_ARTIFACTS_DIR / "tuned_gb"
 BENCHMARK_BMF_DIR = TRAINING_ARTIFACTS_DIR / "raw_rf"
-DEPLOYED_BMF_MODEL_PATH = DEPLOYED_BMF_DIR / "main_bmf_tuned_gradient_boosting.pkl"
-DEPLOYED_BMF_METRICS_PATH = DEPLOYED_BMF_DIR / "main_bmf_tuned_gradient_boosting_metrics.json"
-DEPLOYED_BMF_OOF_PATH = DEPLOYED_BMF_DIR / "main_bmf_tuned_gradient_boosting_oof_predictions.csv"
-DEPLOYED_BMF_MODEL_FALLBACK_PATH = DEPLOYED_BMF_DIR / "main_cmf_tuned_gradient_boosting.pkl"
-DEPLOYED_BMF_METRICS_FALLBACK_PATH = DEPLOYED_BMF_DIR / "main_cmf_tuned_gradient_boosting_metrics.json"
-BENCHMARK_BMF_MODEL_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf.pkl"
-BENCHMARK_BMF_METRICS_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf_metrics.json"
-BENCHMARK_BMF_OOF_PATH = BENCHMARK_BMF_DIR / "main_bmf_raw_rf_oof_predictions.csv"
-BENCHMARK_BMF_MODEL_FALLBACK_PATH = BENCHMARK_BMF_DIR / "main_cmf_raw_rf.pkl"
-BENCHMARK_BMF_METRICS_FALLBACK_PATH = BENCHMARK_BMF_DIR / "main_cmf_raw_rf_metrics.json"
-BENCHMARK_BMF_OOF_FALLBACK_PATH = BENCHMARK_BMF_DIR / "main_cmf_raw_rf_oof_predictions.csv"
+DEPLOYED_BMF_MODEL_PATH = DEPLOYED_BMF_DIR / "tuned_gb.pkl"
+DEPLOYED_BMF_METRICS_PATH = DEPLOYED_BMF_DIR / "tuned_gb_metrics.json"
+DEPLOYED_BMF_OOF_PATH = DEPLOYED_BMF_DIR / "tuned_gb_oof_predictions.csv"
+BENCHMARK_BMF_MODEL_PATH = BENCHMARK_BMF_DIR / "raw_rf.pkl"
+BENCHMARK_BMF_METRICS_PATH = BENCHMARK_BMF_DIR / "raw_rf_metrics.json"
+BENCHMARK_BMF_OOF_PATH = BENCHMARK_BMF_DIR / "raw_rf_oof_predictions.csv"
 DATASET_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
 HTML_PATH = Path(__file__).resolve().parent / "templates" / "sph_triage_dashboard.html"
 
@@ -116,12 +111,13 @@ INPUT_FIELD_ORDER = [
 ]
 
 
-def resolve_existing_path(primary: Path, fallback: Path | None = None) -> Path:
+def resolve_existing_path(primary: Path, *fallbacks: Path) -> Path:
     if primary.exists():
         return primary
-    if fallback is not None and fallback.exists():
-        return fallback
-    checked = f"{primary}" if fallback is None else f"{primary} or {fallback}"
+    for fallback in fallbacks:
+        if fallback.exists():
+            return fallback
+    checked = " or ".join(str(path) for path in (primary, *fallbacks))
     raise FileNotFoundError(f"Missing required artifact at {checked}")
 
 
@@ -152,14 +148,14 @@ def load_fragmentation_metrics() -> dict[str, object]:
 
 @lru_cache(maxsize=1)
 def load_bmf_model_bundle() -> dict[str, object]:
-    model_path = resolve_existing_path(DEPLOYED_BMF_MODEL_PATH, DEPLOYED_BMF_MODEL_FALLBACK_PATH)
+    model_path = resolve_existing_path(DEPLOYED_BMF_MODEL_PATH)
     with model_path.open("rb") as handle:
         return pickle.load(handle)
 
 
 @lru_cache(maxsize=1)
 def load_benchmark_bmf_bundle() -> dict[str, object]:
-    model_path = resolve_existing_path(BENCHMARK_BMF_MODEL_PATH, BENCHMARK_BMF_MODEL_FALLBACK_PATH)
+    model_path = resolve_existing_path(BENCHMARK_BMF_MODEL_PATH)
     with model_path.open("rb") as handle:
         return pickle.load(handle)
 
@@ -183,11 +179,11 @@ def _load_grouped_metrics(path: Path, bundle: dict[str, object] | None = None) -
 @lru_cache(maxsize=1)
 def load_bmf_metrics() -> dict[str, object]:
     bundle = load_bmf_model_bundle()
-    metrics_path = resolve_existing_path(DEPLOYED_BMF_METRICS_PATH, DEPLOYED_BMF_METRICS_FALLBACK_PATH)
+    metrics_path = resolve_existing_path(DEPLOYED_BMF_METRICS_PATH)
     oof_path = resolve_existing_path(DEPLOYED_BMF_OOF_PATH)
     metrics = _load_grouped_metrics(metrics_path, bundle)
     return {
-        "bundle_id": "tuned_gradient_boosting_bmf_v1",
+        "bundle_id": "tuned_gb_bmf_v1",
         "feature_set": "raw_inputs_with_fof",
         "model_name": "Tuned Gradient Boosting",
         "grouped_cv_r2": metrics["grouped_cv_r2"],
@@ -202,7 +198,7 @@ def load_bmf_metrics() -> dict[str, object]:
 
 @lru_cache(maxsize=1)
 def load_benchmark_bmf_metrics() -> dict[str, object]:
-    metrics_path = resolve_existing_path(BENCHMARK_BMF_METRICS_PATH, BENCHMARK_BMF_METRICS_FALLBACK_PATH)
+    metrics_path = resolve_existing_path(BENCHMARK_BMF_METRICS_PATH)
     metrics = _load_grouped_metrics(metrics_path, load_benchmark_bmf_bundle())
     return {
         "model_name": "Random Forest",
@@ -221,7 +217,7 @@ def load_bmf_prediction_records() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def load_benchmark_prediction_records() -> pd.DataFrame:
-    oof_path = resolve_existing_path(BENCHMARK_BMF_OOF_PATH, BENCHMARK_BMF_OOF_FALLBACK_PATH)
+    oof_path = resolve_existing_path(BENCHMARK_BMF_OOF_PATH)
     return pd.read_csv(oof_path, low_memory=False)
 
 
@@ -451,7 +447,7 @@ def get_support_thresholds() -> dict[str, float]:
 
 def get_selected_bound_model_metadata() -> dict[str, object]:
     metrics = load_bmf_metrics()
-    model_path = resolve_existing_path(DEPLOYED_BMF_MODEL_PATH, DEPLOYED_BMF_MODEL_FALLBACK_PATH)
+    model_path = resolve_existing_path(DEPLOYED_BMF_MODEL_PATH)
     return {
         "bundle_id": str(metrics["bundle_id"]),
         "path": str(model_path),

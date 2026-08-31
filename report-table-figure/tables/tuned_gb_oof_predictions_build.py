@@ -9,9 +9,11 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 BOUND_SOURCE = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-OOF_SOURCE = ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting_oof_predictions.csv"
-OUTPUT_PATH = Path(__file__).resolve().parent / "tuned_gb_oof_predictions.csv"
+OOF_SOURCE = OUTPUT_BASE / "ml" / "trainingartifacts" / "tuned_gb" / "tuned_gb_oof_predictions.csv"
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "tables" / "tuned_gb_oof_predictions.csv"
 
 
 def parse_numeric_code(series: pd.Series, pattern: str, scale: float = 1.0) -> pd.Series:
@@ -75,7 +77,7 @@ def build_prediction_table() -> pd.DataFrame:
     merged = oof.merge(bound_lookup, on=merge_cols, how="left", validate="many_to_one")
     merged["abs_error"] = merged["residual"].abs()
     merged["target"] = "bound_mass_fraction"
-    merged["model"] = "tuned_gradient_boosting"
+    merged["model"] = "tuned_gb"
     merged["transform"] = "identity"
     merged["predicted"] = merged["predicted_bmf"]
     merged["bound_mass_fraction"] = merged["actual_bmf"]

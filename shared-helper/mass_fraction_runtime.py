@@ -51,7 +51,7 @@ def aliased_bound_dataset(source_path: Path, target_column: str = "captured_mass
     if target_column not in frame.columns:
         raise KeyError(f"{source_path} is missing {target_column}.")
     frame["bound_mass_fraction"] = pd.to_numeric(frame[target_column], errors="coerce")
-    with tempfile.TemporaryDirectory(prefix="cmf_bound_alias_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="bmf_bound_alias_") as tmpdir:
         temp_path = Path(tmpdir) / "bound_outcomes_alias.csv"
         frame.to_csv(temp_path, index=False)
         yield temp_path
@@ -62,7 +62,7 @@ def aliased_oof_predictions(source_path: Path):
     frame = pd.read_csv(source_path, low_memory=False)
     if "target" in frame.columns:
         frame["target"] = "bound_mass_fraction"
-    with tempfile.TemporaryDirectory(prefix="cmf_oof_alias_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="bmf_oof_alias_") as tmpdir:
         temp_path = Path(tmpdir) / "oof_predictions_alias.csv"
         frame.to_csv(temp_path, index=False)
         yield temp_path

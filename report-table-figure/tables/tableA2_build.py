@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pickle
 from pathlib import Path
 
@@ -9,15 +10,17 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "tableA2_used_in_report.csv"
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "tables" / "tableA2_used_in_report.csv"
 
 MODEL_SPECS = [
-    ("Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "gradient_boosting" / "main_bmf_gradient_boosting_metrics.json"),
-    ("Tuned Gradient Boosting", ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting_metrics.json"),
-    ("Random Forest", ROOT / "ml" / "trainingartifacts" / "raw_rf" / "main_bmf_raw_rf_metrics.json"),
-    ("Tuned RF", ROOT / "ml" / "trainingartifacts" / "tuned_rf" / "main_bmf_tuned_rf_metrics.json"),
-    ("RF + derived features", ROOT / "ml" / "trainingartifacts" / "physics_rf" / "main_bmf_physics_rf_metrics.json"),
-    ("GB + derived features", ROOT / "ml" / "trainingartifacts" / "tuned_physics_gradient_boosting" / "main_bmf_tuned_physics_gradient_boosting_metrics.json")
+    ("Raw GB", OUTPUT_BASE / "ml" / "trainingartifacts" / "raw_gb" / "raw_gb_metrics.json"),
+    ("Tuned GB", OUTPUT_BASE / "ml" / "trainingartifacts" / "tuned_gb" / "tuned_gb_metrics.json"),
+    ("Raw RF", OUTPUT_BASE / "ml" / "trainingartifacts" / "raw_rf" / "raw_rf_metrics.json"),
+    ("Tuned RF", OUTPUT_BASE / "ml" / "trainingartifacts" / "tuned_rf" / "tuned_rf_metrics.json"),
+    ("Derived RF", OUTPUT_BASE / "ml" / "trainingartifacts" / "derived_rf" / "derived_rf_metrics.json"),
+    ("Derived GB", OUTPUT_BASE / "ml" / "trainingartifacts" / "derived_gb" / "derived_gb_metrics.json")
 ]
 
 

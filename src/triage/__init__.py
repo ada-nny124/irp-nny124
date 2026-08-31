@@ -1,6 +1,5 @@
 """Utilities for the SPH fragmentation triage demo tool."""
 
-from .cli import main as run_demo
 from .decision import check_training_domain, make_sph_recommendation
 from .features import add_derived_features, load_fof_data, prepare_features, validate_required_columns
 from .predict import get_artifact_status, load_artifacts, predict_cases
@@ -15,7 +14,6 @@ __all__ = [
     "make_sph_recommendation",
     "predict_cases",
     "prepare_features",
-    "run_demo",
     "serve_dashboard",
     "validate_required_columns",
 ]

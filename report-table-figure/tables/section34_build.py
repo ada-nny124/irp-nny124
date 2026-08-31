@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import pickle
 import sys
 from pathlib import Path
@@ -9,6 +10,8 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
+OUTPUT_ROOT_ENV = os.environ.get("PIPELINE_OUTPUT_ROOT")
+OUTPUT_BASE = Path(OUTPUT_ROOT_ENV).resolve() if OUTPUT_ROOT_ENV else ROOT
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -20,8 +23,8 @@ from ml.model_training_scripts.helper_functions_ml import (
 
 
 DATASET_PATH = ROOT / "extraction-outputs" / "tables" / "bound_outcomes.csv"
-MODEL_BUNDLE_PATH = ROOT / "ml" / "trainingartifacts" / "tuned_gradient_boosting" / "main_bmf_tuned_gradient_boosting.pkl"
-OUTPUT_PATH = ROOT / "report-table-figure" / "tables" / "section34_used_in_report.csv"
+MODEL_BUNDLE_PATH = OUTPUT_BASE / "ml" / "trainingartifacts" / "tuned_gb" / "tuned_gb.pkl"
+OUTPUT_PATH = OUTPUT_BASE / "report-table-figure" / "tables" / "section34_used_in_report.csv"
 
 FAMILY_SPECS = [
     {
@@ -90,11 +93,11 @@ def main() -> None:
     bundle = load_bundle(args.bundle)
     frame = add_physics_features(load_canonical_dataset(args.dataset))
     feature_columns = list(bundle["feature_columns"])
-    model_name = str(bundle["model_name"]).replace("main_bmf_", "").replace("tuned_", "")
-    if "random_forest" in model_name:
+    model_name = str(bundle["model_name"])
+    if model_name.endswith("_rf") or "random_forest" in model_name:
         eval_model_name = "random_forest"
         params = bundle.get("rf_params", {})
-    elif "gradient_boosting" in model_name:
+    elif model_name.endswith("_gb") or "gradient_boosting" in model_name:
         eval_model_name = "gradient_boosting"
         params = bundle.get("gb_params", {})
     else:

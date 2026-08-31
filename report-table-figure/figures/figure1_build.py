@@ -271,62 +271,17 @@ def draw_exact_archive_panel(ax: plt.Axes, subset: pd.DataFrame, title: str, y_m
     ax.set_ylim(0.0, y_max)
     style_axes(ax)
     add_exact_legends(ax, keep_velocities)
-def strict_reference_comparison(frame: pd.DataFrame) -> pd.DataFrame:
-    paper = pd.DataFrame(PAPER_TABLE2_ROWS)
-    strict = exact_subset(frame, "A2000", resolution_code="n65", fof_linking_length=0.0040)[
-        ["periapsis_Rm", "v_inf_kms", "captured_mass_fraction"]
-    ].copy()
-    return paper.merge(strict, on=["periapsis_Rm", "v_inf_kms"], how="left").sort_values(["v_inf_kms", "periapsis_Rm"])
-
-
-def draw_reference_linear_panel(ax: plt.Axes, comparison: pd.DataFrame) -> None:
-    velocities_present: list[float] = []
-    for velocity, rows in comparison.groupby("v_inf_kms", sort=True):
-        color = VELOCITY_COLORS.get(float(velocity), "#333333")
-        rows = rows.sort_values("periapsis_Rm")
-        velocities_present.append(float(velocity))
-        ax.plot(
-            rows["periapsis_Rm"],
-            rows["paper_f_capt"],
-            color=color,
-            linewidth=1.8,
-            linestyle="-",
-            marker="o",
-            markersize=4.0,
-            label=f"Reference {velocity:g}",
-        )
-        ax.plot(
-            rows["periapsis_Rm"],
-            rows["captured_mass_fraction"],
-            color=color,
-            linewidth=1.8,
-            linestyle="-",
-            marker="s",
-            markersize=3.8,
-            label=f"Archive {velocity:g}",
-        )
-    ax.set_title(r"Mass Fraction vs Periapsis ($10^{20}$ kg)", fontsize=12)
-    ax.set_xlabel(r"Periapsis ($R_{\mathrm{Mars}}$)", fontsize=11)
-    ax.set_ylabel("Mass Fraction")
-    ax.set_xlim(*PERI_RANGE)
-    ax.set_xticks(PERI_TICKS)
-    ax.set_ylim(0.0, 0.55)
-    style_axes(ax)
-    add_exact_legends(ax, velocities_present)
-
-
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     frame = load_frame()
     grouped_all = grouped_metric_panel(frame)
     exact_mass19 = exact_subset(frame, "A1900", resolution_code="n65", fof_linking_length=0.0020)
-    comparison = strict_reference_comparison(frame)
+    exact_mass20 = exact_subset(frame, "A2000", resolution_code="n65", fof_linking_length=0.0040)
     y_max = max(
         0.52,
         float(grouped_all["metric_median"].max()) * 1.08 if not grouped_all.empty else 0.0,
         float(exact_mass19["captured_mass_fraction"].max()) * 1.08 if not exact_mass19.empty else 0.0,
-        float(comparison["captured_mass_fraction"].max()) * 1.08 if comparison["captured_mass_fraction"].notna().any() else 0.0,
-        float(comparison["paper_f_capt"].max()) * 1.08 if comparison["paper_f_capt"].notna().any() else 0.0,
+        float(exact_mass20["captured_mass_fraction"].max()) * 1.08 if not exact_mass20.empty else 0.0,
     )
     y_max = min(0.55, y_max)
 
@@ -339,7 +294,12 @@ def main() -> None:
         r"Mass Fraction vs Periapsis ($10^{19}$ kg)",
         y_max,
     )
-    draw_reference_linear_panel(axes[1, 1], comparison)
+    draw_exact_archive_panel(
+        axes[1, 1],
+        exact_mass20,
+        r"Mass Fraction vs Periapsis ($10^{20}$ kg)",
+        y_max,
+    )
 
     for ax, panel_label in zip(axes.flat, PANEL_LABELS):
         ax.text(0.0, 1.03, panel_label, transform=ax.transAxes, ha="left", va="bottom", fontsize=10, fontweight="bold")

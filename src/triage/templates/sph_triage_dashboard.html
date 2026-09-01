@@ -859,6 +859,17 @@
         </article>
       </section>
 
+      <details class="card demo-secondary">
+        <summary>Why this support score?</summary>
+        <div class="story-box" style="margin-top:12px">
+          <strong id="support-breakdown-heading">Run a case to explain the current support score.</strong>
+          <div id="support-breakdown-level" class="muted" style="margin-top:6px">The current score is a heuristic screening summary built from training-domain status, local SPH coverage, held-out error, and model disagreement.</div>
+          <div id="support-breakdown-rows" class="rows" style="margin-top:12px"></div>
+          <div id="support-breakdown-diagnostics" class="rows" style="margin-top:12px"></div>
+          <div id="support-breakdown-warning" class="muted" style="margin-top:12px; line-height:1.6">Run a case to show the support-score warning and supporting diagnostics.</div>
+        </div>
+      </details>
+
       <section class="card split-card demo-secondary">
         <div class="split-header">
           <strong>Bound vs unbound mass split</strong>
@@ -1411,6 +1422,40 @@
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
   }
 
+  function formatSupportPenalty(value) {
+    const numeric = Number(value);
+    if (Math.abs(numeric) < 0.05) return "0";
+    return numeric.toFixed(1);
+  }
+
+  function renderSupportBreakdown(payload) {
+    const heading = document.getElementById("support-breakdown-heading");
+    const level = document.getElementById("support-breakdown-level");
+    const rows = document.getElementById("support-breakdown-rows");
+    const diagnostics = document.getElementById("support-breakdown-diagnostics");
+    const warning = document.getElementById("support-breakdown-warning");
+    const breakdown = payload.support_breakdown || {};
+    const components = Array.isArray(breakdown.components) ? breakdown.components : [];
+    const diagnosticsPayload = breakdown.diagnostics || {};
+
+    heading.textContent = `Support score: ${Number(payload.support_score).toFixed(1)} / 100`;
+    level.textContent = `${payload.support_level} support`;
+    rows.innerHTML = [
+      ["Starting score", Number(breakdown.starting_score || 100).toFixed(0)],
+      ...components.map((component) => {
+        const label = component.diagnostic ? `${component.label} (${component.diagnostic})` : component.label;
+        return [label, formatSupportPenalty(component.penalty)];
+      }),
+      ["Final support score", Number(breakdown.final_score || payload.support_score).toFixed(1)],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    diagnostics.innerHTML = [
+      ["Nearby independent SPH runs", String(Number(diagnosticsPayload.nearby_independent_sph_runs || payload.nearby_run_count || 0))],
+      ["Local grouped held-out MAE", `${Number(diagnosticsPayload.local_grouped_held_out_mae_percentage_points || 0).toFixed(1)} percentage points`],
+      ["GB-RF disagreement", `${Number(diagnosticsPayload.gb_rf_disagreement_percentage_points || payload.model_disagreement_percentage_points || 0).toFixed(1)} percentage points`],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    warning.textContent = payload.support_score_warning || "";
+  }
+
   function svgDataUri(svg) {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
@@ -1939,6 +1984,14 @@
       ["Edge status", "Loading..."],
       ["Nearby archive runs", "Loading..."],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    document.getElementById("support-breakdown-heading").textContent = "Loading support score...";
+    document.getElementById("support-breakdown-level").textContent = "Preparing the support-score explanation.";
+    document.getElementById("support-breakdown-rows").innerHTML = [
+      ["Starting score", "Loading..."],
+      ["Final support score", "Loading..."],
+    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    document.getElementById("support-breakdown-diagnostics").innerHTML = "";
+    document.getElementById("support-breakdown-warning").textContent = "Loading heuristic warning and diagnostic context...";
 
     storyboardCanvas.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:420px;color:#3f6fd4;font-size:28px;background:#0f1a2c;border-radius:14px;">Loading screen...</div>`;
     if (storyboardStage) {
@@ -1990,6 +2043,11 @@
     document.getElementById("support-pill").className = "pill";
     document.getElementById("support-note").textContent = "The dashboard will report whether the case is in-range, near-edge, or sparse relative to the archive.";
     document.getElementById("support-rows").innerHTML = "";
+    document.getElementById("support-breakdown-heading").textContent = "Run a case to explain the current support score.";
+    document.getElementById("support-breakdown-level").textContent = "The current score is a heuristic screening summary built from training-domain status, local SPH coverage, held-out error, and model disagreement.";
+    document.getElementById("support-breakdown-rows").innerHTML = "";
+    document.getElementById("support-breakdown-diagnostics").innerHTML = "";
+    document.getElementById("support-breakdown-warning").textContent = "Run a case to show the support-score warning and supporting diagnostics.";
 
     renderSplitBar();
     renderPlaceholderStoryboard();
@@ -2036,6 +2094,7 @@
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
     renderSupport(payload);
+    renderSupportBreakdown(payload);
     renderSplitBar(payload.predicted_bmf_percent, payload.predicted_unbound_mass_percent);
     renderEncounterSchematic(payload);
     renderSensitivityPanel();

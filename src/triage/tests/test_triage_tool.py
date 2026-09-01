@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -14,8 +15,10 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from triage.decision import check_training_domain, make_sph_recommendation
+from triage.dashboard import build_response_payload, compute_support_score, compute_support_score_breakdown
 from triage.features import add_derived_features, prepare_features, validate_required_columns
 from triage.predict import add_severity_from_predictions, get_artifact_status, load_artifacts, predict_cases
+from triage import cli as triage_cli
 
 
 def test_prepare_features_adds_expected_columns():
@@ -168,3 +171,205 @@ def test_load_artifacts_raises_clear_error_for_incompatible_sklearn_pickle(tmp_p
 
     with pytest.raises(RuntimeError, match="Incompatible scikit-learn model artifact"):
         load_artifacts(model_dir)
+
+
+def test_support_score_breakdown_sums_to_raw_final_and_matches_score():
+    support_flags = {
+        "in_training_range": True,
+        "near_training_edge": False,
+        "sparse_bin_flag": False,
+        "bin_count": 8,
+        "borderline_bmf": False,
+        "local_grouped_mae": 0.005,
+        "local_error_threshold": 0.01,
+        "model_spread": 0.009,
+        "spread_threshold": 0.01,
+    }
+
+    breakdown = compute_support_score_breakdown(support_flags)
+
+    penalty_sum = sum(float(component["penalty"]) for component in breakdown["components"])
+    assert breakdown["raw_final_score"] == pytest.approx(breakdown["starting_score"] + penalty_sum)
+    assert breakdown["final_score"] == pytest.approx(compute_support_score(support_flags))
+
+
+def test_support_score_breakdown_clips_to_min_and_max():
+    low_support_flags = {
+        "in_training_range": False,
+        "near_training_edge": True,
+        "sparse_bin_flag": True,
+        "bin_count": 0,
+        "borderline_bmf": True,
+        "local_grouped_mae": 0.03,
+        "local_error_threshold": 0.01,
+        "model_spread": 0.03,
+        "spread_threshold": 0.01,
+    }
+    high_support_flags = {
+        "in_training_range": True,
+        "near_training_edge": False,
+        "sparse_bin_flag": False,
+        "bin_count": 12,
+        "borderline_bmf": False,
+        "local_grouped_mae": 0.0,
+        "local_error_threshold": 0.01,
+        "model_spread": 0.0,
+        "spread_threshold": 0.01,
+    }
+
+    low_breakdown = compute_support_score_breakdown(low_support_flags)
+    high_breakdown = compute_support_score_breakdown(high_support_flags)
+
+    assert low_breakdown["raw_final_score"] < 5.0
+    assert low_breakdown["final_score"] == pytest.approx(5.0)
+    assert high_breakdown["raw_final_score"] == pytest.approx(100.0)
+    assert high_breakdown["final_score"] == pytest.approx(99.0)
+
+
+def test_build_response_payload_exposes_support_breakdown(monkeypatch):
+    support_flags = {
+        "in_training_range": True,
+        "near_training_edge": False,
+        "sparse_bin_flag": False,
+        "bin_count": 6,
+        "borderline_bmf": False,
+        "local_grouped_mae": 0.004,
+        "local_error_threshold": 0.01,
+        "model_spread": 0.007,
+        "spread_threshold": 0.01,
+    }
+
+    monkeypatch.setattr("triage.dashboard.get_selected_bound_model_metadata", lambda: {"bundle_id": "demo_bundle", "grouped_cv_mae_fraction": 0.03})
+    monkeypatch.setattr("triage.dashboard.build_support_flags", lambda result, input_df: support_flags)
+    monkeypatch.setattr("triage.dashboard.load_bmf_training_domain", lambda: {})
+    monkeypatch.setattr(
+        "triage.dashboard.check_training_domain",
+        lambda row, domain: {"status": "in_domain", "near_edge_features": [], "out_of_domain_features": []},
+    )
+    monkeypatch.setattr(
+        "triage.dashboard.load_fragmentation_metrics",
+        lambda: {"largest_fragment_mass_kg": {"median_absolute_error": 1.0e18}},
+    )
+    monkeypatch.setattr("triage.dashboard.load_demo_metadata", lambda: {"model_validation": {}, "support_thresholds": {}})
+
+    input_df = pd.DataFrame(
+        [
+            {
+                "mass_log10_kg": 20.0,
+                "periapsis_Rm": 2.0,
+                "encounter_eccentricity": 1.1,
+                "asteroid_radius_km": 95.0,
+                "v_inf_kms": 0.5,
+            }
+        ]
+    )
+    result = pd.Series(
+        {
+            "mass_log10_kg": 20.0,
+            "periapsis_Rm": 2.0,
+            "parent_mass_kg": 1.0e20,
+            "predicted_largest_fragment_mass_fraction": 0.92,
+            "bound_mass_fraction": 0.25,
+            "fragmentation_probability": 0.2,
+        }
+    )
+    payload = {
+        "case_name": "demo_case",
+        "mass_log10_kg": 20.0,
+        "periapsis_Rm": 2.0,
+        "encounter_eccentricity": 1.1,
+        "has_explicit_spin": False,
+        "spin_axis": "none",
+        "spin_period_hr": None,
+        "asteroid_density_kg_m3": 2700.0,
+        "asteroid_type": "rocky",
+        "resolution_value": 65.0,
+        "timestep": 90000.0,
+        "fof_linking_length": 0.004,
+    }
+
+    response = build_response_payload(result, input_df, payload)
+
+    assert response["support_breakdown"]["final_score"] == pytest.approx(response["support_score"])
+    assert response["support_breakdown"]["components"][0]["label"] == "Within training range"
+    assert "heuristic screening indicator" in response["support_score_warning"]
+    assert response["recommendation"] == "SPH recommended"
+    assert response["predicted_bmf_percent"] == pytest.approx(25.0)
+
+
+def test_cli_output_includes_support_breakdown_and_warning(tmp_path, monkeypatch, capsys):
+    payload = {
+        "predicted_bmf": 0.25,
+        "predicted_bound_mass_kg": 2.5e19,
+        "predicted_outcome": "Mostly intact",
+        "support_level": "High",
+        "support_score": 87.0,
+        "recommendation": "ML screening sufficient",
+        "recommendation_reason": "This query is in range, well supported, and does not trigger the current visible screening cautions.",
+        "support_score_warning": (
+            "This support score of 87.0/100 is a heuristic screening indicator. "
+            "It is not a probability that the prediction is correct, a confidence interval, or a calibrated uncertainty estimate. "
+            "The underlying diagnostics such as training-domain status, local SPH coverage, held-out error, and model disagreement should be interpreted individually."
+        ),
+        "support_breakdown": {
+            "starting_score": 100.0,
+            "final_score": 87.0,
+            "components": [
+                {"label": "Within training range", "penalty": 0.0, "diagnostic": "Within sampled range"},
+                {"label": "Not near training edge", "penalty": 0.0, "diagnostic": "Interior case"},
+                {"label": "Local SPH support", "penalty": 0.0, "diagnostic": "8 nearby independent SPH runs"},
+                {"label": "Not near 10% BMF threshold", "penalty": 0.0, "diagnostic": None},
+                {"label": "Local held-out error", "penalty": -4.0, "diagnostic": "1.8 pp"},
+                {"label": "Model disagreement", "penalty": -9.0, "diagnostic": "2.3 pp"},
+            ],
+            "diagnostics": {
+                "nearby_independent_sph_runs": 8,
+                "local_grouped_held_out_mae_percentage_points": 1.8,
+                "gb_rf_disagreement_percentage_points": 2.3,
+            },
+        },
+        "export_row": {
+            "case_name": "demo_case",
+            "predicted_bmf": 0.25,
+            "predicted_bound_mass_kg": 2.5e19,
+            "fragmentation_label": "Mostly intact",
+            "support_category": "High",
+            "support_score": 87.0,
+            "recommendation": "ML screening sufficient",
+            "recommendation_reason": "This query is in range, well supported, and does not trigger the current visible screening cautions.",
+        },
+    }
+
+    monkeypatch.setattr(triage_cli, "predict_single_payload", lambda case: payload)
+    output_path = tmp_path / "predictions.csv"
+    input_path = tmp_path / "case.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "case_name": "demo_case",
+                "mass_log10_kg": 20.0,
+                "periapsis_Rm": 2.0,
+                "encounter_eccentricity": 1.1,
+                "has_explicit_spin": False,
+                "spin_axis": "none",
+                "spin_period_hr": None,
+                "asteroid_density_kg_m3": 2700.0,
+                "asteroid_type": "rocky",
+                "resolution_value": 65.0,
+                "timestep": 90000.0,
+                "fof_linking_length": 0.004,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(sys, "argv", ["triage-cli", "--input", str(input_path), "--output", str(output_path)])
+    triage_cli.main()
+    stdout = capsys.readouterr().out
+
+    assert "Model support: High (87/100)" in stdout
+    assert "Support breakdown:" in stdout
+    assert "Starting score" in stdout
+    assert "Local held-out error (1.8 pp)" in stdout
+    assert "GB-RF disagreement: 2.3 percentage points" in stdout
+    assert "heuristic screening indicator" in stdout

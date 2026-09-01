@@ -58,6 +58,9 @@ BORDERLINE_BMF_MIN = 0.0771
 BORDERLINE_BMF_MAX = 0.1229
 HIGH_SUPPORT_MIN = 80.0
 MODERATE_SUPPORT_MIN = 60.0
+SUPPORT_SCORE_START = 100.0
+SUPPORT_SCORE_MIN = 5.0
+SUPPORT_SCORE_MAX = 99.0
 SCIENTIFIC_SEMANTICS_NOTE = (
     "Debris refers to all material outside the largest remnant. Current deployed BMF is trained on total fragment mass, "
     "so BMF and unbound values are shown as model outputs on that denominator, not as a strict additive parent-mass budget."
@@ -863,24 +866,101 @@ def make_demo_recommendation(
 
 
 def compute_support_score(support_flags: dict[str, object]) -> float:
-    score = 100.0
-    if not support_flags["in_training_range"]:
-        score -= 45.0
-    if support_flags["near_training_edge"]:
-        score -= 18.0
-    if support_flags["sparse_bin_flag"]:
-        score -= 15.0
-    if support_flags["borderline_bmf"]:
-        score -= 12.0
+    return compute_support_score_breakdown(support_flags)["final_score"]
+
+
+def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[str, object]:
+    starting_score = SUPPORT_SCORE_START
+    components: list[dict[str, object]] = []
+
+    outside_range_penalty = 45.0 if not support_flags["in_training_range"] else 0.0
+    components.append(
+        {
+            "key": "training_range",
+            "label": "Outside training range" if outside_range_penalty else "Within training range",
+            "penalty": -outside_range_penalty,
+            "diagnostic": "Outside sampled range" if outside_range_penalty else "Within sampled range",
+        }
+    )
+
+    edge_penalty = 18.0 if support_flags["near_training_edge"] else 0.0
+    components.append(
+        {
+            "key": "training_edge",
+            "label": "Near training edge" if edge_penalty else "Not near training edge",
+            "penalty": -edge_penalty,
+            "diagnostic": "Near edge" if edge_penalty else "Interior case",
+        }
+    )
+
+    sparse_penalty = 15.0 if support_flags["sparse_bin_flag"] else 0.0
+    components.append(
+        {
+            "key": "local_support",
+            "label": "Sparse local SPH support" if sparse_penalty else "Local SPH support",
+            "penalty": -sparse_penalty,
+            "diagnostic": f"{int(support_flags['bin_count'])} nearby independent SPH runs",
+        }
+    )
+
+    borderline_penalty = 12.0 if support_flags["borderline_bmf"] else 0.0
+    components.append(
+        {
+            "key": "bmf_threshold",
+            "label": "BMF near 10% screening threshold" if borderline_penalty else "Not near 10% BMF threshold",
+            "penalty": -borderline_penalty,
+            "diagnostic": None,
+        }
+    )
+
     local_threshold = float(support_flags["local_error_threshold"])
-    if local_threshold > 0:
-        local_error_ratio = min(float(support_flags["local_grouped_mae"]) / local_threshold, 2.0)
-        score -= local_error_ratio * 8.0
-    threshold = float(support_flags["spread_threshold"])
-    if threshold > 0:
-        spread_ratio = min(float(support_flags["model_spread"]) / threshold, 2.0)
-        score -= spread_ratio * 10.0
-    return float(np.clip(score, 5.0, 99.0))
+    local_grouped_mae = float(support_flags["local_grouped_mae"])
+    local_error_ratio = min(local_grouped_mae / local_threshold, 2.0) if local_threshold > 0.0 else 0.0
+    local_error_penalty = local_error_ratio * 8.0
+    components.append(
+        {
+            "key": "local_error",
+            "label": "Local held-out error",
+            "penalty": -local_error_penalty,
+            "diagnostic": f"{local_grouped_mae * 100.0:.1f} pp",
+        }
+    )
+
+    spread_threshold = float(support_flags["spread_threshold"])
+    model_spread = float(support_flags["model_spread"])
+    spread_ratio = min(model_spread / spread_threshold, 2.0) if spread_threshold > 0.0 else 0.0
+    model_disagreement_penalty = spread_ratio * 10.0
+    components.append(
+        {
+            "key": "model_disagreement",
+            "label": "Model disagreement",
+            "penalty": -model_disagreement_penalty,
+            "diagnostic": f"{model_spread * 100.0:.1f} pp",
+        }
+    )
+
+    raw_final_score = starting_score + sum(float(component["penalty"]) for component in components)
+    final_score = float(np.clip(raw_final_score, SUPPORT_SCORE_MIN, SUPPORT_SCORE_MAX))
+
+    return {
+        "starting_score": starting_score,
+        "outside_range_penalty": outside_range_penalty,
+        "edge_penalty": edge_penalty,
+        "sparse_penalty": sparse_penalty,
+        "borderline_penalty": borderline_penalty,
+        "local_error_penalty": local_error_penalty,
+        "model_disagreement_penalty": model_disagreement_penalty,
+        "raw_final_score": raw_final_score,
+        "final_score": final_score,
+        "components": components,
+        "diagnostics": {
+            "nearby_independent_sph_runs": int(support_flags["bin_count"]),
+            "local_grouped_held_out_mae_fraction": local_grouped_mae,
+            "local_grouped_held_out_mae_percentage_points": local_grouped_mae * 100.0,
+            "gb_rf_disagreement_fraction": model_spread,
+            "gb_rf_disagreement_percentage_points": model_spread * 100.0,
+        },
+    }
 
 
 def build_support_reason(support_flags: dict[str, object], support_level: str) -> str:
@@ -926,6 +1006,15 @@ def build_support_rows(support_flags: dict[str, object], support_score: float) -
             "value": f"{support_flags['model_spread'] * 100.0:.1f} percentage points",
         },
     ]
+
+
+def build_support_score_warning(support_score: float) -> str:
+    return (
+        f"This support score of {support_score:.1f}/100 is a heuristic screening indicator. "
+        "It is not a probability that the prediction is correct, a confidence interval, or a calibrated uncertainty estimate. "
+        "The underlying diagnostics such as training-domain status, local SPH coverage, held-out error, and model disagreement "
+        "should be interpreted individually."
+    )
 
 
 def build_decision_summary(
@@ -1005,7 +1094,8 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         bound_mass_fraction,
         support_flags,
     )
-    support_score = compute_support_score(support_flags)
+    support_breakdown = compute_support_score_breakdown(support_flags)
+    support_score = float(support_breakdown["final_score"])
     support_level = describe_support_level(support_score)
     support_reason = build_support_reason(support_flags, support_level)
     parent_mass_kg = float(result.get("parent_mass_kg", np.power(10.0, float(result["mass_log10_kg"]))))
@@ -1074,6 +1164,8 @@ def build_response_payload(result: pd.Series, input_df: pd.DataFrame, normalized
         "support_score": round(support_score, 1),
         "support_level": support_level,
         "support_reason": support_reason,
+        "support_breakdown": support_breakdown,
+        "support_score_warning": build_support_score_warning(support_score),
         "support_rows": build_support_rows(support_flags, support_score),
         "recommendation": recommendation,
         "recommendation_style": recommendation_style,

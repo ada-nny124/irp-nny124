@@ -141,22 +141,61 @@ def load_direct_case(args: argparse.Namespace) -> pd.DataFrame:
     return pd.DataFrame([payload])
 
 
-def prediction_rows(cases: pd.DataFrame) -> pd.DataFrame:
+def prediction_rows(cases: pd.DataFrame) -> tuple[pd.DataFrame, list[dict[str, object]]]:
     rows: list[dict[str, object]] = []
+    payloads: list[dict[str, object]] = []
     for _, case in cases.iterrows():
         result = predict_single_payload(normalize_case_for_demo(case.to_dict()))
+        payloads.append(result)
         rows.append(result["export_row"])
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows), payloads
 
 
-def print_case_summary(result: pd.DataFrame) -> None:
-    for _, row in result.reset_index(drop=True).iterrows():
-        print(f"  Predicted BMF: {float(row['predicted_bmf']) * 100.0:.1f}%")
-        print(f"  Predicted bound mass: {float(row['predicted_bound_mass_kg']):.3e} kg")
-        print(f"  Fragmentation label: {row['fragmentation_label']}")
-        print(f"  Support: {row['support_category']} ({float(row['support_score']):.0f}/100)")
-        print(f"  Recommendation: {row['recommendation']}")
-        print(f"  Reason: {row['recommendation_reason']}")
+def format_support_penalty(value: float) -> str:
+    if abs(value) < 0.05:
+        return "0"
+    return f"{value:.1f}"
+
+
+def print_support_breakdown(payload: dict[str, object]) -> None:
+    breakdown = payload.get("support_breakdown", {})
+    components = breakdown.get("components", [])
+    diagnostics = breakdown.get("diagnostics", {})
+    print("  Support breakdown:")
+    print(f"    {'Starting score':<32}{float(breakdown.get('starting_score', 100.0)):.0f}")
+    for component in components:
+        label = str(component.get("label", ""))
+        diagnostic = component.get("diagnostic")
+        if diagnostic:
+            label = f"{label} ({diagnostic})"
+        print(f"    {label:<32}{format_support_penalty(float(component.get('penalty', 0.0)))}")
+    print(f"    {'Final score':<32}{float(breakdown.get('final_score', payload.get('support_score', 0.0))):.1f}")
+    print("  Diagnostics:")
+    print(f"    Nearby independent SPH runs: {int(diagnostics.get('nearby_independent_sph_runs', payload.get('nearby_run_count', 0)))}")
+    print(
+        "    Local grouped held-out MAE: "
+        f"{float(diagnostics.get('local_grouped_held_out_mae_percentage_points', 0.0)):.1f} percentage points"
+    )
+    print(
+        "    GB-RF disagreement: "
+        f"{float(diagnostics.get('gb_rf_disagreement_percentage_points', payload.get('model_disagreement_percentage_points', 0.0))):.1f} percentage points"
+    )
+    print(
+        "  Note: "
+        f"{payload.get('support_score_warning', 'Support score is a heuristic screening indicator, not a probability of correctness or calibrated uncertainty.')}"
+    )
+
+
+def print_case_summary(result: list[dict[str, object]]) -> None:
+    for payload in result:
+        print(f"  Predicted BMF: {float(payload['predicted_bmf']) * 100.0:.1f}%")
+        print(f"  Predicted bound mass: {float(payload['predicted_bound_mass_kg']):.3e} kg")
+        print(f"  Fragmentation label: {payload['predicted_outcome']}")
+        print(f"  Model support: {payload['support_level']} ({float(payload['support_score']):.0f}/100)")
+        print(f"  Recommendation: {payload['recommendation']}")
+        print(f"  Reason: {payload['recommendation_reason']}")
+        print()
+        print_support_breakdown(payload)
         print()
 
 
@@ -167,12 +206,12 @@ def main() -> None:
         return
 
     cases = load_direct_case(args) if has_direct_case_args(args) else load_cases(args.input)
-    result = prediction_rows(cases)
+    result, payloads = prediction_rows(cases)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(args.output, index=False)
 
-    print_case_summary(result)
+    print_case_summary(payloads)
     print(f"Saved full prediction table to {args.output}")
 
 

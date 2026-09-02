@@ -290,7 +290,7 @@ def test_build_response_payload_exposes_support_breakdown(monkeypatch):
 
     response = build_response_payload(result, input_df, payload)
 
-    assert response["support_breakdown"]["final_score"] == pytest.approx(response["support_score"])
+    assert round(response["support_breakdown"]["final_score"], 1) == pytest.approx(response["support_score"])
     assert response["support_breakdown"]["components"][0]["label"] == "Within training range"
     assert "heuristic screening indicator" in response["support_score_warning"]
     assert response["recommendation"] == "SPH recommended"

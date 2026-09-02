@@ -873,7 +873,7 @@ def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[st
     starting_score = SUPPORT_SCORE_START
     components: list[dict[str, object]] = []
 
-    outside_range_penalty = 45.0 if not support_flags["in_training_range"] else 0.0
+    outside_range_penalty = 40.0 if not support_flags["in_training_range"] else 0.0
     components.append(
         {
             "key": "training_range",
@@ -883,7 +883,7 @@ def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[st
         }
     )
 
-    edge_penalty = 18.0 if support_flags["near_training_edge"] else 0.0
+    edge_penalty = 20.0 if support_flags["near_training_edge"] else 0.0
     components.append(
         {
             "key": "training_edge",
@@ -903,7 +903,7 @@ def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[st
         }
     )
 
-    borderline_penalty = 12.0 if support_flags["borderline_bmf"] else 0.0
+    borderline_penalty = 10.0 if support_flags["borderline_bmf"] else 0.0
     components.append(
         {
             "key": "bmf_threshold",
@@ -916,7 +916,7 @@ def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[st
     local_threshold = float(support_flags["local_error_threshold"])
     local_grouped_mae = float(support_flags["local_grouped_mae"])
     local_error_ratio = min(local_grouped_mae / local_threshold, 2.0) if local_threshold > 0.0 else 0.0
-    local_error_penalty = local_error_ratio * 8.0
+    local_error_penalty = local_error_ratio * 7.5
     components.append(
         {
             "key": "local_error",
@@ -929,7 +929,7 @@ def compute_support_score_breakdown(support_flags: dict[str, object]) -> dict[st
     spread_threshold = float(support_flags["spread_threshold"])
     model_spread = float(support_flags["model_spread"])
     spread_ratio = min(model_spread / spread_threshold, 2.0) if spread_threshold > 0.0 else 0.0
-    model_disagreement_penalty = spread_ratio * 10.0
+    model_disagreement_penalty = spread_ratio * 7.5
     components.append(
         {
             "key": "model_disagreement",

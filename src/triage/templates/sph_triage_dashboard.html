@@ -318,10 +318,18 @@
     padding:12px;
     background:#ffffff;
   }
-  .metric .label{
+  .metric-label-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
     margin-bottom:8px;
+  }
+  .metric .label{
     font-size:11px;
     color:var(--muted);
+  }
+  .metric-label-row .label{
+    margin-bottom:0;
   }
   .metric .value{
     font-size:clamp(17px, 1.8vw, 20px);
@@ -352,6 +360,115 @@
     font-size:11px;
     color:var(--muted);
     line-height:1.4;
+  }
+  .support-info-panel{
+    margin-top:10px;
+    border:1px solid #dce5ee;
+    border-radius:14px;
+    background:#f7fafc;
+    padding:12px;
+  }
+  .support-info-panel[hidden]{
+    display:none;
+  }
+  .support-info-panel .rows{
+    gap:8px;
+  }
+  .support-info-panel .row{
+    font-size:12px;
+    padding-bottom:6px;
+  }
+  .support-info-panel .row span{
+    max-width:70%;
+    line-height:1.4;
+  }
+  .support-info-title{
+    display:block;
+    margin-bottom:6px;
+    font-size:12px;
+  }
+  .support-info-warning{
+    margin-top:10px;
+    font-size:11px;
+    line-height:1.5;
+    color:#52657d;
+  }
+  .support-score-label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:4px;
+  }
+  .support-score-label span{
+    margin-bottom:0;
+  }
+  .support-score-label .field-note{
+    width:18px;
+    height:18px;
+  }
+  .support-score-label .field-note::before{
+    font-size:10px;
+  }
+  .modal-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(8, 18, 32, 0.55);
+  }
+  .modal-backdrop[hidden]{
+    display:none;
+  }
+  .modal-panel{
+    width:min(760px, 100%);
+    max-height:min(88vh, 820px);
+    overflow:auto;
+    border:1px solid #d6dfeb;
+    border-radius:22px;
+    background:#ffffff;
+    box-shadow:0 28px 60px rgba(15, 26, 44, 0.26);
+    padding:18px;
+  }
+  .modal-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .modal-header strong{
+    display:block;
+    margin-bottom:4px;
+    font-size:18px;
+  }
+  .modal-close{
+    min-height:0;
+    border:1px solid #cfd7e2;
+    border-radius:999px;
+    padding:4px 10px;
+    background:#ffffff;
+    color:#5f728c;
+    font-size:12px;
+    font-weight:700;
+  }
+  .modal-close:hover{
+    background:#f3f6f8;
+    border-color:#b9c5d2;
+  }
+  .support-breakdown-block{
+    margin-top:12px;
+    border:1px solid #dce5ee;
+    border-radius:16px;
+    background:#f8fbfe;
+    padding:12px;
+  }
+  .support-breakdown-block strong{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
   }
   .split-card{
     padding:14px 16px 16px;
@@ -848,7 +965,9 @@
           <div id="metric-escaping-sub" class="sub">Absolute escaping mass will appear here after a run.</div>
         </article>
         <article class="metric">
-          <div class="label">Coverage / support</div>
+          <div class="metric-label-row">
+            <div class="label">Coverage / support</div>
+          </div>
           <div id="metric-support" class="value">-</div>
           <div id="metric-support-sub" class="sub">Training-range and neighbourhood support summary.</div>
         </article>
@@ -922,7 +1041,10 @@
                 <strong id="quick-support">-</strong>
               </div>
               <div class="quick-result-item">
-                <span>Support score</span>
+                <div class="support-score-label">
+                  <span>Support score</span>
+                  <button class="field-note" id="support-score-modal-btn" type="button" aria-label="Show support score explanation"></button>
+                </div>
                 <strong id="quick-score">-</strong>
               </div>
               <div class="quick-result-item">
@@ -958,6 +1080,27 @@
         <summary>Validation and limits</summary>
         <div id="validation-note" class="muted" style="margin-top:12px; line-height:1.6">This section summarises model quality, typical grouped held-out error, and where local support is weaker.</div>
       </details>
+
+      <div id="support-score-modal" class="modal-backdrop" hidden>
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="support-modal-heading">
+          <div class="modal-header">
+            <div>
+              <strong id="support-modal-heading">Support score explanation</strong>
+              <div id="support-modal-level" class="muted">Run a case to inspect the current support score.</div>
+            </div>
+            <button id="support-modal-close" class="modal-close" type="button">Close</button>
+          </div>
+          <div class="support-breakdown-block">
+            <strong id="support-modal-score-line">Support score: - / 100</strong>
+            <div id="support-modal-rows" class="rows"></div>
+          </div>
+          <div class="support-breakdown-block">
+            <strong>Diagnostics</strong>
+            <div id="support-modal-diagnostics" class="rows"></div>
+          </div>
+          <div id="support-modal-warning" class="support-info-warning">Run a case to show the support-score warning and supporting diagnostics.</div>
+        </div>
+      </div>
 
       <article class="card demo-secondary">
         <h2>Saved Results</h2>
@@ -1053,6 +1196,9 @@
   const savedPageNoteEl = document.getElementById("saved-page-note");
   const savedPrevBtn = document.getElementById("saved-prev-btn");
   const savedNextBtn = document.getElementById("saved-next-btn");
+  const supportScoreModalBtn = document.getElementById("support-score-modal-btn");
+  const supportScoreModal = document.getElementById("support-score-modal");
+  const supportModalCloseBtn = document.getElementById("support-modal-close");
   const sensitivityChart = document.getElementById("sensitivity-chart");
   const sensitivityTitle = document.getElementById("sensitivity-title");
   const sensitivitySubtitle = document.getElementById("sensitivity-subtitle");
@@ -1089,6 +1235,7 @@
     downloadSavedBtn.disabled = !hasSaved;
     clearSavedBtn.disabled = !hasSaved;
     bulkResultsBtn.disabled = !hasBatch;
+    supportScoreModalBtn.disabled = !hasCurrent;
   }
 
   function setSpinState() {
@@ -1411,6 +1558,7 @@
     const pill = document.getElementById("support-pill");
     pill.textContent = `${payload.support_level} support`;
     pill.className = `pill ${supportClass(payload.support_level)}`;
+    document.getElementById("metric-support").textContent = `${payload.support_level} (${Number(payload.support_score).toFixed(0)}/100)`;
     document.getElementById("support-note").textContent = payload.support_reason;
     document.getElementById("support-rows").innerHTML = [
       ["Support score", `${Number(payload.support_score).toFixed(0)}/100`],
@@ -1420,6 +1568,38 @@
       ["Model disagreement", `${Number(payload.model_spread_percentage_points).toFixed(2)} pp`],
       ["Recommendation basis", payload.recommendation_reason],
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  }
+
+  function closeSupportScoreModal() {
+    supportScoreModal.hidden = true;
+  }
+
+  function openSupportScoreModal() {
+    if (!latest) return;
+    renderSupportBreakdown(latest);
+    supportScoreModal.hidden = false;
+  }
+
+  function supportBreakdownRowData(payload) {
+    const breakdown = payload.support_breakdown || {};
+    const components = Array.isArray(breakdown.components) ? breakdown.components : [];
+    return [
+      ["Starting score", Number(breakdown.starting_score || 100).toFixed(0)],
+      ...components.map((component) => {
+        const label = component.diagnostic ? `${component.label} (${component.diagnostic})` : component.label;
+        return [label, formatSupportPenalty(component.penalty)];
+      }),
+      ["Final support score", Number(breakdown.final_score || payload.support_score).toFixed(1)],
+    ];
+  }
+
+  function supportDiagnosticsRowData(payload) {
+    const diagnosticsPayload = (payload.support_breakdown || {}).diagnostics || {};
+    return [
+      ["Nearby independent SPH runs", String(Number(diagnosticsPayload.nearby_independent_sph_runs || payload.nearby_run_count || 0))],
+      ["Local grouped held-out MAE", `${Number(diagnosticsPayload.local_grouped_held_out_mae_percentage_points || 0).toFixed(1)} percentage points`],
+      ["GB-RF disagreement", `${Number(diagnosticsPayload.gb_rf_disagreement_percentage_points || payload.model_disagreement_percentage_points || 0).toFixed(1)} percentage points`],
+    ];
   }
 
   function formatSupportPenalty(value) {
@@ -1434,26 +1614,31 @@
     const rows = document.getElementById("support-breakdown-rows");
     const diagnostics = document.getElementById("support-breakdown-diagnostics");
     const warning = document.getElementById("support-breakdown-warning");
-    const breakdown = payload.support_breakdown || {};
-    const components = Array.isArray(breakdown.components) ? breakdown.components : [];
-    const diagnosticsPayload = breakdown.diagnostics || {};
+    const modalHeading = document.getElementById("support-modal-heading");
+    const modalLevel = document.getElementById("support-modal-level");
+    const modalScoreLine = document.getElementById("support-modal-score-line");
+    const modalRows = document.getElementById("support-modal-rows");
+    const modalDiagnostics = document.getElementById("support-modal-diagnostics");
+    const modalWarning = document.getElementById("support-modal-warning");
+    const breakdownRows = supportBreakdownRowData(payload);
+    const diagnosticRows = supportDiagnosticsRowData(payload);
+    const warningText = payload.support_score_warning || "";
+    const headingText = `Support score: ${Number(payload.support_score).toFixed(1)} / 100`;
+    const levelText = `${payload.support_level} support`;
+    const rowsHtml = breakdownRows.map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    const diagnosticsHtml = diagnosticRows.map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
-    heading.textContent = `Support score: ${Number(payload.support_score).toFixed(1)} / 100`;
-    level.textContent = `${payload.support_level} support`;
-    rows.innerHTML = [
-      ["Starting score", Number(breakdown.starting_score || 100).toFixed(0)],
-      ...components.map((component) => {
-        const label = component.diagnostic ? `${component.label} (${component.diagnostic})` : component.label;
-        return [label, formatSupportPenalty(component.penalty)];
-      }),
-      ["Final support score", Number(breakdown.final_score || payload.support_score).toFixed(1)],
-    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
-    diagnostics.innerHTML = [
-      ["Nearby independent SPH runs", String(Number(diagnosticsPayload.nearby_independent_sph_runs || payload.nearby_run_count || 0))],
-      ["Local grouped held-out MAE", `${Number(diagnosticsPayload.local_grouped_held_out_mae_percentage_points || 0).toFixed(1)} percentage points`],
-      ["GB-RF disagreement", `${Number(diagnosticsPayload.gb_rf_disagreement_percentage_points || payload.model_disagreement_percentage_points || 0).toFixed(1)} percentage points`],
-    ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
-    warning.textContent = payload.support_score_warning || "";
+    heading.textContent = headingText;
+    level.textContent = levelText;
+    rows.innerHTML = rowsHtml;
+    diagnostics.innerHTML = diagnosticsHtml;
+    warning.textContent = warningText;
+    modalHeading.textContent = "Support score explanation";
+    modalLevel.textContent = levelText;
+    modalScoreLine.textContent = headingText;
+    modalRows.innerHTML = rowsHtml;
+    modalDiagnostics.innerHTML = diagnosticsHtml;
+    modalWarning.textContent = warningText;
   }
 
   function svgDataUri(svg) {
@@ -1992,6 +2177,13 @@
     ].map(([label, value]) => `<div class="row"><span>${label}</span><strong>${value}</strong></div>`).join("");
     document.getElementById("support-breakdown-diagnostics").innerHTML = "";
     document.getElementById("support-breakdown-warning").textContent = "Loading heuristic warning and diagnostic context...";
+    document.getElementById("support-score-modal").hidden = true;
+    document.getElementById("support-modal-level").textContent = "Preparing the support-score explanation.";
+    document.getElementById("support-modal-score-line").textContent = "Support score: Loading...";
+    document.getElementById("support-modal-rows").innerHTML = "";
+    document.getElementById("support-modal-diagnostics").innerHTML = "";
+    document.getElementById("support-modal-warning").textContent = "Loading heuristic warning and diagnostic context...";
+    closeSupportScoreModal();
 
     storyboardCanvas.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:420px;color:#3f6fd4;font-size:28px;background:#0f1a2c;border-radius:14px;">Loading screen...</div>`;
     if (storyboardStage) {
@@ -2048,6 +2240,13 @@
     document.getElementById("support-breakdown-rows").innerHTML = "";
     document.getElementById("support-breakdown-diagnostics").innerHTML = "";
     document.getElementById("support-breakdown-warning").textContent = "Run a case to show the support-score warning and supporting diagnostics.";
+    document.getElementById("support-score-modal").hidden = true;
+    document.getElementById("support-modal-level").textContent = "Run a case to inspect the current support score.";
+    document.getElementById("support-modal-score-line").textContent = "Support score: - / 100";
+    document.getElementById("support-modal-rows").innerHTML = "";
+    document.getElementById("support-modal-diagnostics").innerHTML = "";
+    document.getElementById("support-modal-warning").textContent = "Run a case to show the support-score warning and supporting diagnostics.";
+    closeSupportScoreModal();
 
     renderSplitBar();
     renderPlaceholderStoryboard();
@@ -2067,7 +2266,6 @@
     document.getElementById("metric-escaping").textContent =
       `${payload.predicted_unbound_mass_percent.toFixed(1)}%`;
     document.getElementById("metric-escaping-sub").textContent = formatMassOfParent(payload.predicted_unbound_mass_kg, payload.parent_mass_kg, "remaining in escaping fragments from the initial");
-    document.getElementById("metric-support").textContent = payload.support_level;
     document.getElementById("metric-support-sub").textContent = payload.support_reason;
     document.getElementById("metric-recommendation").textContent = payload.recommendation;
     document.getElementById("metric-recommendation-sub").textContent = payload.recommendation_reason;
@@ -2098,7 +2296,7 @@
     renderSplitBar(payload.predicted_bmf_percent, payload.predicted_unbound_mass_percent);
     renderEncounterSchematic(payload);
     renderSensitivityPanel();
-    setStatus(statusEl, `Finished loading results for ${payload.case_name}.`, "ok");
+    setStatus(statusEl, "Finished loading results.", "ok");
     updateActionStates();
   }
 
@@ -2379,6 +2577,18 @@
     savedResultsPage = Math.min(totalPages - 1, savedResultsPage + 1);
     renderSavedResults();
   });
+  supportScoreModalBtn.addEventListener("click", openSupportScoreModal);
+  supportModalCloseBtn.addEventListener("click", closeSupportScoreModal);
+  supportScoreModal.addEventListener("click", (event) => {
+    if (event.target === supportScoreModal) {
+      closeSupportScoreModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !supportScoreModal.hidden) {
+      closeSupportScoreModal();
+    }
+  });
 
   spinToggle.addEventListener("change", setSpinState);
   toggleAsteroidInputBtn.addEventListener("click", toggleAsteroidInputMode);
@@ -2408,7 +2618,12 @@
   document.querySelectorAll("[data-info-target]").forEach((button) => {
     button.addEventListener("click", () => {
       const target = document.getElementById(button.dataset.infoTarget);
-      if (target) target.classList.toggle("open");
+      if (!target) return;
+      if (target.classList.contains("field-info")) {
+        target.classList.toggle("open");
+        return;
+      }
+      target.hidden = !target.hidden;
     });
   });
   spinPeriod.addEventListener("input", renderSensitivityPanel);

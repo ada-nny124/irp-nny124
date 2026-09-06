@@ -172,56 +172,50 @@ def write_csv(path, rows, fieldnames):
 def compute_particle_level_metrics(snapshot_path, fallback_mars_mass_kg, mars_hill_radius_m):
     with h5py.File(snapshot_path, "r") as handle:
         part_group = get_part_group(handle)
-        masses_kg = particle_masses_kg(handle, part_group)
-        pos_m = positions_m(handle, part_group)
-        vel_m_s = velocities_m_s(part_group)
-        mars_mass_kg = point_mass_kg(handle, fallback_mars_mass_kg)
+        masses_kg = particle_masses_kg(handle, part_group)  # get each particle's mass
+        pos_m = positions_m(handle, part_group)  # get x, y, z
+        vel_m_s = velocities_m_s(part_group)  # get vx, vy, vz
+        mars_mass_kg = point_mass_kg(handle, fallback_mars_mass_kg)  # get Mars mass
         time_raw = handle["Header"].attrs["Time"]
         time_code = float(time_raw[0] if hasattr(time_raw, "__len__") else time_raw)
-
-    mu = GRAVITATIONAL_CONSTANT * mars_mass_kg
-    radius_m = np.linalg.norm(pos_m, axis=1)
-    speed_sq = np.sum(vel_m_s * vel_m_s, axis=1)
-    valid_radius = np.isfinite(radius_m) & (radius_m > 0.0)
-    specific_energy = np.full(len(radius_m), np.nan, dtype=np.float64)
-    specific_energy[valid_radius] = 0.5 * speed_sq[valid_radius] - mu / radius_m[valid_radius]
-    energy_bound_mask = np.isfinite(specific_energy) & (specific_energy < 0.0)
-
-    angular_momentum = np.cross(pos_m, vel_m_s)
-    h_sq = np.sum(angular_momentum * angular_momentum, axis=1)
-    eccentricity_sq = np.full(len(radius_m), np.nan, dtype=np.float64)
-    finite_orbit = np.isfinite(specific_energy) & np.isfinite(h_sq)
-    eccentricity_sq[finite_orbit] = 1.0 + (2.0 * specific_energy[finite_orbit] * h_sq[finite_orbit]) / (mu * mu)
-    eccentricity = np.sqrt(np.maximum(eccentricity_sq, 0.0))
-
-    semi_major_axis_m = np.full(len(radius_m), np.nan, dtype=np.float64)
-    valid_bound = energy_bound_mask & (np.abs(specific_energy) > 0.0)
-    semi_major_axis_m[valid_bound] = -mu / (2.0 * specific_energy[valid_bound])
-
-    apoapsis_m = np.full(len(radius_m), np.nan, dtype=np.float64)
-    apoapsis_m[valid_bound] = semi_major_axis_m[valid_bound] * (1.0 + eccentricity[valid_bound])
-    bound_mask = energy_bound_mask & np.isfinite(apoapsis_m) & (apoapsis_m < mars_hill_radius_m)
-
-    target_mass_kg = float(np.sum(masses_kg))
-    energy_bound_mass_kg = float(np.sum(masses_kg[energy_bound_mask]))
-    bound_mass_kg = float(np.sum(masses_kg[bound_mask]))
-    unbound_mass_kg = target_mass_kg - bound_mass_kg
-
+    mu = GRAVITATIONAL_CONSTANT * mars_mass_kg  # calculate Mars gravity parameter: μ = G × M_Mars
+    radius_m = np.linalg.norm(pos_m, axis=1)  # calculate distance r: r = √(x² + y² + z²)
+    speed_sq = np.sum(vel_m_s * vel_m_s, axis=1)  # calculate speed v: v² = vx² + vy² + vz²
+    valid_radius = np.isfinite(radius_m) & (radius_m > 0.0)  # check distance is valid
+    specific_energy = np.full(len(radius_m), np.nan, dtype=np.float64)  # make space to store orbital energy for each particle
+    specific_energy[valid_radius] = 0.5 * speed_sq[valid_radius] - mu / radius_m[valid_radius]  # calculate orbital energy: ε = v²/2 − μ/r
+    energy_bound_mask = np.isfinite(specific_energy) & (specific_energy < 0.0)  # check ε < 0: negative energy = bound to Mars
+    angular_momentum = np.cross(pos_m, vel_m_s)  # calculate orbit: h = r × v = angular momentum
+    h_sq = np.sum(angular_momentum * angular_momentum, axis=1)  # calculate h² = angular momentum squared
+    eccentricity_sq = np.full(len(radius_m), np.nan, dtype=np.float64)  # make space to store eccentricity
+    finite_orbit = np.isfinite(specific_energy) & np.isfinite(h_sq)  # check orbital values are valid
+    eccentricity_sq[finite_orbit] = 1.0 + (2.0 * specific_energy[finite_orbit] * h_sq[finite_orbit]) / (mu * mu)  # calculate eccentricity: e² = 1 + (2εh² / μ²)
+    eccentricity = np.sqrt(np.maximum(eccentricity_sq, 0.0))  # e = eccentricity
+    semi_major_axis_m = np.full(len(radius_m), np.nan, dtype=np.float64)  # make space to store semi-major axis
+    valid_bound = energy_bound_mask & (np.abs(specific_energy) > 0.0)  # only calculate orbit for particles with negative energy
+    semi_major_axis_m[valid_bound] = -mu / (2.0 * specific_energy[valid_bound])  # calculate orbit: a = −μ / (2ε) = semi-major axis
+    apoapsis_m = np.full(len(radius_m), np.nan, dtype=np.float64)  # make space to store apoapsis
+    apoapsis_m[valid_bound] = semi_major_axis_m[valid_bound] * (1.0 + eccentricity[valid_bound])  # calculate apoapsis: Q = a(1 + e)
+    bound_mask = energy_bound_mask & np.isfinite(apoapsis_m) & (apoapsis_m < mars_hill_radius_m)  # check ε < 0 AND apoapsis < Mars Hill radius
+    target_mass_kg = float(np.sum(masses_kg))  # add mass of all asteroid particles = total original asteroid mass
+    energy_bound_mass_kg = float(np.sum(masses_kg[energy_bound_mask]))  # add masses of particles with ε < 0
+    bound_mass_kg = float(np.sum(masses_kg[bound_mask]))  # add masses of particles that pass both checks = captured mass
+    unbound_mass_kg = target_mass_kg - bound_mass_kg  # mass that does not count as captured
     return {
         "raw_hdf5_path": str(snapshot_path.resolve()),
-        "target_mass_kg": target_mass_kg,
-        "energy_bound_mass_kg": energy_bound_mass_kg,
-        "bound_mass_kg": bound_mass_kg,
-        "captured_mass_kg": bound_mass_kg,
+        "target_mass_kg": target_mass_kg,  # total original asteroid mass
+        "energy_bound_mass_kg": energy_bound_mass_kg,  # mass with negative orbital energy
+        "bound_mass_kg": bound_mass_kg,  # captured mass after both checks
+        "captured_mass_kg": bound_mass_kg,  # captured mass after both checks
         "unbound_mass_kg": unbound_mass_kg,
-        "energy_bound_mass_fraction": energy_bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
-        "f_bnd_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
-        "f_capt_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
+        "energy_bound_mass_fraction": energy_bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,  # negative-energy mass / total asteroid mass
+        "f_bnd_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,  # BMF = captured mass / total original asteroid mass
+        "f_capt_parent": bound_mass_kg / target_mass_kg if target_mass_kg else math.nan,  # BMF = captured mass / total original asteroid mass
         "unbound_mass_fraction_parent": unbound_mass_kg / target_mass_kg if target_mass_kg else math.nan,
         "particle_count": int(len(masses_kg)),
         "energy_bound_particle_count": int(np.count_nonzero(energy_bound_mask)),
-        "bound_particle_count": int(np.count_nonzero(bound_mask)),
-        "captured_particle_count": int(np.count_nonzero(bound_mask)),
+        "bound_particle_count": int(np.count_nonzero(bound_mask)),  # count particles that pass both checks
+        "captured_particle_count": int(np.count_nonzero(bound_mask)),  # count particles that pass both checks
         "mars_mass_kg": mars_mass_kg,
         "mars_hill_radius_m": mars_hill_radius_m,
         "time_code_units": time_code,

@@ -17,41 +17,10 @@ from typing import Any
 import h5py
 import numpy as np
 
-
 GRAVITATIONAL_CONSTANT = 6.67430e-11
 DEFAULT_MARS_MASS_KG = 6.4171e23
 DEFAULT_MARS_HILL_RADIUS_M = 1.08e9
 PREFERRED_FOF_LINKING_LENGTH = 0.004
-
-PAPER_TABLE2_ROWS = [
-    {"scenario": "A2000_n65_r11_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r11", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.526, "paper_f_capt": 0.479},
-    {"scenario": "A2000_n65_r12_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r12", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.516, "paper_f_capt": 0.444},
-    {"scenario": "A2000_n65_r13_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r13", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.516, "paper_f_capt": 0.424},
-    {"scenario": "A2000_n65_r14_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r14", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.513, "paper_f_capt": 0.442},
-    {"scenario": "A2000_n65_r15_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r15", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.434, "paper_f_capt": 0.428},
-    {"scenario": "A2000_n65_r16_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r16", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.466, "paper_f_capt": 0.368},
-    {"scenario": "A2000_n65_r17_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r17", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.388, "paper_f_capt": 0.336},
-    {"scenario": "A2000_n65_r18_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r18", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.238, "paper_f_capt": 0.235},
-    {"scenario": "A2000_n65_r19_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r19", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.181, "paper_f_capt": 0.181},
-    {"scenario": "A2000_n65_r20_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r20", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.000, "paper_f_capt": 0.000},
-    {"scenario": "A2000_n65_r22_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r22", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.000, "paper_f_capt": 0.000},
-    {"scenario": "A2000_n65_r24_v00_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r24", "velocity_code": "v00", "spin_code": "", "paper_f_bnd": 0.000, "paper_f_capt": 0.000},
-    {"scenario": "A2000_n65_r12_v02_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r12", "velocity_code": "v02", "spin_code": "", "paper_f_bnd": 0.493, "paper_f_capt": 0.441},
-    {"scenario": "A2000_n65_r14_v02_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r14", "velocity_code": "v02", "spin_code": "", "paper_f_bnd": 0.452, "paper_f_capt": 0.405},
-    {"scenario": "A2000_n65_r16_v02_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r16", "velocity_code": "v02", "spin_code": "", "paper_f_bnd": 0.392, "paper_f_capt": 0.352},
-    {"scenario": "A2000_n65_r18_v02_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r18", "velocity_code": "v02", "spin_code": "", "paper_f_bnd": 0.237, "paper_f_capt": 0.188},
-    {"scenario": "A2000_n65_r20_v02_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r20", "velocity_code": "v02", "spin_code": "", "paper_f_bnd": 0.121, "paper_f_capt": 0.000},
-    {"scenario": "A2000_n65_r12_v04_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r12", "velocity_code": "v04", "spin_code": "", "paper_f_bnd": 0.426, "paper_f_capt": 0.344},
-    {"scenario": "A2000_n65_r14_v04_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r14", "velocity_code": "v04", "spin_code": "", "paper_f_bnd": 0.380, "paper_f_capt": 0.330},
-    {"scenario": "A2000_n65_r16_v04_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r16", "velocity_code": "v04", "spin_code": "", "paper_f_bnd": 0.334, "paper_f_capt": 0.298},
-    {"scenario": "A2000_n65_r18_v04_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r18", "velocity_code": "v04", "spin_code": "", "paper_f_bnd": 0.183, "paper_f_capt": 0.168},
-    {"scenario": "A2000_n65_r20_v04_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r20", "velocity_code": "v04", "spin_code": "", "paper_f_bnd": 0.000, "paper_f_capt": 0.000},
-    {"scenario": "A2000_n65_r12_v06_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r12", "velocity_code": "v06", "spin_code": "", "paper_f_bnd": 0.395, "paper_f_capt": 0.278},
-    {"scenario": "A2000_n65_r14_v06_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r14", "velocity_code": "v06", "spin_code": "", "paper_f_bnd": 0.321, "paper_f_capt": 0.243},
-    {"scenario": "A2000_n65_r16_v06_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r16", "velocity_code": "v06", "spin_code": "", "paper_f_bnd": 0.253, "paper_f_capt": 0.213},
-    {"scenario": "A2000_n65_r18_v06_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r18", "velocity_code": "v06", "spin_code": "", "paper_f_bnd": 0.112, "paper_f_capt": 0.087},
-    {"scenario": "A2000_n65_r20_v06_no_spin", "mass_code": "A2000", "resolution_code": "n65", "periapsis_code": "r20", "velocity_code": "v06", "spin_code": "", "paper_f_bnd": 0.000, "paper_f_capt": 0.000},
-]
 
 FILENAME_RE = re.compile(
     r"^(?P<prefix>Ma_xp)_(?P<mass>A\d{4}(?:c30)?)"
